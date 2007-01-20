@@ -71,7 +71,7 @@ Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
 			[IB_ATTR_PKEY_TBL] do_pkeytbl,
 			[IB_ATTR_SLVL_TABLE] do_sl2vl,
 			[IB_ATTR_VL_ARBITRATION] do_vlarb,
-			[IB_ATTR_SMINFO] do_nothing,
+			[IB_ATTR_SMINFO] NULL,
 
 			[IB_ATTR_LAST] 0,
 			},
