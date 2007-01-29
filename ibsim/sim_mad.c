@@ -375,7 +375,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 	if (portnum > node->numports)
 		return ERR_BAD_PARAM;
 
-	if (portnum == 0 && node->type == HCA_NODE)	//according to ibspec 14.2.5.6
+	if (portnum == 0 && node->type != SWITCH_NODE)	//according to ibspec 14.2.5.6
 		portnum = port->portnum;
 
 	p = node_get_port(node, portnum);
@@ -384,8 +384,8 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 
 	if (op == IB_MAD_METHOD_SET) {	// set
 		unsigned val;
-		if (node->type == HCA_NODE && port->portnum != p->portnum)
-			return ERR_BAD_PARAM;	// on HCA can't "set" on other port
+		if (node->type != SWITCH_NODE && port->portnum != p->portnum)
+			return ERR_BAD_PARAM;	// on HCA or rtr can't "set" on other port
 		newlid = mad_get_field(data, 0, IB_PORT_LID_F);
 		if (newlid != p->lid) {
 			if (p->lid > 0 && p->lid < maxlinearcap
@@ -681,7 +681,7 @@ static int do_portcounters(Port * port, unsigned op, uint32_t unused,
 	Port *p;
 	int i;
 
-	if (node->type == HCA_NODE && portnum != port->portnum)
+	if (node->type != SWITCH_NODE && portnum != port->portnum)
 		return ERR_BAD_PARAM;	//undef_behav.
 
 	if (node->type == SWITCH_NODE && portnum > node->numports
@@ -777,7 +777,7 @@ do_extcounters(Port * port, unsigned op, uint32_t unused, uint8_t * data)
 	int i;
 
 	portnum = mad_get_field(data, 0, IB_PC_EXT_PORT_SELECT_F);
-	if (node->type == HCA_NODE && portnum != port->portnum)
+	if (node->type != SWITCH_NODE && portnum != port->portnum)
 		return ERR_BAD_PARAM;	//undef_behav.
 
 	if (node->type == SWITCH_NODE && portnum > node->numports
@@ -902,7 +902,7 @@ static Port *lid_route_MAD(Port * port, int lid)
 	if (is_port_lid(port, lid))
 		return port;
 
-	if (node->type == HCA_NODE && port_get_remote(port, &node, &port) < 0) {
+	if (node->type != SWITCH_NODE && port_get_remote(port, &node, &port) < 0) {
 		pc_add_error_xmitdiscards(port);
 		IBWARN("failed: disconnected node 0x%" PRIx64 " or port 0x%"
 		       PRIx64 "?", node->nodeguid, port->portguid);

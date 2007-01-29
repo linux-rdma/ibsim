@@ -639,7 +639,7 @@ static int parse_port(char *line, Node * node, int type, int maxports)
 		}
 		line = s + 1;
 	}
-	if (type == HCA_NODE && line && parse_port_lid_and_lmc(port, line) < 0) {
+	if (type != SWITCH_NODE && line && parse_port_lid_and_lmc(port, line) < 0) {
 		IBWARN("cannot parse lid, lmc");
 		return -1;
 	}
@@ -676,7 +676,7 @@ static int parse_ports(int fd, Node * node, int type, int maxports)
 	return lines;
 }
 
-static int parse_hca(int fd, char *line)
+static int parse_endnode(int fd, char *line, int type)
 {
 	Node *nd;
 	char *nodeid;
@@ -689,13 +689,13 @@ static int parse_hca(int fd, char *line)
 	    !(nodeid = parse_node_id(line, NULL)))
 		return 0;
 
-	if (!(nd = new_node(HCA_NODE, nodeid, nodedesc, ports)))
+	if (!(nd = new_node(type, nodeid, nodedesc, ports)))
 		return 0;
 
 	if (new_hca(nd) < 0)
 		return 0;
 
-	r = parse_ports(fd, nd, HCA_NODE, ports);
+	r = parse_ports(fd, nd, type, ports);
 
 	PDEBUG("%d ports found", r);
 
@@ -889,12 +889,16 @@ static int parse_netconf(int fd, FILE * out)
 		if (!strncmp(line, "Switch", 6))
 			r = parse_switch(fd, line);
 		else if (!strncmp(line, "Hca", 3) || !strncmp(line, "Ca", 2))
-			r = parse_hca(fd, line);
+			r = parse_endnode(fd, line, HCA_NODE);
+		else if (!strncmp(line, "Rt", 2))
+			r = parse_endnode(fd, line, ROUTER_NODE);
 		else if (!strncmp(line, "switchguid", 10))
 			r = parse_guidbase(fd, line, SWITCH_NODE);
 		else if (!strncmp(line, "hcaguids", 8) ||
 			 !strncmp(line, "caguid", 6))
 			r = parse_guidbase(fd, line, HCA_NODE);
+		else if (!strncmp(line, "rtguid", 6))
+			r = parse_guidbase(fd, line, ROUTER_NODE);
 		else if (!strncmp(line, "devid", 5))
 			r = parse_devid(fd, line);
 		else if (!strncmp(line, "width", 5))
