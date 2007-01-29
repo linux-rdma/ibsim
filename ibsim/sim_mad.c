@@ -1000,7 +1000,7 @@ static Port *next_port(Node * node, Port * port, unsigned portnum)
 		return NULL;
 	}
 	if (node->type != SWITCH_NODE)
-		portnum--;	// hca first port is 1
+		portnum--;	// hca or rtr first port is 1
 
 	port = ports + node->portsbase + portnum;
 
