@@ -405,7 +405,7 @@ static int dump_net(FILE * f, char *line)
 			continue;
 
 		fprintf(f, "\n%s %d \"%s\"",
-			node->type == SWITCH_NODE ? "Switch" : "Hca",
+			node_type_name(node->type),
 			node->numports, node->nodeid);
 		fprintf(f, "\tnodeguid %" PRIx64 "\n", node->nodeguid);
 

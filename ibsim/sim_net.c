@@ -194,6 +194,20 @@ int netdevid;
 int netwidth = DEFAULT_LINKWIDTH;
 int netspeed = DEFAULT_LINKSPEED;
 
+const char *node_type_name(unsigned type)
+{
+	switch(type) {
+	case SWITCH_NODE:
+		return "Switch";
+	case HCA_NODE:
+		return "Ca";
+	case ROUTER_NODE:
+		return "Router";
+	default:
+		return "Unknown";
+	}
+}
+
 static int new_ports(Node * node, int portnum, int firstport)
 {
 	int first, i;
@@ -277,7 +291,7 @@ static Node *new_node(int type, char *nodename, char *nodedesc, int nodeports)
 
 	if (find_node_by_guid(guids[type])) {
 		IBWARN("node %s guid %" PRIx64 " already exists",
-		       (type == SWITCH_NODE ? "Switch" : "HCA"), guids[type]);
+		       node_type_name(type), guids[type]);
 		return 0;
 	}
 
@@ -764,7 +778,7 @@ static int parse_guidbase(int fd, char *line, int type)
 	}
 	guids[type] = absguids[type] + guidbase;
 	PDEBUG("new guidbase for %s: base %" PRIx64 " current %" PRIx64,
-	       type == SWITCH_NODE ? "Switchs" : "Hcas", absguids[type],
+	       node_type_name(type), absguids[type],
 	       guids[type]);
 	return 1;
 }
