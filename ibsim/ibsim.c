@@ -388,8 +388,10 @@ static int sim_ctl(int fd)
 	}
 
 	if (sendto(fd, &ctl, sizeof ctl, 0, (struct sockaddr *)&from,
-		   sizeof from) == sizeof ctl)
-		return 0;
+		   sizeof from) != sizeof ctl) {
+		IBWARN("cannot response ctl: %m");
+		return -1;
+	}
 
 	return 0;
 }
