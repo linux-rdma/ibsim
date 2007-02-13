@@ -1,0 +1,43 @@
+# Net configuation file example
+#
+# The file defines node records as follows:
+# < node header line: >
+# < first connected port >
+# < second connected port >
+# < ... >
+# < last connected port >
+# < newlines (at least one) >
+# < next record ...>
+#
+# The header line format is as follows:
+# type(Switch|Hca)	ports(1-255)	"nodeid"(unique string)
+#
+# The connected port line format is:
+# [localport] "remoteid" [remoteport]
+#
+# The first port in the file is used as the SM port.
+#
+
+Switch	8 "Switch1"
+[1]	"Hca1"[1]
+[2]	"Hca3"[1]
+[3]	"Switch2"[3]
+[5]	"Switch2"[5]
+
+Switch 8 "Switch2"
+[1]	"Hca2"[1]
+[2]	"Hca4"[1]
+[3]	"Switch1"[3]
+[5]	"Switch1"[5]
+
+Hca	2 "Hca1"
+[1]	"Switch1"[1]
+
+Hca	2 "Hca2"
+[1]	"Switch2"[1]
+
+Hca	2 "Hca3"
+[1]	"Switch1"[2]
+
+Hca 	2 "Hca4"
+[1]	"Switch2"[2]

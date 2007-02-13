@@ -1,0 +1,6 @@
+* inet sockets support
+* transaction managenent
+  - multiple transactions per client
+  - hops simulation
+  - RMPP
+* more attributes handled

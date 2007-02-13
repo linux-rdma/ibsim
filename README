@@ -1,0 +1,101 @@
+Voltaire Infiniband Fabric Simulator - ibsim
+============================================
+
+Basic Description and main features.
+-----------------------------------
+
+ibsim emulates the fabric behavior by using MAD communication with the
+SM/SA and the PerfMgr. This simple tool is ideally suitable for various
+research, development, debug and testing tasks where IB subnet
+management is involved.
+
+For generation and reception of this MAD traffic it replaces the
+/dev/umadX file descriptor interface between libibumad and ib_umad
+kernel module by using preloaded libumad2sim.so shared library (umad2sim
+wrapper - part of ibsim distribution). This conveys MADs to/from
+SM/SA/PerfMgr to ibsim.
+
+
+   OpenSM      Diags utils    App (using libibumad)
+     |             |           |
+     V             V           |
+ libosmvendor   libibmad       |
+     |             |           |
+     V             V           V
+               libibumad
+                   |
+                   V
+                     --> LD_PRELOAD=libumad2sim.so <--> ibsim
+    ---------------------------------
+        ib stack (ib_umad.ko)
+
+
+Any libibumad based application may work with ibsim. Kernel support
+and userspace application recompilation are not required.
+
+ibsim may works locally via unix sockets or remotely via inet sockets
+(not implemented yet).
+
+As fabric topology description ibsim uses text file in the format
+compatible with ibnetdiscover command output (for examples see
+net-examples/) and it can be generated using real cluster snapshot.
+
+ibsim has simple console command interface and can simulate random
+packets drops and link up/down events. It is possible to run batch
+commands from file via pipe or named fifo.
+
+
+Building and using ibsim.
+------------------------
+
+1. cd to unpacked simulator directory.
+
+2. make ibsim and umad2sim wrapper:
+
+    $ make
+
+   Notes:
+   - by default this will build ibsim against installed in /usr/local
+     version of libib* libraries. If you like to build it against
+     development tree use IB_DEV_DIR variable (or export it into
+     environment):
+       
+       $ make IB_DEV_DIR=${HOME}/src/management
+
+   - 'make dep' and 'make clean' are available now
+
+3. run ibsim:
+
+    $ ./ibsim/ibsim -s <netfile>
+
+   , where <netfile> is network definition file, it is compatible with
+   output of ibnetdiscover command (+some more options are available as
+   well). Some examples can be found under 'net-examples' directory.
+
+   Notes:
+   - '-s' option is in order to start the IB network immediately, the
+     ibsim console may be used instead.
+   - '-h' option shows ibsim command line usage and 'help' and '?'
+     ibsim console commands show brief console help.
+
+4. run libibumad based application with preloaded umad2sim wrapper:
+
+    $ LD_PRELOAD=./umad2sim/libumad2sim.so ibnetdiscover
+
+   , or
+    
+    $ LD_PRELOAD=./umad2sim/libumad2sim.so opensm -f -
+
+   Notes:
+   - in order to run OpenSM as non-privileged user you may need to
+     export OSM_CACHE_DIR variable and to use '-f' option in order to
+     specify writable path to OpenSM log file.
+
+5. Enjoy and comment.
+
+
+Feedbacks.
+---------
+
+Please send your feedbacks and patches to the maintainer:
+Sasha Khapyorsky <sashak@voltaire.com>

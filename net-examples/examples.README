@@ -1,0 +1,10 @@
+As fabric topology description ibsim uses text file in the format
+compatible with ibnetdiscover command output and it can be generated
+using real cluster snapshot. Just like:
+
+  ibnetdiscover > ibnet.out
+
+Some useful extensions (must be at beginning of line) are:
+'include <file-name>' - includes named topology file
+'do <ibsim-command>' - executes ibsim console command during the
+                       topology file parsing
