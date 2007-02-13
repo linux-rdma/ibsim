@@ -35,6 +35,7 @@ dep:
 
 clean:
 	$(RM) $(objs) $(libs) $(progs)
+	$(RM) .build_profile
 	$(RM) *.o *.a *.so *~
 
 $(objs): .build_profile
