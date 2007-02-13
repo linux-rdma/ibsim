@@ -700,7 +700,7 @@ int main(int argc, char **argv)
 
 	sim_init_console(outfile);
 
-	sim_run(0);
+	sim_run(fileno(outfile));
 
 	exit(0);
 }
