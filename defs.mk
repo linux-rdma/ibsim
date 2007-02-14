@@ -1,4 +1,6 @@
 
+prefix:=/usr/local/ofed
+
 #IB_DEV_DIR:=$(HOME)/src/p
 ifdef IB_DEV_DIR
  INCS:= $(foreach l, mad umad common, -I$(IB_DEV_DIR)/libib$(l)/include) \
@@ -6,8 +8,15 @@ ifdef IB_DEV_DIR
  LIBS:= \
   $(foreach l, mad umad common, $(IB_DEV_DIR)/libib$(l)/.libs/libib$(l).so)
 else
- INCS:= -I/usr/local/include
- LIBS:= -L/usr/local/lib -libmad -libumad -libcommon
+ libpath:= \
+    $(if $(wildcard $(prefix)/lib/libibumad.so),$(prefix)/lib,\
+    $(if $(wildcard $(prefix)/lib64/libibumad.so),$(prefix)/lib64,\
+    $(if $(wildcard /usr/local/lib/libibumad.so),/usr/local/lib,\
+    $(if $(wildcard /usr/local/lib64/libibumad.so),/usr/local/lib64,\
+    $(if $(wildcard /usr/lib),/usr/lib,\
+    $(if $(wildcard /usr/lib64),/usr/lib64,/tmp/unknown))))))
+ INCS:= -I$(dir $(libpath))/include
+ LIBS:= -L$(libpath) -libmad -libumad -libcommon
 endif
 
 CFLAGS:= -Wall -g -fpic -I. -I../include $(INCS)
