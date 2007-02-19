@@ -33,16 +33,18 @@ if [ -z "$debug" ] ; then
 	rc=$?
 	exit $rc
 else
-	test -f .gdbinit && mv .gdbinit gdbinit-saved
-	echo > .gdbinit
-	echo set environment SIM_HOST ${SIM_HOST} >> .gdbinit
-	echo set environment OSM_TMP_DIR ${OSM_TMP_DIR} >> .gdbinit
-	echo set environment OSM_CACHE_DIR ${OSM_CACHE_DIR} >> .gdbinit
-	echo set environment LD_PRELOAD ${umad2sim} >> .gdbinit
-	echo handle SIGHUP noprint nostop pass >> .gdbinit
-	echo handle SIGTERM print stop pass >> .gdbinit
-	#echo break sim_client_init >> .gdbinit
-	echo break main >> .gdbinit
-	echo run ${cmd_args} >> .gdbinit
-	gdb ${cmd}
+	#cmd_file=.gdbinit
+	cmd_file=ibsim-gdb-init
+	test -f ${cmd_file} && mv ${cmd_file} ${cmd_file}-saved
+	echo > ${cmd_file}
+	echo set environment SIM_HOST ${SIM_HOST} >> ${cmd_file}
+	echo set environment OSM_TMP_DIR ${OSM_TMP_DIR} >> ${cmd_file}
+	echo set environment OSM_CACHE_DIR ${OSM_CACHE_DIR} >> ${cmd_file}
+	echo set environment LD_PRELOAD ${umad2sim} >> ${cmd_file}
+	echo handle SIGHUP noprint nostop pass >> ${cmd_file}
+	echo handle SIGTERM print stop pass >> ${cmd_file}
+	#echo break sim_client_init >> ${cmd_file}
+	echo break main >> ${cmd_file}
+	echo run ${cmd_args} >> ${cmd_file}
+	gdb --command=${cmd_file} ${cmd}
 fi
