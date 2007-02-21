@@ -33,7 +33,6 @@ if [ -z "$debug" ] ; then
 	rc=$?
 	exit $rc
 else
-	#cmd_file=.gdbinit
 	cmd_file=ibsim-gdb-init
 	test -f ${cmd_file} && mv ${cmd_file} ${cmd_file}-saved
 	echo > ${cmd_file}
@@ -42,6 +41,7 @@ else
 	echo set environment OSM_CACHE_DIR ${OSM_CACHE_DIR} >> ${cmd_file}
 	echo set environment LD_PRELOAD ${umad2sim} >> ${cmd_file}
 	echo handle SIGHUP noprint nostop pass >> ${cmd_file}
+	echo handle SIGUSR1 noprint nostop pass >> ${cmd_file}
 	echo handle SIGTERM print stop pass >> ${cmd_file}
 	#echo break sim_client_init >> ${cmd_file}
 	echo break main >> ${cmd_file}
