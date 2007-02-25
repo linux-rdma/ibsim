@@ -964,7 +964,7 @@ int read_netconf(char *name, FILE * out)
 				incfiles[i], inclines[i]);
 		IBPANIC("parsing failed");
 	}
-	fprintf(out, "%s: parsed lines %d\n", name, inclines[inclevel]);
+	fprintf(out, "%s: parsed %d lines\n", name, inclines[inclevel]);
 	return r;
 }
 
