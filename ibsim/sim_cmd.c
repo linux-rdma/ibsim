@@ -702,7 +702,7 @@ int do_cmd(char *buf, void *v)
 		break;
 	case 'q':
 	case 'Q':
-		fprintf(f, "Network simulator aborted.\n");
+		fprintf(f, "Exiting network simulator.\n");
 		exit(0);
 		break;
 	case 'h':
