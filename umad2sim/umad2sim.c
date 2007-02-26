@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Voltaire, Inc. All rights reserved.
+ * Copyright (c) 2006,2007 Voltaire, Inc. All rights reserved.
  *
  * This file is part of ibsim.
  *
