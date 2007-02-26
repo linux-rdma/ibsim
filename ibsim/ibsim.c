@@ -608,7 +608,7 @@ void usage(char *prog_name)
 {
 	fprintf(stderr,
 		"Usage: %s [-f outfile -d debug_level -p parse_debug -s(tart) -v(erbose) "
-		"-I(gnore_duplicate) -N nodes -S switchs -P ports -L linearcap] <netfile>\n",
+		"-I(gnore_duplicate) -N nodes -S switches -P ports -L linearcap] <netfile>\n",
 		prog_name);
 	fprintf(stderr, "%s %s\n", prog_name, get_build_version());
 

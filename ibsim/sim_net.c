@@ -234,15 +234,15 @@ static Switch *new_switch(Node * nd)
 	Switch *sw;
 
 	if (netswitchs >= maxnetswitchs) {
-		IBPANIC("no more switchs (max %d)", maxnetswitchs);
+		IBPANIC("no more switches (max %d)", maxnetswitchs);
 		return 0;
 	}
 
 	sw = switchs + netswitchs++;
 
 	sw->node = nd;
-	sw->linearcap = maxlinearcap;	// assume identical val for all switchs
-	sw->multicastcap = maxmcastcap;	// assume identical val for all switchs
+	sw->linearcap = maxlinearcap;	// assume identical val for all switches
+	sw->multicastcap = maxmcastcap;	// assume identical val for all switches
 	memcpy(sw->switchinfo, switchinfo, sizeof(sw->switchinfo));
 	mad_set_field(sw->switchinfo, 0, IB_SW_LINEAR_FDB_CAP_F, sw->linearcap);
 	mad_set_field(sw->switchinfo, 0, IB_SW_MCAST_FDB_CAP_F,
