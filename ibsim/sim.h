@@ -44,7 +44,7 @@
 #define MAXNETALIASES	MAXNETPORTS
 
 #define MAXLINEARCAP	(30*1024)
-#define MAXMCASTCAP	64
+#define MAXMCASTCAP	1024
 #define LASTBLOCK32	(MAXMCASTCAP/32-1)
 // NUMBEROFPORTMASK means that 32port switches could only be build
 #define	NUMBEROFPORTMASK 2
