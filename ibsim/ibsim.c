@@ -73,6 +73,7 @@ extern int maxnetnodes;
 extern int maxnetswitchs;
 extern int maxnetports;
 extern int maxlinearcap;
+extern int maxmcastcap;
 extern int maxnetaliases;
 extern int ignoreduplicate;
 
@@ -492,6 +493,7 @@ static int sim_init_console(FILE *out)
 	fprintf(simout, "MaxNetSwitches = %d\n", maxnetswitchs);
 	fprintf(simout, "MaxNetPorts    = %d\n", maxnetports);
 	fprintf(simout, "MaxLinearCap   = %d\n", maxlinearcap);
+	fprintf(simout, "MaxMcastCap    = %d\n", maxmcastcap);
 	fprintf(simout, "sim%s> ", netstarted ? "" : " (inactive)");
 	fflush(simout);
 	return 0;
