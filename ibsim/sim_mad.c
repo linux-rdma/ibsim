@@ -822,8 +822,12 @@ static char *pathstr(int lid, ib_dr_path_t * path)
 		sprintf(s, "lid 0x%x", lid);
 		return buf;
 	}
-	for (i = 0; i < path->cnt + 1; i++)
-		s += sprintf(s, "[%d]", path->p[i]);
+	for (i = 0; i < path->cnt + 1; i++) {
+		if (i == 0)
+			s += sprintf(s, "%d", path->p[i]);
+		else
+			s += sprintf(s, ",%d", path->p[i]);
+	}
 
 	return buf;
 }
