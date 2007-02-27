@@ -412,7 +412,7 @@ static int sim_read_pkt(int fd, int client)
 			return size;
 
 		if ((size = process_packet(cl, buf, size, &dcl)) < 0) {
-			IBWARN("process packet error - discarded.");
+			IBWARN("process packet error - discarded");
 			continue;	// not a network error
 		}
 
