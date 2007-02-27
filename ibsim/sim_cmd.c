@@ -46,7 +46,7 @@
 
 #undef DEBUG
 #define PDEBUG	if (parsedebug) IBWARN
-#define DEBUG	if (simverb > 1|| ibdebug) IBWARN
+#define DEBUG	if (simverb > 1 || ibdebug) IBWARN
 
 extern Node *nodes;
 extern Switch *switchs;
@@ -646,7 +646,7 @@ static int dump_help(FILE * f)
 		"\tError \"nodeid\"[port] <error-rate>: set error rate for port/node\n");
 	fprintf(f,
 		"\tBaselid \"nodeid\"[port] <lid> [lmc] : change port's lid (lmc)\n");
-	fprintf(f, "\tVerbose [newlevel] - show/set simulator vebosity\n");
+	fprintf(f, "\tVerbose [newlevel] - show/set simulator verbosity\n");
 	fprintf(f, "\t\t\t0 - silent\n");
 	fprintf(f, "\t\t\t1 - debug verbose\n");
 	fprintf(f, "\tWait <sec> : suspend simulator prompt\n");
