@@ -1189,7 +1189,8 @@ int readline(int fd, char *buf, int sz)
 		i++;
 	} else
 		*buf = 0;
-	inclines[inclevel > 0 ? inclevel - 1 : 0]++;
+	if (i)
+		inclines[inclevel > 0 ? inclevel - 1 : 0]++;
 	return i;
 }
 
