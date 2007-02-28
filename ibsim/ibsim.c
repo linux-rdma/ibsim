@@ -620,6 +620,7 @@ void usage(char *prog_name)
 int main(int argc, char **argv)
 {
 	extern int alloc_core(void);
+	extern void free_core(void);
 	char *outfname = 0, *netfile;
 	FILE *outfile;
 
@@ -707,6 +708,8 @@ int main(int argc, char **argv)
 	sim_init_console(outfile);
 
 	sim_run(fileno(outfile));
+
+	free_core();
 
 	exit(0);
 }

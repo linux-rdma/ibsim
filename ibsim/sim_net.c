@@ -1285,3 +1285,21 @@ int alloc_core(void)
 		return -1;
 	return 0;
 }
+
+void free_core(void)
+{
+	unsigned i;
+	free(aliases);
+	free(lids);
+	for (i = 0; i < maxnetports ; i++) {
+		if (ports[i].pkey_tbl)
+			free(ports[i].pkey_tbl);
+		if (ports[i].sl2vl)
+			free(ports[i].sl2vl);
+	}
+	free(ports);
+	for (i = 0; i < maxnetswitchs ; i++) {
+	}
+	free(switchs);
+	free(nodes);
+}
