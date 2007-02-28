@@ -610,7 +610,7 @@ void usage(char *prog_name)
 {
 	fprintf(stderr,
 		"Usage: %s [-f outfile -d debug_level -p parse_debug -s(tart) -v(erbose) "
-		"-I(gnore_duplicate) -N nodes -S switches -P ports -L linearcap] <netfile>\n",
+		"-I(gnore_duplicate) -N nodes -S switches -P ports -L linearcap -M mcastcap] <netfile>\n",
 		prog_name);
 	fprintf(stderr, "%s %s\n", prog_name, get_build_version());
 
@@ -623,13 +623,14 @@ int main(int argc, char **argv)
 	char *outfname = 0, *netfile;
 	FILE *outfile;
 
-	static char const str_opts[] = "f:dpvIsN:S:P:L:Vhu";
+	static char const str_opts[] = "f:dpvIsN:S:P:L:M:Vhu";
 	static const struct option long_opts[] = {
 		{"file", 1, 0, 'f'},
 		{"Nodes", 1, 0, 'N'},
 		{"Switches", 1, 0, 'S'},
 		{"Ports", 1, 0, 'P'},
 		{"Linearcap", 1, 0, 'L'},
+		{"Mcastcap", 1, 0, 'M'},
 		{"Ignoredups", 0, 0, 'I'},
 		{"start", 0, 0, 's'},
 		{"debug", 0, 0, 'd'},
@@ -675,6 +676,9 @@ int main(int argc, char **argv)
 			break;
 		case 'L':
 			maxlinearcap = strtoul(optarg, 0, 0);
+			break;
+		case 'M':
+			maxmcastcap = strtoul(optarg, 0, 0);
 			break;
 		case 'V':
 		default:
