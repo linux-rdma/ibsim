@@ -229,7 +229,7 @@ static int new_ports(Node * node, int portnum, int firstport)
 	return first;
 }
 
-static Switch *new_switch(Node * nd)
+static Switch *new_switch(Node * nd, int set_esp0)
 {
 	Switch *sw;
 
@@ -248,6 +248,9 @@ static Switch *new_switch(Node * nd)
 	mad_set_field(sw->switchinfo, 0, IB_SW_MCAST_FDB_CAP_F,
 		      sw->multicastcap);
 	memset(sw->fdb, 0xff, sizeof(sw->fdb));
+	if (set_esp0)
+		mad_set_field(sw->switchinfo, 0, IB_SW_ENHANCED_PORT0_F,
+			      set_esp0 > 0);
 	return sw;
 }
 
@@ -394,6 +397,16 @@ static int is_linkspeed_valid(int speed)
 		return 0;
 	}
 	return 1;
+}
+
+static int parse_switch_esp0(char *line)
+{
+	if (strstr(line, "enhanced port 0"))
+		return 1;
+	else if (strstr(line, "base port 0"))
+		return -1;
+	else
+		return 0;
 }
 
 static int parse_port_lid_and_lmc(Port * port, char *line)
@@ -730,7 +743,7 @@ static int parse_switch(int fd, char *line)
 	Port *port;
 	char *nodeid;
 	char *nodedesc;
-	int nports, r;
+	int nports, r, esp0;
 
 	if (!(nports = parse_node_ports(line + 6)) ||
 	    !(nodeid = parse_node_id(line, &line)))
@@ -741,7 +754,10 @@ static int parse_switch(int fd, char *line)
 	if (!(nd = new_node(SWITCH_NODE, nodeid, nodedesc, nports)))
 		return 0;
 
-	if (!(sw = new_switch(nd)))
+	if (line)
+		esp0 = parse_switch_esp0(line);
+
+	if (!(sw = new_switch(nd, esp0)))
 		return 0;
 
 	nd->sw = sw;
