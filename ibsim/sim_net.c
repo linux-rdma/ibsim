@@ -247,10 +247,18 @@ static Switch *new_switch(Node * nd, int set_esp0)
 	mad_set_field(sw->switchinfo, 0, IB_SW_LINEAR_FDB_CAP_F, sw->linearcap);
 	mad_set_field(sw->switchinfo, 0, IB_SW_MCAST_FDB_CAP_F,
 		      sw->multicastcap);
-	memset(sw->fdb, 0xff, sizeof(sw->fdb));
 	if (set_esp0)
 		mad_set_field(sw->switchinfo, 0, IB_SW_ENHANCED_PORT0_F,
 			      set_esp0 > 0);
+	sw->fdb = malloc(maxlinearcap*sizeof(sw->fdb[0]));
+	sw->mfdb = malloc(maxmcastcap*NUMBEROFPORTMASK*sizeof(uint16_t));
+	if (!sw->fdb || !sw->mfdb) {
+		IBPANIC("new_switch: no mem: %m");
+		return NULL;
+	}
+	memset(sw->fdb, 0xff, maxlinearcap*sizeof(sw->fdb[0]));
+	memset(sw->mfdb, 0, maxmcastcap*NUMBEROFPORTMASK*sizeof(uint16_t));
+
 	return sw;
 }
 
@@ -1299,6 +1307,10 @@ void free_core(void)
 	}
 	free(ports);
 	for (i = 0; i < maxnetswitchs ; i++) {
+		if (switchs[i].fdb)
+			free(switchs[i].fdb);
+		if (switchs[i].mfdb)
+			free(switchs[i].mfdb);
 	}
 	free(switchs);
 	free(nodes);

@@ -216,10 +216,10 @@ struct Switch {
 	int linearFDBtop;
 	int portchange;
 	int lifetime;
-	uint8_t fdb[MAXLINEARCAP];
-	uint8_t mfdb[NUMBEROFPORTMASK * MAXMCASTCAP * sizeof(uint16_t)];
 	uint8_t switchinfo[64];
 	Node *node;
+	uint8_t *fdb;
+	uint8_t *mfdb;
 };
 
 struct Node {
