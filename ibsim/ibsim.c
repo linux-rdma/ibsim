@@ -70,7 +70,7 @@ FILE *simout;
 char *simnetfile;
 
 extern int maxnetnodes;
-extern int maxnetswitchs;
+extern int maxnetswitches;
 extern int maxnetports;
 extern int maxlinearcap;
 extern int maxmcastcap;
@@ -490,7 +490,7 @@ static int sim_init_console(FILE *out)
 	fprintf(simout, "########################\n");
 	fprintf(simout, "Network simulator ready.\n");
 	fprintf(simout, "MaxNetNodes    = %d\n", maxnetnodes);
-	fprintf(simout, "MaxNetSwitches = %d\n", maxnetswitchs);
+	fprintf(simout, "MaxNetSwitches = %d\n", maxnetswitches);
 	fprintf(simout, "MaxNetPorts    = %d\n", maxnetports);
 	fprintf(simout, "MaxLinearCap   = %d\n", maxlinearcap);
 	fprintf(simout, "MaxMcastCap    = %d\n", maxmcastcap);
@@ -670,7 +670,7 @@ int main(int argc, char **argv)
 			maxnetnodes = strtoul(optarg, 0, 0);
 			break;
 		case 'S':
-			maxnetswitchs = strtoul(optarg, 0, 0);
+			maxnetswitches = strtoul(optarg, 0, 0);
 			break;
 		case 'P':
 			maxnetports = strtoul(optarg, 0, 0);

@@ -49,7 +49,7 @@
 #define DEBUG	if (simverb > 1 || ibdebug) IBWARN
 
 extern Node *nodes;
-extern Switch *switchs;
+extern Switch *switches;
 extern Port *ports;
 extern Port **lids;
 extern int netnodes, netports, netswitches;

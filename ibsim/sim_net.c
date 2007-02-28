@@ -175,7 +175,7 @@ uint64_t absguids[NODE_TYPES] = { ~0, 0x100000, 0x200000 };
 uint64_t guids[NODE_TYPES] = { ~0, 0x100000, 0x200000 };
 
 int maxnetnodes = MAXNETNODES;
-int maxnetswitchs = MAXNETSWITCHS;
+int maxnetswitches = MAXNETSWITCHS;
 int maxnetports = MAXNETPORTS;
 int maxlinearcap = MAXLINEARCAP;
 int maxmcastcap = MAXMCASTCAP;
@@ -183,12 +183,12 @@ int maxnetaliases = MAXNETALIASES;
 int ignoreduplicate = 0;
 
 Node *nodes;
-Switch *switchs;
+Switch *switches;
 Port *ports;
 Port **lids;
 char (*aliases)[NODEIDLEN + NODEPREFIX + 1];	// aliases map format: "%s@%s"
 
-int netnodes, netswitchs, netports, netaliases;
+int netnodes, netswitches, netports, netaliases;
 char netprefix[NODEPREFIX + 1];
 int netdevid;
 int netwidth = DEFAULT_LINKWIDTH;
@@ -233,12 +233,12 @@ static Switch *new_switch(Node * nd, int set_esp0)
 {
 	Switch *sw;
 
-	if (netswitchs >= maxnetswitchs) {
-		IBPANIC("no more switches (max %d)", maxnetswitchs);
+	if (netswitches >= maxnetswitches) {
+		IBPANIC("no more switches (max %d)", maxnetswitches);
 		return 0;
 	}
 
-	sw = switchs + netswitchs++;
+	sw = switches + netswitches++;
 
 	sw->node = nd;
 	sw->linearcap = maxlinearcap;	// assume identical val for all switches
@@ -1283,7 +1283,7 @@ int alloc_core(void)
 {
 	if (!(nodes = calloc(maxnetnodes, sizeof(*nodes))))
 		return -1;
-	if (!(switchs = calloc(maxnetswitchs, sizeof(*switchs))))
+	if (!(switches = calloc(maxnetswitches, sizeof(*switches))))
 		return -1;
 	if (!(ports = calloc(maxnetports, sizeof(*ports))))
 		return -1;
@@ -1306,12 +1306,12 @@ void free_core(void)
 			free(ports[i].sl2vl);
 	}
 	free(ports);
-	for (i = 0; i < maxnetswitchs ; i++) {
-		if (switchs[i].fdb)
-			free(switchs[i].fdb);
-		if (switchs[i].mfdb)
-			free(switchs[i].mfdb);
+	for (i = 0; i < maxnetswitches ; i++) {
+		if (switches[i].fdb)
+			free(switches[i].fdb);
+		if (switches[i].mfdb)
+			free(switches[i].mfdb);
 	}
-	free(switchs);
+	free(switches);
 	free(nodes);
 }
