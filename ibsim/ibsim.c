@@ -524,7 +524,7 @@ static int sim_run(int con_fd)
 		return -1;
 
 	while (!netstarted)
-		sleep(2);
+		sim_run_console(con_fd);
 
 	for (;;) {
 		FD_ZERO(&rfds);
