@@ -352,15 +352,16 @@ static char *parse_node_id(char *buf, char **rest_buf)
 	return s + 1;
 }
 
-static char *parse_node_desc(char *buf, char **rest_buf)
+static char *parse_node_desc(char *s, char **rest_buf)
 {
-	char *s, *e = 0;
+	char *e = 0;
 
-	while (*s != '#')
-		s++;
-	s++;
-	while (isspace(*s))
-		s++;
+	*rest_buf = s;
+	s = strchr(s, '#');
+	if (!s)
+		return NULL;
+	while (isspace(*++s))
+		;
 	if (*s == '\"') {
 		s++;
 		if ((e = strchr(s, '\"')))
@@ -701,9 +702,10 @@ static int parse_endnode(int fd, char *line, int type)
 	int ports, r;
 
 	if (!(ports = parse_node_ports(line + 3)) ||
-	    !(nodeid = parse_node_id(line, &line)) ||
-	    !(nodedesc = parse_node_desc(line, &line)))
+	    !(nodeid = parse_node_id(line, &line)))
 		return 0;
+
+	nodedesc = parse_node_desc(line, &line);
 
 	if (!(nd = new_node(type, nodeid, nodedesc, ports)))
 		return 0;
@@ -731,9 +733,10 @@ static int parse_switch(int fd, char *line)
 	int nports, r;
 
 	if (!(nports = parse_node_ports(line + 6)) ||
-	    !(nodeid = parse_node_id(line, &line)) ||
-	    !(nodedesc = parse_node_desc(line, &line)))
+	    !(nodeid = parse_node_id(line, &line)))
 		return 0;
+
+	nodedesc = parse_node_desc(line, &line);
 
 	if (!(nd = new_node(SWITCH_NODE, nodeid, nodedesc, nports)))
 		return 0;
