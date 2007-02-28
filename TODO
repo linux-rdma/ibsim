@@ -4,3 +4,5 @@
   - hops simulation
   - RMPP
 * more attributes handled
+* MKey support
+* cleaner (less) debug/warning messages
