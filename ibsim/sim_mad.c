@@ -1180,7 +1180,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 
 	port = route_MAD(port, 1, ntohs(r->dlid), &path);
 	if (!port || cl->port->node != port->node) {
-		VERB("PKT roll back not succeeded");
+		VERB("PKT roll back did not succeed");
 		goto _dropped;
 	}
 	return sizeof(*r);
@@ -1193,8 +1193,11 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 
 static int encode_trap128(Port * port, char *data)
 {
-	if (!port->lid || !port->smlid || port->node->type != SWITCH_NODE) {
-		VERB("trap 128 supported for switches only");
+	if (port->node->type != SWITCH_NODE)
+		return -1;
+	if (!port->lid || !port->smlid) {
+		VERB("switch trap 128 for lid %d with smlid %d",
+		     port->lid, port->smlid);
 		return -1;
 	}
 
