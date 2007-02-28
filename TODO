@@ -6,3 +6,4 @@
 * more attributes handled
 * MKey support
 * cleaner (less) debug/warning messages
+* support for combined routing
