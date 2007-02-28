@@ -300,10 +300,10 @@ static Node *new_node(int type, char *nodename, char *nodedesc, int nodeports)
 	nd->type = type;
 	nd->numports = nodeports;
 	strncpy(nd->nodeid, nodeid, NODEIDLEN - 1);
-	if (nodedesc[0] == 0)
-		strncpy(nd->nodedesc, nodeid, NODEIDLEN - 1);
-	else
+	if (nodedesc && nodedesc[0])
 		strncpy(nd->nodedesc, nodedesc, NODEIDLEN - 1);
+	else
+		strncpy(nd->nodedesc, nodeid, NODEIDLEN - 1);
 	nd->sysguid = nd->nodeguid = guids[type];
 	if (type == SWITCH_NODE) {
 		nodeports++;	// port 0 is SMA
@@ -352,19 +352,26 @@ static char *parse_node_id(char *buf, char **rest_buf)
 	return s + 1;
 }
 
-static int parse_node_desc(char *buf, char *nodedesc)
+static char *parse_node_desc(char *buf, char **rest_buf)
 {
 	char *s, *e = 0;
 
-	if (!(s = strchr(buf, '#')) || !(s = strchr(s + 1, '"'))
-	    || !(e = strchr(s + 1, '"'))) {
-		*nodedesc = 0;
-		return 0;
-	}
-
-	memcpy(nodedesc, s + 1, e - s - 1);
-	nodedesc[e - s - 1] = 0;
-	return 1;
+	while (*s != '#')
+		s++;
+	s++;
+	while (isspace(*s))
+		s++;
+	if (*s == '\"') {
+		s++;
+		if ((e = strchr(s, '\"')))
+			*e = '\0';
+	} else if ((e = strstr(s, " enhanced port ")) ||
+	    (e = strstr(s, " base port ")) ||
+	    (e = strstr(s, " lid ")) ||
+	    (e = strstr(s, " lmc ")))
+		*e++ = '\0';
+	*rest_buf = e;
+	return s;
 }
 
 static int is_linkwidth_valid(int width)
@@ -392,10 +399,6 @@ static int parse_port_lid_and_lmc(Port * port, char *line)
 {
 	char *s;
 
-	if (!(line = strchr(line, '#')))
-		return 0;
-	while (*line == '#')
-		line++;
 	if ((s = strstr(line, "lid "))) {
 		s += 4;
 		port->lid = strtoul(s, NULL, 0);
@@ -694,13 +697,12 @@ static int parse_endnode(int fd, char *line, int type)
 {
 	Node *nd;
 	char *nodeid;
-	char nodedesc[NODEIDLEN];
+	char *nodedesc;
 	int ports, r;
 
-	parse_node_desc(line, nodedesc);
-
 	if (!(ports = parse_node_ports(line + 3)) ||
-	    !(nodeid = parse_node_id(line, NULL)))
+	    !(nodeid = parse_node_id(line, &line)) ||
+	    !(nodedesc = parse_node_desc(line, &line)))
 		return 0;
 
 	if (!(nd = new_node(type, nodeid, nodedesc, ports)))
@@ -725,13 +727,12 @@ static int parse_switch(int fd, char *line)
 	Switch *sw;
 	Port *port;
 	char *nodeid;
-	char nodedesc[NODEIDLEN];
+	char *nodedesc;
 	int nports, r;
 
-	parse_node_desc(line, nodedesc);
-
 	if (!(nports = parse_node_ports(line + 6)) ||
-	    !(nodeid = parse_node_id(line, &line)))
+	    !(nodeid = parse_node_id(line, &line)) ||
+	    !(nodedesc = parse_node_desc(line, &line)))
 		return 0;
 
 	if (!(nd = new_node(SWITCH_NODE, nodeid, nodedesc, nports)))
