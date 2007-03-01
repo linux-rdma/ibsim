@@ -703,6 +703,7 @@ int do_cmd(char *buf, void *v)
 	case 'q':
 	case 'Q':
 		fprintf(f, "Exiting network simulator.\n");
+		free_core();
 		exit(0);
 		break;
 	case 'h':
