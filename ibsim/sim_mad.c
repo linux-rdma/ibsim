@@ -100,6 +100,16 @@ extern Port **lids;
 extern int netnodes, netports, netswitches;
 extern int maxlinearcap;
 
+static uint64_t update_trid(uint8_t *mad, unsigned response, Client *cl)
+{
+	uint64_t trid = mad_get_field64(mad, 0, IB_MAD_TRID_F);
+	if (!response) {
+		trid = (trid&0xffffffffULL)|(((uint64_t)cl->id)<<32);
+		mad_set_field64(mad, 0, IB_MAD_TRID_F, trid);
+	}
+	return trid;
+}
+
 static int decode_sim_MAD(Client * cl, struct sim_request * r, ib_rpc_t * rpc,
 			  ib_dr_path_t * path, void *data)
 {
@@ -128,10 +138,7 @@ static int decode_sim_MAD(Client * cl, struct sim_request * r, ib_rpc_t * rpc,
 		r->slid = htons(cl->port->lid);
 
 	// words 3,4,5,6
-	rpc->trid = mad_get_field64(buf, 0, IB_MAD_TRID_F);
-
-	if (!response)
-		cl->trid = rpc->trid;
+	rpc->trid = update_trid(buf, response, cl);
 
 	rpc->attr.id = mad_get_field(buf, 0, IB_MAD_ATTRID_F);
 	rpc->attr.mod = mad_get_field(buf, 0, IB_MAD_ATTRMOD_F);

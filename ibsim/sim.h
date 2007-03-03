@@ -245,7 +245,6 @@ struct Client {
 	Port *port;
 	int qp;
 	int issm;
-	uint64_t trid;		// last trid
 	int outfd;
 };
 

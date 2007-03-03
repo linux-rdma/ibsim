@@ -578,28 +578,33 @@ int disconnect_client(FILE * out, int id)
 	return 0;
 }
 
+static Client *client_by_trid(Port *port, uint64_t trid)
+{
+	unsigned i = (unsigned)(trid >> 32);
+	if (i < IBSIM_MAX_CLIENTS && clients[i].pid &&
+	    clients[i].port->portguid == port->portguid)
+		return &clients[i];
+	return NULL;
+}
+
 Client *find_client(Port * port, int response, int qp, uint64_t trid)
 {
 	Client *cl, *e;
 
-	if (port)
-		DEBUG("port %" PRIx64 " res %d qp %d trid %" PRIx64,
-		      port->portguid, response, qp, trid);
+	DEBUG("port %" PRIx64 " res %d qp %d trid %" PRIx64,
+	      port->portguid, response, qp, trid);
+	// response - match trids
+	if (response && (cl = client_by_trid(port, trid)))
+		return cl;
 	for (cl = clients, e = cl + IBSIM_MAX_CLIENTS; cl < e; cl++) {
-		if (!cl->pid)
-			continue;
-		if (cl->port->portguid != port->portguid)
+		if (!cl->pid || cl->port->portguid != port->portguid)
 			continue;
 		// if there is a non zero/1 qp (sma/sa) - match qps
-		if (qp > 1 && qp == cl->qp)
-			return cl;
-		if (qp > 1)
-			continue;
+		if (qp > 1) {
+			if (qp == cl->qp)
+				return cl;
 		// zero qp - only issm clients may get requests
-		if (!response && cl->issm)
-			return cl;
-		// response - match trids
-		if (response && trid == cl->trid)
+		} else if (!response && cl->issm)
 			return cl;
 	}
 	DEBUG("no client found");
