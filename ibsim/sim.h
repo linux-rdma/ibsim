@@ -38,7 +38,7 @@
 #include <infiniband/common.h>
 #include <infiniband/mad.h>
 
-#define MAXNETNODES	1024
+#define MAXNETNODES	2048
 #define MAXNETSWITCHS	256
 #define MAXNETPORTS	(MAXNETSWITCHS*24+MAXNETNODES*2)
 #define MAXNETALIASES	MAXNETPORTS
