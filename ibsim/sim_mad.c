@@ -1140,7 +1140,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 	}
 
 	if (!(port = route_MAD(cl->port, response, ntohs(r->dlid), &path))) {
-		IBWARN("routing failed: no route to dest lid %d %s",
+		IBWARN("routing failed: no route to dest lid %d path %s",
 		       ntohs(r->dlid), pathstr(0, &path));
 		goto _dropped;
 	}
