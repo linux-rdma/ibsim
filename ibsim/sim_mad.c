@@ -1272,7 +1272,7 @@ int send_trap(Port * port, int trapnum)
 		fflush(stdout);
 	}
 
-	if (write(cl->outfd, &req, sizeof(req)) == sizeof(req))
+	if (write(cl->fd, &req, sizeof(req)) == sizeof(req))
 		return 0;
 
 	IBWARN("write failed: %m - pkt dropped");

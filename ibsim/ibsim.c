@@ -62,7 +62,6 @@ int ibdebug;
 int parsedebug;
 int simverb;
 
-int netcon[IBSIM_MAX_CLIENTS];
 Client clients[IBSIM_MAX_CLIENTS];
 int simctl = -1;
 int maxfd;
@@ -111,7 +110,7 @@ static int sim_init_conn(char *basename)
 		IBPANIC("can't set non blocking flags for ctl");
 
 	for (i = 0; i < IBSIM_MAX_CLIENTS; i++) {
-		fd = netcon[i] = socket(PF_LOCAL, SOCK_DGRAM, 0);
+		fd = socket(PF_LOCAL, SOCK_DGRAM, 0);
 		if (fd < 0)
 			IBPANIC("can't create socket for conn %d", i);
 		if (maxfd < fd)
@@ -128,6 +127,8 @@ static int sim_init_conn(char *basename)
 			        "client conn %d", i);
 
 		DEBUG("opening net connection fd %d %s", fd, name.sun_path + 1);
+
+		clients[i].fd = fd;
 	}
 	return 0;
 }
@@ -153,7 +154,7 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl)
 	Node *node;
 	struct sim_client_info *scl = (void *)ctl->data;
 	int id = scl->id;
-	int i, fd = -1;
+	int i;
 
 	DEBUG("connecting client pid %d", id);
 
@@ -164,7 +165,7 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl)
 			break;
 	}
 
-	if (i >= IBSIM_MAX_CLIENTS || (fd = netcon[i]) <= 0) {
+	if (i >= IBSIM_MAX_CLIENTS) {
 		IBWARN("can't open new connection for client pid %d", id);
 		ctl->type = SIM_CTL_ERROR;
 		return -1;
@@ -200,20 +201,20 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl)
 
 	sprintf(name.sun_path + 1, "%s:in%d", SIM_BASENAME, id);
 
-	if (connect(fd, (struct sockaddr *)&name, sizeof(name)) < 0)
+	if (connect(cl->fd, (struct sockaddr *)&name, sizeof(name)) < 0)
 		IBPANIC("can't connect to in socket %s - fd %d client pid %d",
-			name.sun_path + 1, fd, id);
+			name.sun_path + 1, cl->fd, id);
 
 	cl->pid = id;
 	cl->id = i;
 	cl->qp = scl->qp;
 	cl->issm = scl->issm;
-	cl->outfd = fd;
 
 	strncpy(scl->nodeid, cl->port->node->nodeid, sizeof(scl->nodeid) - 1);
 
 	scl->id = i;
-	DEBUG("client %d (%s) is connected - fd %d", i, name.sun_path + 1, fd);
+	DEBUG("client %d (%s) is connected - fd %d",
+	      i, name.sun_path + 1, cl->fd);
 
 	return 1;
 }
@@ -221,10 +222,9 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl)
 static int sim_ctl_disconnect_client(Client * cl, struct sim_ctl * ctl)
 {
 	int client = ctl->clientid;
-	int fd = -1;
 
 	VERB("disconnecting client %d", client);
-	if (client >= IBSIM_MAX_CLIENTS || (fd = netcon[client]) <= 0) {
+	if (client >= IBSIM_MAX_CLIENTS) {
 		IBWARN("no connection for client %d", client);
 		ctl->type = SIM_CTL_ERROR;
 		return -1;
@@ -421,10 +421,10 @@ static int sim_read_pkt(int fd, int client)
 
 		VERB("%s %d bytes (%zu) to client %d fd %d",
 		     dcl == cl ? "replying" : "forwarding",
-		     size, sizeof(struct sim_request), dcl->id, dcl->outfd);
+		     size, sizeof(struct sim_request), dcl->id, dcl->fd);
 
 		// reply
-		if (write(dcl->outfd, buf, size) == size)
+		if (write(dcl->fd, buf, size) == size)
 			return 0;
 		IBWARN("write failed: %m - pkt dropped");
 	}
@@ -532,7 +532,7 @@ static int sim_run(int con_fd)
 		FD_SET(con_fd, &rfds);
 		for (i = 0; i < IBSIM_MAX_CLIENTS; i++)
 			if (clients[i].pid)
-				FD_SET(netcon[i], &rfds);
+				FD_SET(clients[i].fd, &rfds);
 
 		if (select(maxfd + 1, &rfds, NULL, NULL, 0) < 0)
 			break;	// timeout or error
@@ -541,8 +541,8 @@ static int sim_run(int con_fd)
 			sim_ctl(simctl);
 
 		for (i = 0; i < IBSIM_MAX_CLIENTS; i++)
-			if (clients[i].pid && FD_ISSET(netcon[i], &rfds))
-				sim_read_pkt(netcon[i], i);
+			if (clients[i].pid && FD_ISSET(clients[i].fd, &rfds))
+				sim_read_pkt(clients[i].fd, i);
 
 		if (FD_ISSET(con_fd, &rfds))
 			sim_run_console(con_fd);

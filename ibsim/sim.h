@@ -245,7 +245,7 @@ struct Client {
 	Port *port;
 	int qp;
 	int issm;
-	int outfd;
+	int fd;
 };
 
 // ibsim.c
