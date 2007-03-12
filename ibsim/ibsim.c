@@ -534,7 +534,7 @@ static int sim_run(int con_fd)
 			if (clients[i].pid)
 				FD_SET(netcon[i], &rfds);
 
-		if (select(maxfd, &rfds, NULL, NULL, 0) < 0)
+		if (select(maxfd + 1, &rfds, NULL, NULL, 0) < 0)
 			break;	// timeout or error
 
 		if (FD_ISSET(simctl, &rfds))
