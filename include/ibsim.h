@@ -55,7 +55,7 @@ struct sim_port {
 
 #define IBSIM_MAX_CLIENTS 10
 
-#define IBSIM_DEFAULT_SERVER_PORT 8003
+#define IBSIM_DEFAULT_SERVER_PORT 7070
 #define SIM_BASENAME	"sim"
 
 #define SIM_MAGIC	0xdeadbeef
