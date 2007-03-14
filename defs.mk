@@ -9,8 +9,8 @@ ifdef IB_DEV_DIR
   $(foreach l, mad umad common, $(IB_DEV_DIR)/libib$(l)/.libs/libib$(l).so)
 else
  libpath:= \
-    $(if $(wildcard $(prefix)/lib/libibumad.so),$(prefix)/lib,\
     $(if $(wildcard $(prefix)/lib64/libibumad.so),$(prefix)/lib64,\
+    $(if $(wildcard $(prefix)/lib/libibumad.so),$(prefix)/lib,\
     $(if $(wildcard /usr/local/lib/libibumad.so),/usr/local/lib,\
     $(if $(wildcard /usr/local/lib64/libibumad.so),/usr/local/lib64,\
     $(if $(wildcard /usr/lib),/usr/lib,\
