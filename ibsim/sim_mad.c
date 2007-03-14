@@ -57,7 +57,7 @@ typedef int (EncodeTrapfn) (Port * port, char *data);
 
 static Smpfn do_nodeinfo, do_nodedesc, do_switchinfo, do_portinfo,
     do_linearforwtbl, do_multicastforwtbl, do_portcounters, do_extcounters,
-    do_pkeytbl, do_sl2vl, do_vlarb, do_nothing;
+    do_pkeytbl, do_sl2vl, do_vlarb, do_guidinfo, do_nothing;
 
 static EncodeTrapfn encode_trap128;
 
@@ -71,6 +71,7 @@ Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
 			[IB_ATTR_PKEY_TBL] do_pkeytbl,
 			[IB_ATTR_SLVL_TABLE] do_sl2vl,
 			[IB_ATTR_VL_ARBITRATION] do_vlarb,
+			[IB_ATTR_GUID_INFO] do_guidinfo,
 			[IB_ATTR_SMINFO] NULL,
 
 			[IB_ATTR_LAST] 0,
@@ -370,6 +371,26 @@ static int do_vlarb(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 	}
 
 	return 0;
+}
+
+static int do_guidinfo(Port * port, unsigned op, uint32_t mod, uint8_t * data)
+{
+	Node *node = port->node;
+	int status = 0;
+	uint64_t portguid = node->nodeguid + port->portnum;
+
+	if (op != IB_MAD_METHOD_GET)    // only get currently supported (non compliant)
+		status = ERR_METHOD_UNSUPPORTED;
+
+	memset(data, 0, 64);
+	if (mod == 0) {
+		if (node->type == SWITCH_NODE)
+			mad_encode_field(data, IB_GUID_GUID0_F, &node->nodeguid);
+		else
+			mad_encode_field(data, IB_GUID_GUID0_F, &portguid);
+	}
+
+	return status;
 }
 
 static int
