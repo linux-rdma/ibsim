@@ -466,10 +466,11 @@ static int parse_port_opt(Port * port, char *opt, char *val)
 static void init_ports(Node * node, int type, int maxports)
 {
 	Port *port;
-	unsigned size, sw_pkey_size;
+	unsigned ca_pkey_size, sw_pkey_size, size;
 	unsigned i, j;
 
-	size = mad_get_field(node->nodeinfo, 0, IB_NODE_PARTITION_CAP_F);
+	ca_pkey_size = mad_get_field(node->nodeinfo, 0,
+				     IB_NODE_PARTITION_CAP_F);
 	if (type == SWITCH_NODE)
 		sw_pkey_size = mad_get_field(node->sw->switchinfo, 0,
 					     IB_SW_PARTITION_ENFORCE_CAP_F);
@@ -487,8 +488,7 @@ static void init_ports(Node * node, int type, int maxports)
 		port->linkspeedena = netspeed;
 		port->linkspeed = LINKSPEED_SDR;
 
-		if (type == SWITCH_NODE && i)
-			size = sw_pkey_size;
+		size = (type == SWITCH_NODE && i) ? sw_pkey_size : ca_pkey_size;
 		if (size) {
 			port->pkey_tbl = calloc(size, sizeof(uint16_t));
 			if (!port->pkey_tbl)
@@ -497,7 +497,7 @@ static void init_ports(Node * node, int type, int maxports)
 		}
 
 		size = node->sw ? maxports : 1;
-		port->sl2vl = calloc(8 * sizeof(uint8_t), size);
+		port->sl2vl = calloc(size, 8 * sizeof(uint8_t));
 		if (!port->sl2vl) {
 			IBPANIC("cannot alloc port's sl2vl table\n");
 		}
