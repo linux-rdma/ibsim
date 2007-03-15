@@ -116,26 +116,6 @@ static char *get_name(union name_t *name)
 	}
 }
 
-static int assign_id(int id, char *address)
-{
-	int result = 0;
-	int sum = 0;
-	if (remote_mode)
-		while ((*address >= '0' && *address <= '9')||(*address == '.'))
-		{
-			if (*address != '.')
-				result = (result * 10) + (*address - '0');
-			else
-			{
-				sum = (sum * 256) + result;
-				result = 0;
-			}
-
-			address++;
-		}
-		return sum += result + id;
-}
-
 /**
  * initialize the in/out connections
  *
@@ -163,7 +143,6 @@ static int sim_init_conn(char *basename)
 	if (bind(fd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't bind socket %d to name %s",
 			fd, get_name(&name));
-	DEBUG("opening net connection ctl fd %d to name %s", fd, get_name(&name));
 
 	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
 		IBPANIC("can't set non blocking flags for ctl");
@@ -262,7 +241,7 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl, union name_t *f
 		IBPANIC("can't connect to in socket %s - fd %d client pid %d",
 			get_name(&name), cl->fd, id);
 
-	cl->pid = assign_id(id,get_name(&name));
+	cl->pid = id;
 	cl->id = i;
 	cl->qp = scl->qp;
 	cl->issm = scl->issm;

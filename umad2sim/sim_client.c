@@ -115,7 +115,7 @@ static int sim_ctl(struct sim_client *sc, int type, void *data, int len)
 	ctl.len = len;
 	if (len)
 		memcpy(ctl.data, data, len);
-	DEBUG("\nfd=%d\n",sc->fd_ctl);
+
 	if (write(sc->fd_ctl, &ctl, sizeof(ctl)) != sizeof(ctl)) {
 		IBWARN("ctl failed(write)");
 		return -1;
@@ -210,14 +210,11 @@ static int sim_attach(int fd, union name_t *name, size_t size)
 	return 0;
 }
 
-static int sim_connect(struct sim_client *sc, int id, int qp, char *nodeid, int port)
+static int sim_connect(struct sim_client *sc, int id, int qp, char *nodeid)
 {
 	struct sim_client_info info = { 0 };
 
-	if (remote_mode)
-		info.id = port;
-	else
-		info.id = id;
+	info.id = id;
 	info.issm = 0;
 	info.qp = qp;
 
@@ -246,12 +243,10 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 	size_t size;
 	int fd, ctlfd;
 	int pid = getpid();
-	char *listen_port;
 	char *connect_port;
 	char *connect_host;
 	unsigned short port;
 
-	listen_port = getenv("IBSIM_CLIENT_PORT");
 	connect_port = getenv("IBSIM_SERVER_PORT");
 	connect_host = getenv("IBSIM_SERVER_NAME");
 
@@ -292,7 +287,9 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 	if (getsockname(fd,(struct sockaddr *)&name, &size) < 0 )
 		IBPANIC("can't read data from bound socket");
 	port = ntohs(name.name_i.sin_port);
-	if ((sc->clientid = sim_connect(sc, pid, qp, nodeid, port)) < 0)
+
+	sc->clientid = sim_connect(sc, remote_mode ? port : pid, qp, nodeid);
+	if (sc->clientid < 0)
 		IBPANIC("connect failed");
 
 	port = connect_port ? atoi(connect_port) : IBSIM_DEFAULT_SERVER_PORT;
