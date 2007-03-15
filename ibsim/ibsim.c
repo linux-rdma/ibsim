@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
@@ -47,6 +48,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <getopt.h>
 #include <inttypes.h>
 
@@ -76,6 +78,64 @@ extern int maxmcastcap;
 extern int maxnetaliases;
 extern int ignoreduplicate;
 
+static int listen_to_port = IBSIM_DEFAULT_SERVER_PORT;
+static int remote_mode = 0;
+
+static size_t make_name(union name_t *name, uint32_t addr, unsigned short port,
+			const char *fmt, ...)
+{
+	size_t size;
+	memset(name, 0, sizeof(*name));
+	if (remote_mode) {
+		struct sockaddr_in *name_i = &name->name_i;
+	        name_i->sin_family = AF_INET;
+		name_i->sin_addr.s_addr = addr ? addr : htonl(INADDR_ANY);
+	        name_i->sin_port = htons(port);
+		size = sizeof(*name_i);
+	} else {
+		va_list args;
+		struct sockaddr_un *name_u = &name->name_u;
+		size = sizeof(*name_u) -
+				((void *)name_u->sun_path + 1 - (void*)name_u);
+		name_u->sun_family = AF_UNIX;
+		name_u->sun_path[0] = 0;	// abstract name space
+		va_start(args, fmt);
+		size = vsnprintf(name_u->sun_path + 1, size, fmt, args);
+		va_end(args);
+		size += 1 + ((void *)name_u->sun_path + 1 - (void*)name_u);
+	}
+	return size;
+}
+
+static char *get_name(union name_t *name)
+{
+	if (remote_mode) {
+		return inet_ntoa(name->name_i.sin_addr);
+	} else {
+		return name->name_u.sun_path + 1;
+	}
+}
+
+static int assign_id(int id, char *address)
+{
+	int result = 0;
+	int sum = 0;
+	if (remote_mode)
+		while ((*address >= '0' && *address <= '9')||(*address == '.'))
+		{
+			if (*address != '.')
+				result = (result * 10) + (*address - '0');
+			else
+			{
+				sum = (sum * 256) + result;
+				result = 0;
+			}
+
+			address++;
+		}
+		return sum += result + id;
+}
+
 /**
  * initialize the in/out connections
  *
@@ -85,48 +145,47 @@ extern int ignoreduplicate;
  */
 static int sim_init_conn(char *basename)
 {
-	struct sockaddr_un name;
+	union name_t name;
+	size_t size;
 	int fd, i;
 
 	DEBUG("initializing network connections (basename \"%s\")", basename);
 
-	memset(&name, 0, sizeof(name));
-	name.sun_family = AF_UNIX;
-	name.sun_path[0] = 0;	// abstract name space
-
 	// create ctl channel
-	fd = simctl = socket(PF_LOCAL, SOCK_DGRAM, 0);
+	fd = simctl = socket(remote_mode ? PF_INET : PF_LOCAL, SOCK_DGRAM, 0);
 	if (fd < 0)
 		IBPANIC("can't create socket for ctl");
 	if (maxfd < fd)
 		maxfd = fd;
 
-	sprintf(name.sun_path + 1, "%s:ctl", basename);
-	if (bind(fd, (struct sockaddr *)&name, sizeof(name)) < 0)
+	size = make_name(&name, 0, listen_to_port, "%s:ctl", basename);
+
+	if (bind(fd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't bind socket %d to name %s",
-			fd, name.sun_path + 1);
+			fd, get_name(&name));
+	DEBUG("opening net connection ctl fd %d to name %s", fd, get_name(&name));
 
 	if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
 		IBPANIC("can't set non blocking flags for ctl");
 
 	for (i = 0; i < IBSIM_MAX_CLIENTS; i++) {
-		fd = socket(PF_LOCAL, SOCK_DGRAM, 0);
+		fd = socket(remote_mode ? PF_INET : PF_LOCAL, SOCK_DGRAM, 0);
 		if (fd < 0)
 			IBPANIC("can't create socket for conn %d", i);
 		if (maxfd < fd)
 			maxfd = fd;
 
-		memset(name.sun_path, 0, sizeof(name.sun_path));
-		sprintf(name.sun_path + 1, "%s:out%d", basename, i);
-		if (bind(fd, (struct sockaddr *)&name, sizeof(name)) < 0)
+		size = make_name(&name, 0, listen_to_port + i + 1,
+				 "%s:out%d", basename, i);
+		if (bind(fd, (struct sockaddr *)&name, size) < 0)
 			IBPANIC("can't bind socket %d to name %s",
-				fd, name.sun_path + 1);
+				fd, get_name(&name));
 
 		if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
 			IBPANIC("can't set non blocking flags for "
 			        "client conn %d", i);
 
-		DEBUG("opening net connection fd %d %s", fd, name.sun_path + 1);
+		DEBUG("opening net connection fd %d %s", fd, get_name(&name));
 
 		clients[i].fd = fd;
 	}
@@ -148,9 +207,10 @@ static int sm_exists(Node * node)
 	return 0;
 }
 
-static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl)
+static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl, union name_t *from)
 {
-	struct sockaddr_un name;
+	union name_t name;
+	size_t size;
 	Node *node;
 	struct sim_client_info *scl = (void *)ctl->data;
 	int id = scl->id;
@@ -195,17 +255,14 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl)
 		return -1;
 	}
 
-	memset(&name, 0, sizeof(name));
-	name.sun_family = AF_UNIX;
-	name.sun_path[0] = 0;	// abstract name space
+	size = make_name(&name, from->name_i.sin_addr.s_addr, id,
+			 "%s:in%d", SIM_BASENAME, id);
 
-	sprintf(name.sun_path + 1, "%s:in%d", SIM_BASENAME, id);
-
-	if (connect(cl->fd, (struct sockaddr *)&name, sizeof(name)) < 0)
+	if (connect(cl->fd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't connect to in socket %s - fd %d client pid %d",
-			name.sun_path + 1, cl->fd, id);
+			get_name(&name), cl->fd, id);
 
-	cl->pid = id;
+	cl->pid = assign_id(id,get_name(&name));
 	cl->id = i;
 	cl->qp = scl->qp;
 	cl->issm = scl->issm;
@@ -213,8 +270,9 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl)
 	strncpy(scl->nodeid, cl->port->node->nodeid, sizeof(scl->nodeid) - 1);
 
 	scl->id = i;
+
 	DEBUG("client %d (%s) is connected - fd %d",
-	      i, name.sun_path + 1, cl->fd);
+	      i, get_name(&name), cl->fd);
 
 	return 1;
 }
@@ -237,6 +295,7 @@ static int sim_ctl_disconnect_client(Client * cl, struct sim_ctl * ctl)
 	DEBUG("Detaching client %d from node \"%s\"/port 0x%" PRIx64,
 	      client, cl->port->node->nodeid, cl->port->portguid);
 	cl->pid = 0;
+
 	return 0;
 }
 
@@ -321,7 +380,7 @@ static int sim_ctl_get_vendor(Client * cl, struct sim_ctl * ctl)
 
 static int sim_ctl(int fd)
 {
-	struct sockaddr_un from;
+	union name_t from;
 	socklen_t addrlen = sizeof from;
 	struct sim_ctl ctl = { 0 };
 	Client *cl;
@@ -331,7 +390,7 @@ static int sim_ctl(int fd)
 		return -1;
 
 	DEBUG("perform ctl type %d for client %s (%d)",
-	      ctl.type, from.sun_path + 1, ctl.clientid);
+	      ctl.type, get_name(&from), ctl.clientid);
 
 	if (ctl.magic != SIM_MAGIC) {
 		IBWARN("bad control pkt: magic %x (%x)", ctl.magic, SIM_MAGIC);
@@ -348,7 +407,7 @@ static int sim_ctl(int fd)
 
 	switch (ctl.type) {
 	case SIM_CTL_CONNECT:
-		sim_ctl_new_client(cl, &ctl);
+		sim_ctl_new_client(cl, &ctl, &from);
 		break;
 
 	case SIM_CTL_DISCONNECT:
@@ -389,7 +448,7 @@ static int sim_ctl(int fd)
 	}
 
 	if (sendto(fd, &ctl, sizeof ctl, 0, (struct sockaddr *)&from,
-		   sizeof from) != sizeof ctl) {
+		   addrlen) != sizeof ctl) {
 		IBWARN("cannot response ctl: %m");
 		return -1;
 	}
@@ -615,7 +674,8 @@ void usage(char *prog_name)
 {
 	fprintf(stderr,
 		"Usage: %s [-f outfile -d debug_level -p parse_debug -s(tart) -v(erbose) "
-		"-I(gnore_duplicate) -N nodes -S switches -P ports -L linearcap -M mcastcap] <netfile>\n",
+		"-I(gnore_duplicate) -N nodes -S switchs -P ports -L linearcap"
+		" -M mcastcap -r(emote_mode) -l(isten_to_port) <port>] <netfile>\n",
 		prog_name);
 	fprintf(stderr, "%s %s\n", prog_name, get_build_version());
 
@@ -629,14 +689,16 @@ int main(int argc, char **argv)
 	char *outfname = 0, *netfile;
 	FILE *outfile;
 
-	static char const str_opts[] = "f:dpvIsN:S:P:L:M:Vhu";
+	static char const str_opts[] = "rf:dpvIsN:S:P:L:M:l:Vhu";
 	static const struct option long_opts[] = {
+		{"remote", 0, 0, 'r'},
 		{"file", 1, 0, 'f'},
 		{"Nodes", 1, 0, 'N'},
 		{"Switches", 1, 0, 'S'},
 		{"Ports", 1, 0, 'P'},
 		{"Linearcap", 1, 0, 'L'},
 		{"Mcastcap", 1, 0, 'M'},
+	        {"listen", 1, 0, 'l'},
 		{"Ignoredups", 0, 0, 'I'},
 		{"start", 0, 0, 's'},
 		{"debug", 0, 0, 'd'},
@@ -653,6 +715,9 @@ int main(int argc, char **argv)
 		if (ch == -1)
 			break;
 		switch (ch) {
+		case 'r':
+			remote_mode = 1;
+			break;
 		case 'f':
 			outfname = optarg;
 			break;
@@ -685,6 +750,9 @@ int main(int argc, char **argv)
 			break;
 		case 'M':
 			maxmcastcap = strtoul(optarg, 0, 0);
+			break;
+	        case 'l':
+			listen_to_port = strtoul(optarg, 0, 0);
 			break;
 		case 'V':
 		default:

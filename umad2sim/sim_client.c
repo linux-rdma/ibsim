@@ -35,12 +35,15 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <errno.h>
 #include <ctype.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
 
 #include <infiniband/common.h>
 #include <infiniband/mad.h>
@@ -55,6 +58,8 @@
 #else
 #define DEBUG(fmt...)
 #endif
+
+static unsigned int remote_mode = 0;
 
 int sim_client_recv_packet(struct sim_client *sc, void *buf, int size)
 {
@@ -110,7 +115,7 @@ static int sim_ctl(struct sim_client *sc, int type, void *data, int len)
 	ctl.len = len;
 	if (len)
 		memcpy(ctl.data, data, len);
-
+	DEBUG("\nfd=%d\n",sc->fd_ctl);
 	if (write(sc->fd_ctl, &ctl, sizeof(ctl)) != sizeof(ctl)) {
 		IBWARN("ctl failed(write)");
 		return -1;
@@ -133,36 +138,86 @@ static int sim_ctl(struct sim_client *sc, int type, void *data, int len)
 	return 0;
 }
 
-static int sim_attach(int fd, struct sockaddr_un *name)
+static size_t make_name(union name_t *name, char *host, unsigned port,
+			const char *fmt, ...)
+{
+	size_t size;
+	memset(name, 0, sizeof(*name));
+	if (remote_mode) {
+		struct sockaddr_in *name_i = &name->name_i;
+	        name_i->sin_family = AF_INET;
+		if (host) {
+			name_i->sin_addr.s_addr = inet_addr(host);
+			if (name_i->sin_addr.s_addr == (unsigned long)INADDR_NONE) {
+				struct hostent *hostp;
+				if(!(hostp = gethostbyname(host)))
+					IBPANIC("cannot resolve ibsim server"
+						" %s: h_errno = %d\n",
+						host, h_errno);
+				memcpy(&name_i->sin_addr, hostp->h_addr,
+				       sizeof(name_i->sin_addr));
+			}
+		} else
+			name_i->sin_addr.s_addr = htonl(INADDR_ANY);
+	        name_i->sin_port = htons(port);
+		size = sizeof(*name_i);
+	} else {
+		va_list args;
+		struct sockaddr_un *name_u = &name->name_u;
+		size = sizeof(*name_u) -
+				((void *)name_u->sun_path + 1 - (void*)name_u);
+		name_u->sun_family = AF_UNIX;
+		name_u->sun_path[0] = 0;	// abstract name space
+		va_start(args, fmt);
+		size = vsnprintf(name_u->sun_path + 1, size, fmt, args);
+		va_end(args);
+		size += 1 + ((void *)name_u->sun_path + 1 - (void*)name_u);
+	}
+	return size;
+}
+
+static char *get_name(union name_t *name)
+{
+	if (remote_mode) {
+		return inet_ntoa(name->name_i.sin_addr);
+	} else {
+		return name->name_u.sun_path + 1;
+	}
+}
+
+static int sim_attach(int fd, union name_t *name, size_t size)
 {
 	int retries;
 	int r;
 
 	for (retries = 0;; retries++) {
 		DEBUG("attempt to connect to %s (attempt %d)",
-		      name->sun_path + 1, retries);
+		      get_name(name), retries);
 
 		if ((r =
-		     connect(fd, (struct sockaddr *)name, sizeof(*name))) >= 0)
+		     connect(fd, (struct sockaddr *)name, size)) >= 0)
 			break;
 
 		if (r < 0 && errno == ECONNREFUSED) {
-			DEBUG("waiting for %s to start", name->sun_path + 1);
+			DEBUG("waiting for %s to start", get_name(name));
 			sleep(2);
 			continue;
 		}
 
-		IBPANIC("can't connect to sim socket %s", name->sun_path + 1);
+		IBPANIC("can't connect to sim socket %s", get_name(name));
 	}
 
 	return 0;
 }
 
-static int sim_connect(struct sim_client *sc, int id, int qp, char *nodeid)
+static int sim_connect(struct sim_client *sc, int id, int qp, char *nodeid, int port)
 {
 	struct sim_client_info info = { 0 };
 
-	info.id = id;
+	if (remote_mode)
+		info.id = port;
+	else
+		info.id = id;
 	info.issm = 0;
 	info.qp = qp;
 
@@ -187,57 +242,67 @@ static int sim_disconnect(struct sim_client *sc)
 
 static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 {
-	struct sockaddr_un name;
+	union name_t name;
+	size_t size;
 	int fd, ctlfd;
 	int pid = getpid();
+	char *listen_port;
+	char *connect_port;
+	char *connect_host;
+	unsigned short port;
+
+	listen_port = getenv("IBSIM_CLIENT_PORT");
+	connect_port = getenv("IBSIM_SERVER_PORT");
+	connect_host = getenv("IBSIM_SERVER_NAME");
+
+	if (connect_host)
+		remote_mode = 1;
 
 	DEBUG("init client pid=%d, qp=%d nodeid=%s",
 	      pid, qp, nodeid ? nodeid : "none");
 
-	if ((fd = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0)
+	if ((fd = socket(remote_mode ? PF_INET : PF_LOCAL, SOCK_DGRAM, 0)) < 0)
 		IBPANIC("can't get socket (fd)");
 
-	if ((ctlfd = socket(PF_LOCAL, SOCK_DGRAM, 0)) < 0)
+	if ((ctlfd = socket(remote_mode ? PF_INET : PF_LOCAL, SOCK_DGRAM, 0)) < 0)
 		IBPANIC("can't get socket (ctlfd)");
 
-	memset(&name, 0, sizeof(name));
-	name.sun_family = AF_LOCAL;
-	name.sun_path[0] = 0;
+	size = make_name(&name, NULL, 0, "%s:ctl%d", SIM_BASENAME, pid);
 
-	sprintf(name.sun_path + 1, "%s:ctl%d", SIM_BASENAME, pid);
-
-	if (bind(ctlfd, (struct sockaddr *)&name, sizeof(name)) < 0)
+	if (bind(ctlfd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't bind ctl socket");
 
-	DEBUG("init %d: opened ctl fd %d as %s",
-	      pid, ctlfd, name.sun_path + 1);
+	DEBUG("init %d: opened ctl fd %d as &s",
+	      pid, ctlfd, get_name(&name));
 
-	memset(name.sun_path, 0, sizeof(name.sun_path));
-	sprintf(name.sun_path + 1, "%s:ctl", SIM_BASENAME);
+	port = connect_port ? atoi(connect_port) : IBSIM_DEFAULT_SERVER_PORT;
+	size = make_name(&name, connect_host, port, "%s:ctl", SIM_BASENAME);
 
-	sim_attach(ctlfd, &name);
+	sim_attach(ctlfd, &name, size);
 
 	sc->fd_ctl = ctlfd;
 
-	memset(name.sun_path, 0, sizeof(name.sun_path));
-	sprintf(name.sun_path + 1, "%s:in%d", SIM_BASENAME, pid);
+	size = make_name(&name, NULL, 0, "%s:in%d", SIM_BASENAME, pid);
 
-	if (bind(fd, (struct sockaddr *)&name, sizeof(name)) < 0)
+	if (bind(fd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't bind input socket");
 
-	DEBUG("init client %d: opened input data fd %d as %s",
-	      pid, fd, name.sun_path + 1);
-
-	if ((sc->clientid = sim_connect(sc, pid, qp, nodeid)) < 0)
+	DEBUG("init client %d: opened input data fd %d as &s\n",
+	      pid, fd, get_name(&name));
+	if (getsockname(fd,(struct sockaddr *)&name, &size) < 0 )
+		IBPANIC("can't read data from bound socket");
+	port = ntohs(name.name_i.sin_port);
+	if ((sc->clientid = sim_connect(sc, pid, qp, nodeid, port)) < 0)
 		IBPANIC("connect failed");
 
-	memset(name.sun_path, 0, sizeof(name.sun_path));
-	sprintf(name.sun_path + 1, "%s:out%d", SIM_BASENAME, sc->clientid);
+	port = connect_port ? atoi(connect_port) : IBSIM_DEFAULT_SERVER_PORT;
+	size = make_name(&name, connect_host, port + sc->clientid + 1,
+			 "%s:out%d", SIM_BASENAME, sc->clientid);
 
-	sim_attach(fd, &name);
+	sim_attach(fd, &name, size);
 
-	DEBUG("init client %d: connect data fd %d to %s",
-	      sc->clientid, fd, name.sun_path + 1);
+	DEBUG("init client %d: connect data fd %d to &s\n",
+	      sc->clientid, fd, get_name(&name));
 
 	sc->fd_pktin = fd;
 	sc->fd_pktout = fd;

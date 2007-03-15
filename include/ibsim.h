@@ -37,6 +37,10 @@
 
 #include <stdint.h>
 
+#include <sys/un.h>
+#include <netinet/in.h>
+
+
 struct sim_vendor {
 	uint32_t vendor_id;	/* Vendor ID */
 	uint32_t vendor_part_id;	/* Vendor Part ID */
@@ -51,6 +55,7 @@ struct sim_port {
 
 #define IBSIM_MAX_CLIENTS 10
 
+#define IBSIM_DEFAULT_SERVER_PORT 8003
 #define SIM_BASENAME	"sim"
 
 #define SIM_MAGIC	0xdeadbeef
@@ -94,6 +99,12 @@ struct sim_client_info {
 	uint32_t qp;
 	uint32_t issm;		/* accept request for qp 0 & 1 */
 	char nodeid[32];
+};
+
+union name_t {
+	struct sockaddr name;
+	struct sockaddr_un name_u;
+	struct sockaddr_in name_i;
 };
 
 #endif				/* _IBSIM_H_ */
