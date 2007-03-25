@@ -751,7 +751,7 @@ static int parse_switch(int fd, char *line)
 	Port *port;
 	char *nodeid;
 	char *nodedesc;
-	int nports, r, esp0;
+	int nports, r, esp0 = 0;
 
 	if (!(nports = parse_node_ports(line + 6)) ||
 	    !(nodeid = parse_node_id(line, &line)))
