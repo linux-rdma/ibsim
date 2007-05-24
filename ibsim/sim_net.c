@@ -365,7 +365,7 @@ static char *parse_node_id(char *buf, char **rest_buf)
 
 static char *parse_node_desc(char *s, char **rest_buf)
 {
-	char *e = 0;
+	char *e = NULL;
 
 	*rest_buf = s;
 	s = strchr(s, '#');
@@ -376,7 +376,7 @@ static char *parse_node_desc(char *s, char **rest_buf)
 	if (*s == '\"') {
 		s++;
 		if ((e = strchr(s, '\"')))
-			*e = '\0';
+			*e++ = '\0';
 	} else if ((e = strstr(s, " enhanced port ")) ||
 	    (e = strstr(s, " base port ")) ||
 	    (e = strstr(s, " lid ")) ||
