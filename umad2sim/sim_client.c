@@ -250,7 +250,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 	connect_port = getenv("IBSIM_SERVER_PORT");
 	connect_host = getenv("IBSIM_SERVER_NAME");
 
-	if (connect_host)
+	if (connect_host && *connect_host)
 		remote_mode = 1;
 
 	DEBUG("init client pid=%d, qp=%d nodeid=%s",
