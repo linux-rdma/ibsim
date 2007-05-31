@@ -240,7 +240,7 @@ static int sim_disconnect(struct sim_client *sc)
 static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 {
 	union name_t name;
-	size_t size;
+	socklen_t size;
 	int fd, ctlfd;
 	int pid = getpid();
 	char *connect_port;
@@ -284,7 +284,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 
 	DEBUG("init client %d: opened input data fd %d as &s\n",
 	      pid, fd, get_name(&name));
-	if (getsockname(fd,(struct sockaddr *)&name, &size) < 0 )
+	if (getsockname(fd, (struct sockaddr *)&name, &size) < 0 )
 		IBPANIC("can't read data from bound socket");
 	port = ntohs(name.name_i.sin_port);
 
