@@ -60,6 +60,7 @@ static Smpfn do_nodeinfo, do_nodedesc, do_switchinfo, do_portinfo,
     do_pkeytbl, do_sl2vl, do_vlarb, do_guidinfo, do_nothing;
 
 static EncodeTrapfn encode_trap128;
+static EncodeTrapfn encode_trap144;
 
 Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
 	[IB_SMI_CLASS] {[IB_ATTR_NODE_DESC] do_nodedesc,
@@ -89,6 +90,7 @@ Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
 
 EncodeTrapfn *encodetrap[] = {
 	[TRAP_128] encode_trap128,
+	[TRAP_144] encode_trap144,
 
 	[TRAP_NUM_LAST] 0,
 
@@ -1237,6 +1239,28 @@ static int encode_trap128(Port * port, char *data)
 	mad_set_field(data, 0, IB_NOTICE_TOGGLE_F, 0);
 	mad_set_field(data, 0, IB_NOTICE_COUNT_F, 0);
 	mad_set_field(data, 0, IB_NOTICE_DATA_LID_F, port->lid);
+
+	return 0;
+}
+
+static int encode_trap144(Port * port, char *data)
+{
+	if (!port->lid || !port->smlid) {
+		VERB("switch trap 144 for lid %d with smlid %d",
+		     port->lid, port->smlid);
+		return -1;
+	}
+
+	mad_set_field(data, 0, IB_NOTICE_IS_GENERIC_F, 1);
+	mad_set_field(data, 0, IB_NOTICE_TYPE_F, 4);	// Informational
+	mad_set_field(data, 0, IB_NOTICE_PRODUCER_F, port->node->type);
+	mad_set_field(data, 0, IB_NOTICE_TRAP_NUMBER_F, 144);
+	mad_set_field(data, 0, IB_NOTICE_ISSUER_LID_F, port->lid);
+	mad_set_field(data, 0, IB_NOTICE_TOGGLE_F, 0);
+	mad_set_field(data, 0, IB_NOTICE_COUNT_F, 0);
+	mad_set_field(data, 0, IB_NOTICE_DATA_144_LID_F, port->lid);
+	mad_set_field(data, 0, IB_NOTICE_DATA_144_CAPMASK_F,
+		      mad_get_field(port->portinfo, 0, IB_PORT_CAPMASK_F));
 
 	return 0;
 }

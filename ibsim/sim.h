@@ -83,6 +83,7 @@ enum NODE_TYPES {
 
 enum TRAP_TYPE_ID {
 	TRAP_128,
+	TRAP_144,
 
 	TRAP_NUM_LAST
 };
