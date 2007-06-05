@@ -1280,6 +1280,7 @@ int send_trap(Port * port, int trapnum)
 	req.slid = htons(lid);
 	req.sqp = 0;
 	req.dqp = 0;
+	req.status = 0;
 	req.context = 0;
 
 	// find SM client
