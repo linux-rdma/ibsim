@@ -325,21 +325,24 @@ static int sim_ctl_get_portinfo(Client * cl, struct sim_ctl * ctl)
 	return 0;
 }
 
-#define CAPMASK_ISSM	(1<<1)
-
 static int sim_ctl_set_issm(Client * cl, struct sim_ctl * ctl)
 {
 	int issm = *(int *)ctl->data;
-	uint32_t capmask;
+	uint32_t old_capmask, capmask;
 
 	VERB("set issm %d port %" PRIx64, issm, cl->port->portguid);
 	capmask = mad_get_field(cl->port->portinfo, 0, IB_PORT_CAPMASK_F);
+	old_capmask = capmask;
 	if (issm)
 		capmask |= CAPMASK_ISSM;
 	else
 		capmask &= ~CAPMASK_ISSM;
-	mad_set_field(cl->port->portinfo, 0, IB_PORT_CAPMASK_F, capmask);
 	cl->issm = issm;
+	mad_set_field(cl->port->portinfo, 0, IB_PORT_CAPMASK_F, capmask);
+	if (old_capmask != capmask && capmask&(CAPMASK_ISNOTICE|CAPMASK_ISTRAP)
+	    && capmask&CAPMASK_ISCAPMASKTRAP)
+		send_trap(cl->port, TRAP_144);
+
 	return 0;
 }
 
