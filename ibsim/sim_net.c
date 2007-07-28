@@ -496,7 +496,7 @@ static void init_ports(Node * node, int type, int maxports)
 			port->pkey_tbl[0] = 0xffff;
 		}
 
-		size = node->sw ? maxports : 1;
+		size = node->sw ? maxports + 1 : 1;
 		port->sl2vl = calloc(size, 8 * sizeof(uint8_t));
 		if (!port->sl2vl) {
 			IBPANIC("cannot alloc port's sl2vl table\n");
