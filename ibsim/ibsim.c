@@ -669,7 +669,7 @@ int main(int argc, char **argv)
 	extern int alloc_core(void);
 	extern void free_core(void);
 	char *outfname = 0, *netfile;
-	FILE *outfile;
+	FILE *infile, *outfile;
 
 	static char const str_opts[] = "rf:dpvIsN:S:P:L:M:l:Vhu";
 	static const struct option long_opts[] = {
@@ -744,6 +744,7 @@ int main(int argc, char **argv)
 
 	maxnetaliases = maxnetports;
 
+	infile = stdin;
 	outfile = stdout;
 	if (outfname && (outfile = fopen(outfname, "w")) == 0)
 		IBPANIC("can't open out file %s for write", outfname);
@@ -762,7 +763,7 @@ int main(int argc, char **argv)
 
 	sim_init_console(outfile);
 
-	sim_run(fileno(outfile));
+	sim_run(fileno(infile));
 
 	free_core();
 
