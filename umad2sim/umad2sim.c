@@ -412,6 +412,17 @@ static ssize_t umad2sim_write(struct umad2sim_dev *dev,
 	ib_user_mad_t *umad = (ib_user_mad_t *) buf;
 	int cnt;
 
+#ifdef SIMULATE_SEND_ERRORS
+	{ static int err_count;
+	if (++err_count == 15)
+		return -1;
+	if (mad_get_field(umad_get_mad(umad), 0, IB_MAD_METHOD_F) == 0x7) {
+		printf("Drop trap repress...\n");
+		return  -1;
+	}
+	}
+#endif
+
 	DEBUG("umad2sim_write: %zu...\n", count);
 
 	DEBUG("umad2sim_write: umad: agent_id=%u, retries=%u, "
