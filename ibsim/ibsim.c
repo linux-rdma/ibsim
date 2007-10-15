@@ -55,6 +55,8 @@
 #include <ibsim.h>
 #include "sim.h"
 
+#define IBSIM_VERSION "0.3"
+
 #undef DEBUG
 #define PDEBUG	if (parsedebug) IBWARN
 #define DEBUG	if (simverb > 1 || ibdebug) IBWARN
@@ -659,7 +661,7 @@ void usage(char *prog_name)
 		"-I(gnore_duplicate) -N nodes -S switchs -P ports -L linearcap"
 		" -M mcastcap -r(emote_mode) -l(isten_to_port) <port>] <netfile>\n",
 		prog_name);
-	fprintf(stderr, "%s %s\n", prog_name, get_build_version());
+	fprintf(stderr, "%s %s\n", prog_name, IBSIM_VERSION);
 
 	exit(-1);
 }
