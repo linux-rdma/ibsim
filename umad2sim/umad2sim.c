@@ -170,6 +170,7 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 	struct sim_client *sc = &dev->sim_client;
 	char *str;
 	uint8_t *portinfo;
+	int i;
 
 	/* /sys/class/infiniband_mad/abi_version */
 	snprintf(path, sizeof(path), "%s", sysfs_infiniband_mad_dir);
@@ -328,6 +329,17 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 		    (uint16_t) ((guid >> 32) & 0xffff),
 		    (uint16_t) ((guid >> 16) & 0xffff),
 		    (uint16_t) ((guid >> 0) & 0xffff));
+
+	/* /sys/class/infiniband/mthca0/ports/1/pkeys/0 */
+	str = path + strlen(path);
+	strncat(path, "/pkeys", sizeof(path) - 1);
+	make_path(path);
+	for (i = 0; i < sizeof(sc->pkeys)/sizeof(sc->pkeys[0]); i++) {
+		char name[8];
+		snprintf(name, sizeof(name), "%u", i);
+		file_printf(path, name, "0x%04x\n", ntohs(sc->pkeys[i]));
+	}
+	*str = '\0';
 
 	/* /sys/class/infiniband_mad/umad0/ */
 	snprintf(path, sizeof(path), "%s/umad%u", sysfs_infiniband_mad_dir,

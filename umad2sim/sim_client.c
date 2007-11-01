@@ -331,6 +331,8 @@ int sim_client_init(struct sim_client *sc, char *nodeid)
 	if (sim_ctl(sc, SIM_CTL_GET_PORTINFO, sc->portinfo,
 		    sizeof(sc->portinfo)) < 0)
 		goto _exit;
+	if (sim_ctl(sc, SIM_CTL_GET_PKEYS, sc->pkeys, sizeof(sc->pkeys)) < 0)
+		goto _exit;
 	return 0;
   _exit:
 	sim_disconnect(sc);
