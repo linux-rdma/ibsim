@@ -348,6 +348,24 @@ static int sim_ctl_set_issm(Client * cl, struct sim_ctl * ctl)
 	return 0;
 }
 
+static int sim_ctl_get_pkeys(Client * cl, struct sim_ctl * ctl)
+{
+	Port *port = cl->port;
+	unsigned size = (port->node->sw && port->portnum) ?
+	    mad_get_field(port->node->sw->switchinfo, 0,
+			  IB_SW_PARTITION_ENFORCE_CAP_F) :
+	    mad_get_field(port->node->nodeinfo, 0, IB_NODE_PARTITION_CAP_F);
+
+	size *= sizeof(port->pkey_tbl[0]);
+	if (size > sizeof(ctl->data))
+		size = sizeof(ctl->data);
+	memcpy(ctl->data, port->pkey_tbl, size);
+	if (size < sizeof(ctl->data))
+		memset(ctl->data + size, 0, sizeof(ctl->data) - size);
+
+	return 0;
+}
+
 static int sim_ctl_get_vendor(Client * cl, struct sim_ctl * ctl)
 {
 	struct sim_vendor *v = (void *)ctl->data;
@@ -424,6 +442,10 @@ static int sim_ctl(int fd)
 
 	case SIM_CTL_SET_ISSM:
 		sim_ctl_set_issm(cl, &ctl);
+		break;
+
+	case SIM_CTL_GET_PKEYS:
+		sim_ctl_get_pkeys(cl, &ctl);
 		break;
 
 	default:
