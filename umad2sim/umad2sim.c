@@ -506,10 +506,12 @@ static int umad2sim_ioctl(struct umad2sim_dev *dev, unsigned long request,
 	switch (request) {
 	case IB_USER_MAD_REGISTER_AGENT:
 		return register_agent(dev, arg);
-		break;
 	case IB_USER_MAD_UNREGISTER_AGENT:
 		return unregister_agent(dev, *((unsigned *)arg));
-		break;
+	case IB_USER_MAD_ENABLE_PKEY:
+		return 0;
+	default:
+		errno = EINVAL;
 	}
 	return -1;
 }
