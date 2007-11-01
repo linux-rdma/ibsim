@@ -333,6 +333,67 @@ static int do_unlink(FILE * f, char *line, int clear)
 	return unlinked;
 }
 
+static int do_set_guid(FILE * f, char *line)
+{
+	char name[NAMELEN];
+	uint64_t new_guid;
+	Node *node;
+	Port *port = NULL;
+	char *s = line, *end;
+	char *nodeid = 0, *sp, *orig = 0;
+	int portnum = -1;
+
+	if (strsep(&s, "\""))
+		orig = strsep(&s, "\"");
+
+	if (!s) {
+		fprintf(f, "# set_guid: bad parameter in \"%s\"\n", line);
+		return -1;
+	}
+
+	nodeid = expand_name(orig, name, &sp);
+	if (!sp && *s == '[')
+		sp = s + 1;
+
+	if (!(node = find_node(nodeid))) {
+		fprintf(f, "# nodeid \"%s\" (%s) not found\n", orig, nodeid);
+		return -1;
+	}
+
+
+	if (sp) {
+		portnum = strtoul(sp, 0, 0);
+		if ((node->type != SWITCH_NODE && portnum < 1)
+		    || portnum > node->numports) {
+			fprintf(f, "# can't parse port %d at nodeid \"%s\"\n",
+				portnum, nodeid);
+			return -1;
+		}
+		if (node->type != SWITCH_NODE)
+			port = ports + node->portsbase + portnum - 1;
+	}
+
+	while (isspace(*s))
+		s++;
+
+	if (!s)
+		return 0;
+
+	new_guid = strtoull(s, &end, 0);
+	if (*end && !isspace(*end))
+		return 0;
+
+	if (port)
+		port->portguid = new_guid;
+	else {
+		node->nodeguid = new_guid;
+		mad_encode_field(node->nodeinfo, IB_NODE_GUID_F,
+				 &node->nodeguid);
+	}
+
+	return 1;
+}
+
 static void dump_switch(FILE * f, Switch * sw)
 {
 	int i, j, top;
@@ -644,6 +705,8 @@ static int dump_help(FILE * f)
 	fprintf(f,
 		"\tClear \"nodeid\" : unlink & reset all link of the node\n");
 	fprintf(f, "\tClear \"nodeid\"[port] : unlink & reset port\n");
+	fprintf(f, "\tGuid \"nodeid\" : set GUID value for this node\n");
+	fprintf(f, "\tGuid \"nodeid\"[port] : set GUID value for this port\n");
 	fprintf(f,
 		"\tError \"nodeid\"[port] <error-rate>: set error rate for port/node\n");
 	fprintf(f,
@@ -693,6 +756,10 @@ int do_cmd(char *buf, void *v)
 	case 'u':
 	case 'U':
 		r = do_unlink(f, line, 0);
+		break;
+	case 'G':
+	case 'g':
+		r = do_set_guid(f, line);
 		break;
 	case 'e':
 	case 'E':
