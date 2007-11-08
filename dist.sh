@@ -1,9 +1,11 @@
-#!/bin/sh -xv
+#!/bin/sh
 
 ver=`cat ibsim/ibsim.c | sed -ne '/#define IBSIM_VERSION /s/^#define IBSIM_VERSION \"\(.*\)\"/\1/p'`
 rel=1
 distdir=ibsim-${ver}
 tarball=${distdir}.tar.gz
+
+test -z "$RELEASE" || rel=$RELEASE
 
 rm -f $tarball
 rm -rf $distdir

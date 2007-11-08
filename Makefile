@@ -4,4 +4,4 @@ all clean dep install:
 	$(foreach dir, $(subdirs), make -C $(dir) $@ && ) echo "Done."
 
 dist:
-	./dist.sh
+	./dist.sh RELEASE=$(RELEASE)
