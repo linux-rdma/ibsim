@@ -1,16 +1,17 @@
 
 old_ofed:=/usr/local/ofed
 
-prefix:= $(if $(prefix),$(prefix),\
+prefix:= $(strip $(if $(prefix),$(prefix),\
 	$(if $(wildcard $(old_ofed)/lib64/libibumad.so \
 		$(old_ofed)/lib/libibumad.so),$(old_ofed),\
 	$(if $(wildcard /usr/local/lib/libibumad.so \
 		/usr/local/lib64/libibumad.so),/usr/local,\
-	$(if $(wildcard /usr/lib /usr/lib64),/usr,/tmp/unknown))))
+	$(if $(wildcard /usr/lib /usr/lib64),/usr,/tmp/unknown)))))
 
-libpath:= $(if $(wildcard $(prefix)/lib64/libibumad.so),\
-	$(prefix)/lib64,$(prefix)/lib)
-binpath:=$(prefix)/bin
+libpath:= $(strip $(if $(libpath),$(libpath),\
+	$(if $(wildcard $(prefix)/lib64/libibumad.so),\
+		$(prefix)/lib64,$(prefix)/lib)))
+binpath:= $(if $(binpath),$(binpath),$(prefix)/bin)
 
 #IB_DEV_DIR:=$(HOME)/src/p
 ifdef IB_DEV_DIR
@@ -52,9 +53,10 @@ clean:
 	$(RM) *.o *.a *.so *~
 
 install: all
-	$(foreach p, $(progs), install $(p) $(binpath))
-	install -d $(libpath)/umad2sim
-	$(foreach l, $(libs), install $(l) $(libpath)/umad2sim)
+	install -d $(DESTDIR)$(binpath)
+	install -d $(DESTDIR)$(libpath)/umad2sim
+	$(foreach p, $(progs), install $(p) $(DESTDIR)$(binpath))
+	$(foreach l, $(libs), install $(l) $(DESTDIR)$(libpath)/umad2sim)
 
 $(objs): .build_profile
 .build_profile::
