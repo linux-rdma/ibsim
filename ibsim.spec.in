@@ -1,0 +1,37 @@
+
+%define RELEASE @RELEASE@
+%define rel %{?CUSTOM_RELEASE} %{!?CUSTOM_RELEASE:%RELEASE}
+
+Summary: InfiniBand fabric simulator for management
+Name: ibsim
+Version: @VERSION@
+Release: %rel%{?dist}
+License: GPL/BSD
+Group: System Environment/Libraries
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Source: http://www.openfabrics.org/downloads/management/@TARBALL@
+Url: http://openfabrics.org/
+BuildRequires: libibmad-devel, libibcommon-devel, libibumad-devel
+
+%description
+ibsim provides simulation of infiniband fabric for using with OFA OpenSM, diagnostic and management tools. 
+
+%prep
+%setup -q
+
+%build
+make prefix=%_prefix libpath=%_libdir binpath=%_bindir %{?_smp_mflags}
+
+%install
+make DESTDIR=${RPM_BUILD_ROOT} prefix=%_prefix libpath=%_libdir binpath=%_bindir install
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root)
+%{_libdir}/umad2sim/libumad2sim*.so*
+%{_bindir}/ibsim
+%doc README COPYING TODO net-examples scripts
+
+%changelog
