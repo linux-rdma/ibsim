@@ -20,10 +20,10 @@ fi
 OSM_TMP_DIR=./
 OSM_CACHE_DIR=./
 
+# setup valid libumad2sim.so path here
+# when installed it can be $(libdir)/lib/umad2sim/libumad2sim.so
 umad2sim=`dirname $0`/../umad2sim/libumad2sim.so
 
-
-rm -f ${OSM_CACHE_DIR}/.guid2lid
 
 if [ -z "$debug" ] ; then
 	export SIM_HOST

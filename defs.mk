@@ -1,5 +1,16 @@
 
-prefix:=/usr/local/ofed
+old_ofed:=/usr/local/ofed
+
+prefix:= $(if $(prefix),$(prefix),\
+	$(if $(wildcard $(old_ofed)/lib64/libibumad.so \
+		$(old_ofed)/lib/libibumad.so),$(old_ofed),\
+	$(if $(wildcard /usr/local/lib/libibumad.so \
+		/usr/local/lib64/libibumad.so),/usr/local,\
+	$(if $(wildcard /usr/lib /usr/lib64),/usr,/tmp/unknown))))
+
+libpath:= $(if $(wildcard $(prefix)/lib64/libibumad.so),\
+	$(prefix)/lib64,$(prefix)/lib)
+binpath:=$(prefix)/bin
 
 #IB_DEV_DIR:=$(HOME)/src/p
 ifdef IB_DEV_DIR
@@ -8,13 +19,6 @@ ifdef IB_DEV_DIR
  LIBS:= \
   $(foreach l, mad umad common, $(IB_DEV_DIR)/libib$(l)/.libs/libib$(l).so)
 else
- libpath:= \
-    $(if $(wildcard $(prefix)/lib64/libibumad.so),$(prefix)/lib64,\
-    $(if $(wildcard $(prefix)/lib/libibumad.so),$(prefix)/lib,\
-    $(if $(wildcard /usr/local/lib/libibumad.so),/usr/local/lib,\
-    $(if $(wildcard /usr/local/lib64/libibumad.so),/usr/local/lib64,\
-    $(if $(wildcard /usr/lib),/usr/lib,\
-    $(if $(wildcard /usr/lib64),/usr/lib64,/tmp/unknown))))))
  INCS:= -I$(dir $(libpath))/include
  LIBS:= -L$(libpath) -libmad -libumad -libcommon
 endif
@@ -46,6 +50,11 @@ clean:
 	$(RM) $(objs) $(libs) $(progs)
 	$(RM) .build_profile
 	$(RM) *.o *.a *.so *~
+
+install: all
+	$(foreach p, $(progs), install $(p) $(binpath))
+	install -d $(libpath)/umad2sim
+	$(foreach l, $(libs), install $(l) $(libpath)/umad2sim)
 
 $(objs): .build_profile
 .build_profile::

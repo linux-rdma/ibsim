@@ -62,7 +62,7 @@ Building and using ibsim.
        
        $ make IB_DEV_DIR=${HOME}/src/management
 
-   - 'make dep' and 'make clean' are available now
+   - 'make dep', 'make clean' and 'make install' are available now
 
 3. run ibsim:
 
