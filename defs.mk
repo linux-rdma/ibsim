@@ -24,8 +24,8 @@ else
  LIBS:= -L$(libpath) -libmad -libumad -libcommon
 endif
 
-CFLAGS:= -Wall -g -fpic -I. -I../include $(INCS)
-LDFLAGS:= -fpic
+CFLAGS += -Wall -g -fpic -I. -I../include $(INCS)
+LDFLAGS+= -fpic
 
 srcs?=$(wildcard *.c)
 objs?=$(srcs:.c=.o)
