@@ -89,6 +89,17 @@ struct umad2sim_dev {
 	char issm_path[256];
 };
 
+static int (*real_open) (const char *path, int flags, ...);
+static int (*real_close) (int fd);
+static ssize_t(*real_read) (int fd, void *buf, size_t count);
+static ssize_t(*real_write) (int fd, const void *buf, size_t count);
+static int (*real_poll) (struct pollfd * pfds, nfds_t nfds, int timeout);
+static int (*real_ioctl) (int d, int request, ...);
+static DIR *(*real_opendir) (const char *dir);
+static int (*real_scandir) (const char *dir, struct dirent *** namelist,
+			    int (*filter) (const struct dirent *),
+			    int (*compar) (const void *, const void *));
+
 static char sysfs_infiniband_dir[] = SYS_INFINIBAND;
 static char sysfs_infiniband_mad_dir[] = IB_UMAD_ABI_DIR;
 static char umad_dev_dir[] = UMAD_DEV_DIR;
@@ -372,7 +383,7 @@ static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count)
 
 	DEBUG("umad2sim_read: %zu...\n", count);
 
-	cnt = read(dev->sim_client.fd_pktin, &req, sizeof(req));
+	cnt = real_read(dev->sim_client.fd_pktin, &req, sizeof(req));
 	DEBUG("umad2sim_read: got %d...\n", cnt);
 	if (cnt < sizeof(req)) {
 		ERROR("umad2sim_read: partial request - skip.\n");
@@ -641,17 +652,6 @@ static void umad2sim_init(void)
  *  libc wrappers
  *
  */
-
-static int (*real_open) (const char *path, int flags, ...);
-static int (*real_close) (int fd);
-static ssize_t(*real_read) (int fd, void *buf, size_t count);
-static ssize_t(*real_write) (int fd, const void *buf, size_t count);
-static int (*real_poll) (struct pollfd * pfds, nfds_t nfds, int timeout);
-static int (*real_ioctl) (int d, int request, ...);
-static DIR *(*real_opendir) (const char *dir);
-static int (*real_scandir) (const char *dir, struct dirent *** namelist,
-			    int (*filter) (const struct dirent *),
-			    int (*compar) (const void *, const void *));
 
 static unsigned wrapper_initialized;
 
