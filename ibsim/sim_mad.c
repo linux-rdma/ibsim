@@ -845,18 +845,18 @@ do_extcounters(Port * port, unsigned op, uint32_t unused, uint8_t * data)
 static char *pathstr(int lid, ib_dr_path_t * path)
 {
 	static char buf[1024] = "local";
-	char *s = buf;
+	unsigned n = 0;
 	int i;
 
 	if (0 && lid != -1) {
-		sprintf(s, "lid 0x%x", lid);
+		sprintf(buf, "lid 0x%x", lid);
 		return buf;
 	}
 	for (i = 0; i < path->cnt + 1; i++) {
 		if (i == 0)
-			s += sprintf(s, "%d", path->p[i]);
+			n += snprintf(buf + n, sizeof(buf) - n, "%d", path->p[i]);
 		else
-			s += sprintf(s, ",%d", path->p[i]);
+			n += snprintf(buf + n, sizeof(buf) - n, ",%d", path->p[i]);
 	}
 
 	return buf;
