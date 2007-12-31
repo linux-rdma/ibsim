@@ -213,7 +213,8 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl, union name_t *f
 	}
 
 	if (scl->nodeid[0]) {
-		if (!(node = find_node(scl->nodeid))) {
+		if (!(node = find_node(scl->nodeid)) &&
+		    !(node = find_node_by_desc(scl->nodeid))) {
 			IBWARN("client %d attempt to attach to unknown host"
 			       " \"%s\"", i, scl->nodeid);
 			ctl->type = SIM_CTL_ERROR;

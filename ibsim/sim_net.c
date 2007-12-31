@@ -1236,6 +1236,20 @@ Node *find_node(char *desc)
 	return 0;
 }
 
+Node *find_node_by_desc(char *desc)
+{
+	Node *nd, *e;
+
+	if (!desc)
+		return 0;
+
+	for (nd = nodes, e = nodes + netnodes; nd < e; nd++)
+		if (!strcmp(desc, nd->nodedesc))
+			return nd;
+
+	return 0;
+}
+
 Node *find_node_by_guid(uint64_t guid)
 {
 	Node *nd, *e;
