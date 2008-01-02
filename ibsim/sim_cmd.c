@@ -146,7 +146,7 @@ static int do_link(FILE * f, char *line)
 
 	rport = node_get_port(rnode, rportnum);
 
-	if (link_ports(lnode, lport, rnode, rport) < 0)
+	if (link_ports(lport, rport) < 0)
 		return -fprintf(f,
 				"# can't link: local/remote port are already connected\n");
 	return 0;

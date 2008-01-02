@@ -1063,8 +1063,10 @@ static void set_portinfo(Port * p, const uint8_t portinfo[])
 		p->op_vls = mad_get_field(p->portinfo, 0, IB_PORT_VL_CAP_F);
 }
 
-int link_ports(Node * lnode, Port * lport, Node * rnode, Port * rport)
+int link_ports(Port * lport, Port * rport)
 {
+	Node *lnode = lport->node;
+	Node *rnode = rport->node;
 	Port *endport;
 
 	if (lport->remotenode || rport->remotenode)
@@ -1174,7 +1176,7 @@ int connect_ports(void)
 			return -1;
 		}
 
-		link_ports(port->node, port, remoteport->node, remoteport);
+		link_ports(port, remoteport);
 		pconnected += 2;
 	}
 

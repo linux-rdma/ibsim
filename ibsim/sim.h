@@ -269,7 +269,7 @@ Node *find_node_by_guid(uint64_t guid);
 const char *node_type_name(unsigned type);
 Port *node_get_port(Node * node, int portnum);
 void reset_port(Port * port);
-int link_ports(Node * lnode, Port * lport, Node * rnode, Port * rport);
+int link_ports(Port * lport, Port * rport);
 void update_portinfo(Port * p);
 int build_net(char *netconf);
 int connect_ports(void);
