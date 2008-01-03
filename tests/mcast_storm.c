@@ -299,10 +299,10 @@ static int parse_port_guids_file(const char *guid_file,
 
 		if (i >= list_size) {
 			list_size += 256;
-			list = realloc(list, list_size*sizeof(list[0]));
+			list = realloc(list, list_size * sizeof(list[0]));
 			if (!list) {
 				err("cannot alloc mem for guid/trid list: %s\n",
-		    		    strerror(errno));
+				    strerror(errno));
 				return -1;
 			}
 		}
@@ -331,7 +331,7 @@ static int run_port_rereg_test(const char *guid_file, int port, int agent,
 	if (size < 0)
 		return size;
 
-	for (cnt = size; cnt; ) {
+	for (cnt = size; cnt;) {
 		i = cnt > MAX_CLIENTS ? MAX_CLIENTS : cnt;
 		rereg_send_all(port, agent, dport, list + (size - cnt), i);
 		rereg_recv_all(port, agent, dport, list, size);
