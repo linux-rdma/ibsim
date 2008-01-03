@@ -13,7 +13,7 @@ mkdir $distdir
 
 files=`find . -name '*.[ch]' -o -name Makefile`
 cp -a --parents $files \
-	   defs.mk README COPYING TODO net-examples scripts $distdir
+	defs.mk README COPYING TODO net-examples scripts tests $distdir
 
 cat ibsim.spec.in \
 		| sed -e 's/@VERSION@/'$ver'/' -e 's/@RELEASE@/'$rel'/' -e 's/@TARBALL@/'$tarball'/' \
