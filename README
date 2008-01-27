@@ -59,7 +59,7 @@ Building and using ibsim.
      version of libib* libraries. If you like to build it against
      development tree use IB_DEV_DIR variable (or export it into
      environment):
-       
+
        $ make IB_DEV_DIR=${HOME}/src/management
 
    - 'make dep', 'make clean' and 'make install' are available now
@@ -83,7 +83,7 @@ Building and using ibsim.
     $ LD_PRELOAD=./umad2sim/libumad2sim.so ibnetdiscover
 
    , or
-    
+
     $ LD_PRELOAD=./umad2sim/libumad2sim.so opensm -f -
 
    Notes:

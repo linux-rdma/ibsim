@@ -14,7 +14,7 @@ Url: http://openfabrics.org/
 BuildRequires: libibmad-devel, libibcommon-devel, libibumad-devel
 
 %description
-ibsim provides simulation of infiniband fabric for using with OFA OpenSM, diagnostic and management tools. 
+ibsim provides simulation of infiniband fabric for using with OFA OpenSM, diagnostic and management tools.
 
 %prep
 %setup -q

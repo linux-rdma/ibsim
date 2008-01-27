@@ -40,7 +40,7 @@ all:
 %.so:
 	$(CC) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(progs): 
+$(progs):
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 dep:
