@@ -723,6 +723,15 @@ static int dump_help(FILE * f)
 	return 0;
 }
 
+static int do_disconnect_client(FILE * out, int id)
+{
+	if (disconnect_client(id)) {
+		fprintf(out, "disconnect client: bad clientid %d\n", id);
+		return -1;
+	}
+	return 0;
+}
+
 int netstarted;
 
 int do_cmd(char *buf, FILE *f)
@@ -801,7 +810,7 @@ int do_cmd(char *buf, FILE *f)
 		break;
 	case 'X':
 	case 'x':
-		r = disconnect_client(f, strtol(line + 2, 0, 0));
+		r = do_disconnect_client(f, strtol(line + 2, 0, 0));
 		break;
 	case '#':
 		fprintf(f, line);

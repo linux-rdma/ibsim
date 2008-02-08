@@ -260,7 +260,7 @@ struct Client {
 // ibsim.c
 int list_connections(FILE * out);
 Client *find_client(Port * port, int response, int qp, uint64_t trid);
-int disconnect_client(FILE * out, int id);
+int disconnect_client(int id);
 
 // sim_net.c
 Node *find_node(char *desc);

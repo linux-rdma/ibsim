@@ -634,12 +634,10 @@ int list_connections(FILE * out)
 	return 0;
 }
 
-int disconnect_client(FILE * out, int id)
+int disconnect_client(int id)
 {
-	if (id < 0 || id >= IBSIM_MAX_CLIENTS) {
-		fprintf(out, "disconnect client: bad clientid %d\n", id);
+	if (id < 0 || id >= IBSIM_MAX_CLIENTS || !clients[id].pid)
 		return -1;
-	}
 	clients[id].pid = 0;
 	return 0;
 }
