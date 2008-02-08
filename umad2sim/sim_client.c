@@ -333,6 +333,8 @@ int sim_client_init(struct sim_client *sc, char *nodeid)
 		goto _exit;
 	if (sim_ctl(sc, SIM_CTL_GET_PKEYS, sc->pkeys, sizeof(sc->pkeys)) < 0)
 		goto _exit;
+	if (getenv("SIM_SET_ISSM"))
+		sim_client_set_sm(sc, 1);
 	return 0;
   _exit:
 	sim_disconnect(sc);
