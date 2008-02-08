@@ -725,9 +725,8 @@ static int dump_help(FILE * f)
 
 int netstarted;
 
-int do_cmd(char *buf, void *v)
+int do_cmd(char *buf, FILE *f)
 {
-	FILE *f = v;
 	char *line;
 	int r = 0;
 
