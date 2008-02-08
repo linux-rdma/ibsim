@@ -267,7 +267,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 	if (bind(ctlfd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't bind ctl socket");
 
-	DEBUG("init %d: opened ctl fd %d as &s",
+	DEBUG("init %d: opened ctl fd %d as \'%s\'",
 	      pid, ctlfd, get_name(&name));
 
 	port = connect_port ? atoi(connect_port) : IBSIM_DEFAULT_SERVER_PORT;
@@ -282,7 +282,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 	if (bind(fd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't bind input socket");
 
-	DEBUG("init client %d: opened input data fd %d as &s\n",
+	DEBUG("init client %d: opened input data fd %d as \'%s\'\n",
 	      pid, fd, get_name(&name));
 	if (getsockname(fd, (struct sockaddr *)&name, &size) < 0 )
 		IBPANIC("can't read data from bound socket");
@@ -298,7 +298,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 
 	sim_attach(fd, &name, size);
 
-	DEBUG("init client %d: connect data fd %d to &s\n",
+	DEBUG("init client %d: connect data fd %d to \'%s\'\n",
 	      sc->clientid, fd, get_name(&name));
 
 	sc->fd_pktin = fd;
