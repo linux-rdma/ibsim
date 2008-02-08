@@ -328,23 +328,29 @@ static int sim_ctl_get_portinfo(Client * cl, struct sim_ctl * ctl)
 	return 0;
 }
 
-static int sim_ctl_set_issm(Client * cl, struct sim_ctl * ctl)
+static void set_issm(Port *port, unsigned issm)
 {
-	int issm = *(int *)ctl->data;
 	uint32_t old_capmask, capmask;
 
-	VERB("set issm %d port %" PRIx64, issm, cl->port->portguid);
-	capmask = mad_get_field(cl->port->portinfo, 0, IB_PORT_CAPMASK_F);
+	capmask = mad_get_field(port->portinfo, 0, IB_PORT_CAPMASK_F);
 	old_capmask = capmask;
 	if (issm)
 		capmask |= CAPMASK_ISSM;
 	else
 		capmask &= ~CAPMASK_ISSM;
-	cl->issm = issm;
-	mad_set_field(cl->port->portinfo, 0, IB_PORT_CAPMASK_F, capmask);
+	mad_set_field(port->portinfo, 0, IB_PORT_CAPMASK_F, capmask);
 	if (old_capmask != capmask && capmask&(CAPMASK_ISNOTICE|CAPMASK_ISTRAP)
 	    && capmask&CAPMASK_ISCAPMASKTRAP)
-		send_trap(cl->port, TRAP_144);
+		send_trap(port, TRAP_144);
+}
+
+static int sim_ctl_set_issm(Client * cl, struct sim_ctl * ctl)
+{
+	int issm = *(int *)ctl->data;
+
+	VERB("set issm %d port %" PRIx64, issm, cl->port->portguid);
+	cl->issm = issm;
+	set_issm(cl->port, issm);
 
 	return 0;
 }
@@ -639,6 +645,8 @@ int disconnect_client(int id)
 	if (id < 0 || id >= IBSIM_MAX_CLIENTS || !clients[id].pid)
 		return -1;
 	clients[id].pid = 0;
+	if (clients[id].issm)
+		set_issm(clients[id].port, 0);
 	return 0;
 }
 
