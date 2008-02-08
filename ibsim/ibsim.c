@@ -499,13 +499,18 @@ static int sim_read_pkt(int fd, int client)
 		ret = write(dcl->fd, buf, size);
 		if (ret == size)
 			return 0;
+
 		if (ret < 0 && (errno == ECONNREFUSED || errno == ENOTCONN)) {
-			IBWARN("write: client %u seems to be dead"
-			       " - disconnecting.", dcl->id);
+			IBWARN("client %u seems to be dead - disconnecting.",
+			       dcl->id);
 			disconnect_client(dcl->id);
-			return -1;
 		}
 		IBWARN("write failed: %m - pkt dropped");
+		if (dcl != cl) { /* reply timeout */
+			struct sim_request *r = (struct sim_request *)buf;
+			r->status = htonl(110);
+			write(cl->fd, buf, size);
+		}
 	}
 
 	return -1;		// never reached
