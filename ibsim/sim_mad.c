@@ -38,6 +38,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <errno.h>
 #include <netinet/in.h>
 #include <inttypes.h>
 
@@ -1280,7 +1281,7 @@ int send_trap(Port * port, int trapnum)
 {
 	struct sim_request req;
 	Client *cl;
-	int lid = port->lid;
+	int ret, lid = port->lid;
 	char *data = req.mad + 64;	/* data offset */
 	EncodeTrapfn *encode_trapfn = encodetrap[trapnum];
 	Port *destport;
@@ -1318,8 +1319,16 @@ int send_trap(Port * port, int trapnum)
 		fflush(stdout);
 	}
 
-	if (write(cl->fd, &req, sizeof(req)) == sizeof(req))
+	ret = write(cl->fd, &req, sizeof(req));
+	if (ret == sizeof(req))
 		return 0;
+
+	if (ret < 0 && (errno == ECONNREFUSED || errno == ENOTCONN)) {
+		IBWARN("write: client %u seems to be dead"
+		       " - disconnecting.", cl->id);
+		disconnect_client(cl->id);
+		return -1;
+	}
 
 	IBWARN("write failed: %m - pkt dropped");
 

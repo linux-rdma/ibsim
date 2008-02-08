@@ -473,7 +473,7 @@ static int sim_read_pkt(int fd, int client)
 {
 	char buf[512];
 	Client *cl = clients + client, *dcl;
-	int size;
+	int size, ret;
 
 	if (client >= IBSIM_MAX_CLIENTS || !cl->pid) {
 		IBWARN("pkt from unconnected client %d?!", client);
@@ -496,8 +496,15 @@ static int sim_read_pkt(int fd, int client)
 		     size, sizeof(struct sim_request), dcl->id, dcl->fd);
 
 		// reply
-		if (write(dcl->fd, buf, size) == size)
+		ret = write(dcl->fd, buf, size);
+		if (ret == size)
 			return 0;
+		if (ret < 0 && (errno == ECONNREFUSED || errno == ENOTCONN)) {
+			IBWARN("write: client %u seems to be dead"
+			       " - disconnecting.", dcl->id);
+			disconnect_client(dcl->id);
+			return -1;
+		}
 		IBWARN("write failed: %m - pkt dropped");
 	}
 
