@@ -291,6 +291,12 @@ static int parse_port_guids_file(const char *guid_file,
 	int i = 0;
 
 	f = fopen(guid_file, "r");
+	if (!f) {
+		fprintf(stderr, "cannot fopen \'%s\' %s\n",
+			guid_file, strerror(errno));
+		return -1;
+	}
+
 	while (fgets(line, sizeof(line), f)) {
 		guid = strtoull(line, NULL, 0);
 		guid = htonll(guid);
