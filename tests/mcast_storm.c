@@ -136,12 +136,12 @@ static int rereg_send_all(int port, int agent, ib_portid_t * dport,
 			  struct port_list *list, unsigned cnt)
 {
 	uint8_t *umad;
-	int len = umad_size() + 256;
+	int len = 256;
 	int i;
 
 	info("rereg_send_all... cnt = %u\n", cnt);
 
-	umad = calloc(1, len);
+	umad = calloc(1, len + umad_size());
 	if (!umad) {
 		err("cannot alloc mem for umad: %s\n", strerror(errno));
 		return -1;
@@ -184,14 +184,14 @@ static int rereg_recv_all(int port, int agent, ib_portid_t * dport,
 			  struct port_list *list, unsigned cnt)
 {
 	uint8_t *umad, *mad;
-	int len = umad_size() + 256;
+	int len = 256;
 	uint64_t trid;
 	unsigned n, method, status;
 	int i;
 
 	info("rereg_recv_all...\n");
 
-	umad = calloc(1, len);
+	umad = calloc(1, len + umad_size());
 	if (!umad) {
 		err("cannot alloc mem for umad: %s\n", strerror(errno));
 		return -1;
@@ -237,13 +237,13 @@ static int rereg_query_all(int port, int agent, ib_portid_t * dport,
 			   struct port_list *list, unsigned cnt)
 {
 	uint8_t *umad, *mad;
-	int len = umad_size() + 256;
+	int len = 256;
 	unsigned method, status;
 	int i, ret;
 
 	info("rereg_query_all...\n");
 
-	umad = calloc(1, len);
+	umad = calloc(1, len + umad_size());
 	if (!umad) {
 		err("cannot alloc mem for umad: %s\n", strerror(errno));
 		return -1;
