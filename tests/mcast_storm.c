@@ -46,12 +46,12 @@
 #define IB_MCR_COMPMASK_JOIN_STATE  (1ULL<<16)
 #define IB_MCR_COMPMASK_PROXY       (1ULL<<17)
 
-static ib_gid_t mgid_ipoib = {
+static ibmad_gid_t mgid_ipoib = {
 	0xff, 0x12, 0x40, 0x1b, 0xff, 0xff, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff
 };
 
-uint64_t build_mcm_rec(uint8_t * data, ib_gid_t mgid, ib_gid_t port_gid)
+uint64_t build_mcm_rec(uint8_t * data, ibmad_gid_t mgid, ibmad_gid_t port_gid)
 {
 	memset(data, 0, IB_SA_DATA_SIZE);
 	mad_set_array(data, 0, IB_SA_MCM_MGID_F, mgid);
@@ -79,7 +79,7 @@ static void build_mcm_rec_umad(void *umad, ib_portid_t * dport, int method,
 	mad_build_pkt(umad, &rpc, dport, NULL, data);
 }
 
-static uint64_t get_guid_ho(ib_gid_t gid)
+static uint64_t get_guid_ho(ibmad_gid_t gid)
 {
 	uint64_t guid;
 	memcpy(&guid, &gid[8], sizeof(guid));
@@ -87,7 +87,7 @@ static uint64_t get_guid_ho(ib_gid_t gid)
 }
 
 static int rereg_send(int port, int agent, ib_portid_t * dport,
-		      uint8_t * umad, int len, int method, ib_gid_t port_gid)
+		      uint8_t * umad, int len, int method, ibmad_gid_t port_gid)
 {
 	uint8_t data[IB_SA_DATA_SIZE];
 	uint64_t comp_mask;
@@ -107,14 +107,14 @@ static int rereg_send(int port, int agent, ib_portid_t * dport,
 }
 
 struct port_list {
-	ib_gid_t gid;
+	ibmad_gid_t gid;
 	uint64_t guid;
 	uint64_t trid;
 	unsigned mgrp_count;
 };
 
 struct mgrp_list {
-	ib_gid_t mgid;
+	ibmad_gid_t mgid;
 };
 
 static int rereg_port(int port, int agent, ib_portid_t * dport,
@@ -284,7 +284,7 @@ static int parse_port_guids_file(const char *guid_file,
 {
 	char line[256];
 	FILE *f;
-	ib_gid_t port_gid;
+	ibmad_gid_t port_gid;
 	uint64_t prefix, guid;
 	struct port_list *list = NULL;
 	unsigned list_size = 0;
