@@ -270,7 +270,7 @@ static int new_hca(Node * nd)
 static int build_nodeid(char *nodeid, char *base)
 {
 	if (strchr(base, '#') || strchr(base, '@')) {
-		IBWARN("bad nodeid \"%s\": '#' & '@' characters are resereved",
+		IBWARN("bad nodeid \"%s\": '#' & '@' characters are reserved",
 		       base);
 		return -1;
 	}
@@ -649,7 +649,7 @@ static int parse_port(char *line, Node * node, int type, int maxports)
 		build_alias(port->remotealias, s, 0);
 
 	expand_name(s, remotenodeid, &sp);
-	PDEBUG("remotenodid %s s %s sp %s", remotenodeid, s, sp);
+	PDEBUG("remotenodeid %s s %s sp %s", remotenodeid, s, sp);
 
 	s += strlen(s) + 1;
 	if (!sp && *s == '[')
@@ -791,7 +791,7 @@ static int parse_guidbase(int fd, char *line, int type)
 	char *s;
 
 	if (!(s = strchr(line, '=')) && !(s = strchr(line, '+'))) {
-		IBWARN("bad assignemnt: missing '=|+' sign");
+		IBWARN("bad assignment: missing '=|+' sign");
 		return -1;
 	}
 
@@ -805,7 +805,7 @@ static int parse_guidbase(int fd, char *line, int type)
 		guidbase = 0;
 	}
 	guids[type] = absguids[type] + guidbase;
-	PDEBUG("new guidbase for %s: base %" PRIx64 " current %" PRIx64,
+	PDEBUG("new guidbase for %s: base 0x%" PRIx64 " current 0x%" PRIx64,
 	       node_type_name(type), absguids[type],
 	       guids[type]);
 	return 1;
@@ -816,7 +816,7 @@ static int parse_devid(int fd, char *line)
 	char *s;
 
 	if (!(s = strchr(line, '='))) {
-		IBWARN("bad assignemnt: missing '=' sign");
+		IBWARN("bad assignment: missing '=' sign");
 		return -1;
 	}
 
@@ -831,7 +831,7 @@ static int parse_width(int fd, char *line)
 	int width;
 
 	if (!(s = strchr(line, '='))) {
-		IBWARN("bad assignemnt: missing '=' sign");
+		IBWARN("bad assignment: missing '=' sign");
 		return -1;
 	}
 
@@ -851,7 +851,7 @@ static int parse_speed(int fd, char *line)
 	int speed;
 
 	if (!(s = strchr(line, '='))) {
-		IBWARN("bad assignemnt: missing '=' sign");
+		IBWARN("bad assignment: missing '=' sign");
 		return -1;
 	}
 
@@ -870,7 +870,7 @@ static int parse_netprefix(int fd, char *line)
 	char *s;
 
 	if (!(s = strchr(line, '='))) {
-		IBWARN("bad assignemnt: missing '=' sign");
+		IBWARN("bad assignment: missing '=' sign");
 		return -1;
 	}
 
@@ -907,7 +907,7 @@ static int set_var(char *line, int *var)
 	char *s;
 
 	if (!(s = strchr(line, '='))) {
-		IBWARN("bad assignemnt: missing '=' sign");
+		IBWARN("bad assignment: missing '=' sign");
 		return -1;
 	}
 
