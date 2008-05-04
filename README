@@ -90,6 +90,9 @@ Building and using ibsim.
    - in order to run OpenSM as non-privileged user you may need to
      export OSM_CACHE_DIR variable and to use '-f' option in order to
      specify writable path to OpenSM log file.
+   - Point of attachment is indicated by SIM_HOST environment variable.
+     If not specified, first entry in topology file is used. For OpenSM,
+     if -g option is used, it must same as this.
 
 5. Enjoy and comment.
 
