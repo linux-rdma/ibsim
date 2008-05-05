@@ -92,7 +92,7 @@ Building and using ibsim.
      specify writable path to OpenSM log file.
    - Point of attachment is indicated by SIM_HOST environment variable.
      If not specified, first entry in topology file is used. For OpenSM,
-     if -g option is used, it must same as this.
+     if -g option is used, it must be the same as this.
 
 5. Enjoy and comment.
 
