@@ -56,7 +56,7 @@ extern Port *ports;
 extern Port **lids;
 extern int netnodes, netports, netswitches;
 
-#define NAMELEN	64
+#define NAMELEN	NODEIDLEN
 
 char *portstates[] = {
 	"-", "Down", "Init", "Armed", "Active",

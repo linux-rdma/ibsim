@@ -267,17 +267,16 @@ static int new_hca(Node * nd)
 	return 0;
 }
 
-static int build_nodeid(char *nodeid, char *base)
+static int build_nodeid(char *nodeid, size_t len, char *base)
 {
 	if (strchr(base, '#') || strchr(base, '@')) {
 		IBWARN("bad nodeid \"%s\": '#' & '@' characters are reserved",
 		       base);
 		return -1;
 	}
-	if (netprefix[0] == 0)
-		strncpy(nodeid, base, NODEIDLEN);
-	else
-		snprintf(nodeid, NODEIDLEN, "%s#%s", netprefix, base);
+
+	snprintf(nodeid, len, "%s%s%s", netprefix, *netprefix ? "#" : "", base);
+
 	return 0;
 }
 
@@ -287,7 +286,7 @@ static Node *new_node(int type, char *nodename, char *nodedesc, int nodeports)
 	char nodeid[NODEIDLEN];
 	Node *nd;
 
-	if (build_nodeid(nodeid, nodename) < 0)
+	if (build_nodeid(nodeid, sizeof(nodeid), nodename) < 0)
 		return 0;
 
 	if (find_node(nodeid)) {
@@ -310,11 +309,9 @@ static Node *new_node(int type, char *nodename, char *nodedesc, int nodeports)
 
 	nd->type = type;
 	nd->numports = nodeports;
-	strncpy(nd->nodeid, nodeid, NODEIDLEN - 1);
-	if (nodedesc && nodedesc[0])
-		strncpy(nd->nodedesc, nodedesc, NODEIDLEN - 1);
-	else
-		strncpy(nd->nodedesc, nodeid, NODEIDLEN - 1);
+	strncpy(nd->nodeid, nodeid, sizeof(nd->nodeid) - 1);
+	strncpy(nd->nodedesc, nodedesc && *nodedesc ? nodedesc : nodeid,
+		sizeof(nd->nodedesc) - 1);
 	nd->sysguid = nd->nodeguid = guids[type];
 	if (type == SWITCH_NODE) {
 		nodeports++;	// port 0 is SMA
@@ -551,22 +548,20 @@ char *expand_name(char *base, char *name, char **portstr)
 		if (netprefix[0] != 0 && !strchr(base, '#'))
 			snprintf(name, NODEIDLEN, "%s#%s", netprefix, base);
 		else
-			strcpy(name, base);
+			strncpy(name, base, NODEIDLEN - 1);
 		if (portstr)
-			*portstr = 0;
+			*portstr = NULL;
 		PDEBUG("name %s port %s", name, portstr ? *portstr : 0);
 		return name;
 	}
-	if (base[0] == '@')
-		snprintf(name, ALIASLEN, "%s%s", netprefix, base);
-	else
-		strcpy(name, base);
+
+	snprintf(name, NODEIDLEN, "%s%s", base[0] == '@' ? netprefix : "", base);
 	PDEBUG("alias %s", name);
 
 	if (!(s = map_alias(name)))
 		return 0;
 
-	strcpy(name, s);
+	strncpy(name, s, NODEIDLEN - 1);
 
 	if (portstr) {
 		*portstr = name;
@@ -1075,12 +1070,12 @@ int link_ports(Port * lport, Port * rport)
 	lport->remotenode = rnode;
 	lport->remoteport = rport->portnum;
 	set_portinfo(lport, lnode->type == SWITCH_NODE ? swport : hcaport);
-	memcpy(lport->remotenodeid, rnode->nodeid, NODEIDLEN);
+	memcpy(lport->remotenodeid, rnode->nodeid, sizeof(lport->remotenodeid));
 
 	rport->remotenode = lnode;
 	rport->remoteport = lport->portnum;
 	set_portinfo(rport, rnode->type == SWITCH_NODE ? swport : hcaport);
-	memcpy(rport->remotenodeid, lnode->nodeid, NODEIDLEN);
+	memcpy(rport->remotenodeid, lnode->nodeid, sizeof(rport->remotenodeid));
 	lport->state = rport->state = 2;	// Initialilze
 	lport->physstate = rport->physstate = 5;	// LinkUP
 	if (lnode->sw)
@@ -1166,7 +1161,7 @@ int connect_ports(void)
 			}
 		} else if (remoteport->remoteport != port->portnum ||
 			   strncmp(remoteport->remotenodeid, port->node->nodeid,
-				   NODEIDLEN)) {
+				   sizeof(remoteport->remotenodeid))) {
 			IBWARN
 			    ("remote port %d in node \"%s\" is not connected to "
 			     "node \"%s\" port %d (\"%s\" %d)",

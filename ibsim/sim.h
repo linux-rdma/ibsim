@@ -66,7 +66,7 @@
 #define DEFAULT_LINKSPEED	LINKSPEED_SDR
 
 #define NODEPREFIX	20
-#define NODEIDLEN	64
+#define NODEIDLEN	65
 #define ALIASLEN 	40
 
 #define MAXHOPS 16
@@ -236,7 +236,7 @@ struct Node {
 	uint64_t sysguid;
 	uint64_t nodeguid;	// also portguid
 	int portsbase;		// in port table
-	char nodeid[64];	// contain nodeid[NODEIDLEN]
+	char nodeid[NODEIDLEN];	// contain nodeid[NODEIDLEN]
 	uint8_t nodeinfo[64];
 	char nodedesc[64];
 	Switch *sw;
