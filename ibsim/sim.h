@@ -275,7 +275,7 @@ int build_net(char *netconf);
 int connect_ports(void);
 char *expand_name(char *base, char *name, char **portstr);
 int read_netconf(char *name, FILE * out);
-int set_def(char *nodeid);
+int set_default_port(char *nodeid);
 int readline(int fd, char *buf, int sz);
 
 // sim_cmd.c
@@ -287,7 +287,7 @@ void *sim_cmd_thread(void *file);
 int process_packet(Client * cl, void *p, int size, Client ** dcl);
 int send_trap(Port * port, int trapnum);
 
-extern Port *defport;
+extern Port *default_port;
 extern int simverb, modified;
 extern int netstarted;
 

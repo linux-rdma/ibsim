@@ -62,7 +62,7 @@ int inclevel;
 int parsedebug;
 int simverb;
 
-Port *defport;
+Port *default_port;
 
 static const uint8_t smaport[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1276,9 +1276,9 @@ Port *node_get_port(Node * node, int portnum)
 	return port;
 }
 
-int set_def(char *nodeid)
+int set_default_port(char *nodeid)
 {
-	Node *node = 0;
+	Node *node = NULL;
 
 	if (!netports)
 		return -1;	// no ports are defined in net
@@ -1286,12 +1286,8 @@ int set_def(char *nodeid)
 	if (nodeid && !(node = find_node(nodeid)))
 		IBWARN("node %s not found - use default port!", nodeid);
 
-	if (!node) {
-		defport = ports;
-		return 0;
-	}
+	default_port = node ? node_get_port(node, 0) : ports;
 
-	defport = node_get_port(node, 0);
 	return 0;
 }
 

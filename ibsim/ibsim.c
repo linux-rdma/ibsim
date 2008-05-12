@@ -225,8 +225,9 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl, union name_t *f
 		     i, node->nodeid, cl->port->portguid);
 	} else {
 		VERB("Attaching client %d at default node \"%s\"/port 0x%"
-		     PRIx64, i, defport->node->nodeid, defport->portguid);
-		cl->port = defport;
+		     PRIx64, i, default_port->node->nodeid,
+		     default_port->portguid);
+		cl->port = default_port;
 	}
 
 	if (scl->issm && sm_exists(cl->port->node)) {
@@ -561,7 +562,7 @@ static int sim_init_net(char *netconf, FILE * out)
 	if (connect_ports() < 0)
 		return -2;
 
-	if (set_def(0) < 0)
+	if (set_default_port(NULL) < 0)
 		return -3;
 
 	return 0;
