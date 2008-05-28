@@ -432,32 +432,31 @@ static int parse_port_lid_and_lmc(Port * port, char *line)
 
 static int parse_port_opt(Port * port, char *opt, char *val)
 {
-	int width;
-	int speed;
+	int v;
 
-	if (*opt == 'w') {
-		width = strtoul(val, 0, 0);
-		if (!is_linkwidth_valid(width))
+	switch (*opt) {
+	case 'w':
+		v = strtoul(val, 0, 0);
+		if (!is_linkwidth_valid(v))
 			return -1;
 
-		port->linkwidthena = width;
+		port->linkwidthena = v;
 		DEBUG("port %p linkwidth enabled set to %d", port,
 		      port->linkwidthena);
-		return 0;
-	} else if (*opt == 's') {
-		speed = strtoul(val, 0, 0);
-
-		if (!is_linkspeed_valid(speed))
+		break;
+	case 's':
+		v = strtoul(val, 0, 0);
+		if (!is_linkspeed_valid(v))
 			return -1;
 
-		port->linkspeedena = speed;
+		port->linkspeedena = v;
 		DEBUG("port %p linkspeed enabled set to %d", port,
 		      port->linkspeedena);
-		return 0;
-	} else {
-		IBWARN("unknown opt %c", *opt);
-		return -1;
+		break;
+	default:
+		break;
 	}
+	return 0;
 }
 
 static void init_ports(Node * node, int type, int maxports)
