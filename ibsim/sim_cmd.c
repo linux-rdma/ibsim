@@ -700,10 +700,10 @@ static int dump_help(FILE * f)
 	fprintf(f, "\tDump [nodeid] (def all network)\n");
 	fprintf(f, "\tRoute <from-lid> <to-lid>\n");
 	fprintf(f, "\tLink \"nodeid\"[port] \"remoteid\"[port]\n");
-	fprintf(f, "\tUnlink \"nodeid\" : removes all link of the node\n");
+	fprintf(f, "\tUnlink \"nodeid\" : remove all links of the node\n");
 	fprintf(f, "\tUnlink \"nodeid\"[port]\n");
 	fprintf(f,
-		"\tClear \"nodeid\" : unlink & reset all link of the node\n");
+		"\tClear \"nodeid\" : unlink & reset all links of the node\n");
 	fprintf(f, "\tClear \"nodeid\"[port] : unlink & reset port\n");
 	fprintf(f, "\tGuid \"nodeid\" : set GUID value for this node\n");
 	fprintf(f, "\tGuid \"nodeid\"[port] : set GUID value for this port\n");
