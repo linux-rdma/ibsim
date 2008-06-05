@@ -1058,7 +1058,7 @@ static Port *direct_route_in_MAD(Port * port, ib_dr_path_t * path)
 {
 	unsigned ptr;
 
-	DEBUG("route_in: path %s hops %d\n", pathstr(0, path), path->cnt);
+	DEBUG("route_in: path %s hops %d", pathstr(0, path), path->cnt);
 
 	for (ptr = path->cnt; ptr; ptr--) {
 		if (ptr < path->cnt && port->node->type != SWITCH_NODE)
@@ -1068,7 +1068,7 @@ static Port *direct_route_in_MAD(Port * port, ib_dr_path_t * path)
 			return NULL;
 	}
 
-	DEBUG("routed in to node %s port %d (%p)\n",
+	DEBUG("routed in to node %s port %d (%p)",
 	      port->node->nodeid, port->portnum, port);
 
 	return port;
@@ -1078,7 +1078,7 @@ static Port *direct_route_out_MAD(Port * port, ib_dr_path_t * path)
 {
 	unsigned ptr = 0;
 
-	DEBUG("route_out: path %s hops %d\n", pathstr(0, path), path->cnt);
+	DEBUG("route_out: path %s hops %d", pathstr(0, path), path->cnt);
 
 	while (ptr < path->cnt) {
 		if (ptr && port->node->type != SWITCH_NODE)
@@ -1090,7 +1090,7 @@ static Port *direct_route_out_MAD(Port * port, ib_dr_path_t * path)
 	}
 	path->p[ptr++] = port->portnum;
 
-	DEBUG("routed out to node %s port %d (%p) return path %s\n",
+	DEBUG("routed out to node %s port %d (%p) return path %s",
 	      port->node->nodeid, port->portnum, port, pathstr(0, path));
 
 	return port;
@@ -1144,7 +1144,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 
 	*dcl = cl;
 
-	DEBUG("client id %d, size %d", cl->id, size);
+	DEBUG("client %d, size %d", cl->id, size);
 	if (size != sizeof(*r)) {
 		IBWARN("bad packet size %d (!= %zu)", size, sizeof(*r));
 		return -1;
