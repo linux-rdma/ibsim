@@ -33,19 +33,19 @@ SM/SA/PerfMgr to ibsim.
 Any libibumad based application may work with ibsim. Kernel support
 and userspace application recompilation are not required.
 
-ibsim may works locally via unix sockets or remotely via inet sockets
-(not implemented yet).
+ibsim works locally via unix sockets or remotely via inet sockets
+(latter not implemented yet).
 
-As fabric topology description ibsim uses text file in the format
+For fabric topology description, ibsim uses a text file in the format
 compatible with ibnetdiscover command output (for examples see
-net-examples/) and it can be generated using real cluster snapshot.
+net-examples/) and it can be generated using a real cluster snapshot.
 
-ibsim has simple console command interface and can simulate random
+ibsim has a simple console command interface and can simulate random
 packets drops and link up/down events. It is possible to run batch
 commands from file via pipe or named fifo.
 
 
-Building and using ibsim.
+Building and using ibsim
 ------------------------
 
 1. cd to unpacked simulator directory.
