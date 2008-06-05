@@ -221,10 +221,10 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl, union name_t *f
 			return -1;
 		}
 		cl->port = node_get_port(node, 0);
-		VERB("Attaching client %d at node \"%s\"/port 0x%" PRIx64,
+		VERB("Attaching client %d at node \"%s\" port 0x%" PRIx64,
 		     i, node->nodeid, cl->port->portguid);
 	} else {
-		VERB("Attaching client %d at default node \"%s\"/port 0x%"
+		VERB("Attaching client %d at default node \"%s\" port 0x%"
 		     PRIx64, i, default_port->node->nodeid,
 		     default_port->portguid);
 		cl->port = default_port;
@@ -275,7 +275,7 @@ static int sim_ctl_disconnect_client(Client * cl, struct sim_ctl * ctl)
 		return 0;	// ?
 	}
 
-	DEBUG("Detaching client %d from node \"%s\"/port 0x%" PRIx64,
+	DEBUG("Detaching client %d from node \"%s\" port 0x%" PRIx64,
 	      client, cl->port->node->nodeid, cl->port->portguid);
 	cl->pid = 0;
 
