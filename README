@@ -33,8 +33,7 @@ SM/SA/PerfMgr to ibsim.
 Any libibumad based application may work with ibsim. Kernel support
 and userspace application recompilation are not required.
 
-ibsim works locally via unix sockets or remotely via inet sockets
-(latter not implemented yet).
+ibsim works locally via unix sockets or remotely via inet sockets.
 
 For fabric topology description, ibsim uses a text file in the format
 compatible with ibnetdiscover command output (for examples see
