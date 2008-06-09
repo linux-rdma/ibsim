@@ -1,4 +1,3 @@
-* inet sockets support
 * transaction management
   - multiple transactions per client
   - hops simulation
