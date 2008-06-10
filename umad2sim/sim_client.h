@@ -46,8 +46,6 @@ struct sim_client {
 	uint16_t pkeys[SIM_CTL_MAX_DATA/sizeof(uint16_t)];
 };
 
-extern int sim_client_send_packet(struct sim_client *sc, char *p, int size);
-extern int sim_client_recv_packet(struct sim_client *sc, void *buf, int size);
 extern int sim_client_set_sm(struct sim_client *sc, unsigned issm);
 extern int sim_client_init(struct sim_client *sc, char *nodeid);
 extern void sim_client_exit(struct sim_client *sc);

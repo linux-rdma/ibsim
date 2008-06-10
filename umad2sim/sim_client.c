@@ -61,41 +61,6 @@
 
 static unsigned int remote_mode = 0;
 
-int sim_client_recv_packet(struct sim_client *sc, void *buf, int size)
-{
-	int len, ret, cnt;
-
-	if (size < sizeof(struct sim_request)) {
-		LOG("buffer too small %d < %zu", size,
-		    sizeof(struct sim_request));
-		return -1;
-	}
-
-	ret = 0;
-	len = sizeof(struct sim_request);
-	while (len > 0) {
-		cnt = read(sc->fd_pktin, buf + ret, len);
-		if (cnt < 0) {
-			LOG("sim_client_recv_packet: read(%d) failed (%m)",
-			    size);
-			return -1;
-		} else if (cnt == 0)
-			return ret;
-		len -= cnt;
-		ret += cnt;
-	}
-
-	return size;
-}
-
-int sim_client_send_packet(struct sim_client *sc, char *p, int size)
-{
-	if (write(sc->fd_pktout, p, size) == size)
-		return 0;
-	IBWARN("write failed: %m");
-	return -1;
-}
-
 static int sim_ctl(struct sim_client *sc, int type, void *data, int len)
 {
 	struct sim_ctl ctl;
