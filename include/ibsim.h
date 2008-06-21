@@ -67,7 +67,7 @@ struct sim_request {
 	uint32_t dqp;
 	uint32_t sqp;
 	uint32_t status;
-	uint64_t context;
+	uint64_t length;
 	char mad[256];
 };
 

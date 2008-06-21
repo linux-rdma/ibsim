@@ -1306,7 +1306,7 @@ int send_trap(Port * port, int trapnum)
 	req.sqp = 0;
 	req.dqp = 0;
 	req.status = 0;
-	req.context = 0;
+	req.length = htonll(sizeof(req.mad));
 
 	// find SM client
 	cl = find_client(destport, 0, 1, 0);

@@ -411,7 +411,7 @@ static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count)
 	umad->status = ntohl(req.status);
 	umad->timeout_ms = 0;
 	umad->retries = 0;
-	umad->length = umad_size() + sizeof(req.mad);
+	umad->length = umad_size() + ntohll(req.length);
 
 	umad->addr.qpn = req.sqp;
 	umad->addr.qkey = 0;	// agent->qkey;
@@ -425,7 +425,7 @@ static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count)
 		cnt = count - umad_size();
 	memcpy(umad_get_mad(umad), req.mad, cnt);
 
-	return cnt + umad_size();
+	return umad->length;
 }
 
 static ssize_t umad2sim_write(struct umad2sim_dev *dev,
@@ -470,12 +470,13 @@ static ssize_t umad2sim_write(struct umad2sim_dev *dev,
 	req.dqp = umad->addr.qpn;
 	req.sqp = htonl(dev->agents[umad->agent_id].qpn);
 	req.status = 0;
-	req.context = 0;
 
 	cnt = count - umad_size();
 	if (cnt > sizeof(req.mad))
 		cnt = sizeof(req.mad);
 	memcpy(req.mad, umad_get_mad(umad), cnt);
+
+	req.length = htonll(cnt);
 
 	cnt = write(dev->sim_client.fd_pktout, (void *)&req, sizeof(req));
 	if (cnt < 0) {
