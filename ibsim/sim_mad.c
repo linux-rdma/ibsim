@@ -1128,7 +1128,7 @@ Smpfn *get_handle_fn(ib_rpc_t rpc, int response)
 		return fn;
 	}
 
-	return 0;		// No MGTCLASS matched .
+	return 0;		// No MGTCLASS matched.
 }
 
 int process_packet(Client * cl, void *p, int size, Client ** dcl)
@@ -1287,7 +1287,7 @@ int send_trap(Port * port, int trapnum)
 	Port *destport;
 
 	if (!encode_trapfn) {
-		IBWARN("trap number %d not upported", trapnum);
+		IBWARN("trap number %d not supported", trapnum);
 		return -1;
 	}
 
