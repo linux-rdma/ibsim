@@ -858,6 +858,8 @@ static char *pathstr(int lid, ib_dr_path_t * path)
 			n += snprintf(buf + n, sizeof(buf) - n, "%d", path->p[i]);
 		else
 			n += snprintf(buf + n, sizeof(buf) - n, ",%d", path->p[i]);
+		if (n >= sizeof(buf))
+			break;
 	}
 
 	return buf;
