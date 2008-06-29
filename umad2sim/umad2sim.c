@@ -238,7 +238,7 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 
 	/* /sys/class/infiniband/mthca0/ports/1/ */
 	val = mad_get_field(portinfo, 0, IB_PORT_LOCAL_PORT_F);
-	snprintf(path + strlen(path), sizeof(path), "/%u", val);
+	snprintf(path + strlen(path), sizeof(path) - strlen(path), "/%u", val);
 	make_path(path);
 
 	/* /sys/class/infiniband/mthca0/ports/1/lid_mask_count */
