@@ -1182,7 +1182,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 			       rpc.mgtclass, rpc.attr.id);
 			goto _dropped;
 		}
-		VERB("forward pkt to client %d pid %d attr %d",
+		VERB("forward pkt to client %d pid %d attr 0x%x",
 		     (*dcl)->id, (*dcl)->pid, rpc.attr.id);
 		forward_MAD(r->mad, &rpc, &path);
 		return sizeof(*r);	// forward only
