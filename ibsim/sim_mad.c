@@ -612,7 +612,9 @@ static int pc_updated(Port ** srcport, Port * destport)
 		ADDVAL64(destpc->ext_xmit_data, madsize_div_4);
 		ADDVAL64(destpc->ext_xmit_pkts, 1);
 
-		if (destport->errrate && (random() % 100) < destport->errrate) {
+		if (destport->errrate &&
+		    !destport->errattr &&
+		    (random() % 100) < destport->errrate) {
 			pc_add_error_errs_rcv(destport);
 			VERB("drop pkt due error rate %d", destport->errrate);
 			return 0;
@@ -1188,7 +1190,8 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 		return sizeof(*r);	// forward only
 	}
 
-	if (port->errrate && (random() % 100) < port->errrate) {
+	if (port->errrate && (!port->errattr || port->errattr == rpc.attr.id) &&
+	    (random() % 100) < port->errrate) {
 		VERB("drop pkt due error rate %d", port->errrate);
 		goto _dropped;
 	}

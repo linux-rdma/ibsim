@@ -207,6 +207,7 @@ struct Port {
 	Node *remotenode;
 	int remoteport;
 	int errrate;
+	uint16_t errattr;
 	Node *node;
 	Portcounters portcounters;
 	uint16_t *pkey_tbl;

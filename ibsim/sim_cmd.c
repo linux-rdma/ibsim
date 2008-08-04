@@ -199,6 +199,7 @@ static int do_seterror(FILE * f, char *line)
 	char *nodeid = 0, name[NAMELEN], *sp, *orig = 0;
 	int portnum = -1;	// def - all ports
 	int numports, set = 0, rate = 0;
+	uint16_t attr = 0;
 
 	if (strsep(&s, "\""))
 		orig = strsep(&s, "\"");
@@ -240,6 +241,13 @@ static int do_seterror(FILE * f, char *line)
 	}
 
 	DEBUG("error rate is %d", rate);
+
+	strsep(&s, " \t");
+	if (s) {
+		attr = strtoul(s, 0, 0);
+		DEBUG("error attr is %u", attr);
+	}
+
 	numports = node->numports;
 
 	if (node->type == SWITCH_NODE)
@@ -250,12 +258,14 @@ static int do_seterror(FILE * f, char *line)
 	if (portnum >= 0) {
 		port = ports + node->portsbase + portnum;
 		port->errrate = rate;
+		port->errattr = attr;
 		return 1;
 	}
 
 	for (port = ports + node->portsbase, e = port + numports; port < e;
 	     port++) {
 		port->errrate = rate;
+		port->errattr = attr;
 		set++;
 	}
 
@@ -415,8 +425,11 @@ static void dump_switch(FILE * f, Switch * sw)
 
 static void dump_comment(Port * port, char *comment)
 {
+	int n = 0;
 	if (port->errrate)
-		sprintf(comment, "\t# err_rate %d", port->errrate);
+		n += sprintf(comment, "\t# err_rate %d", port->errrate);
+	if (port->errattr)
+		n += sprintf(comment+n, "\t# err_attr %d", port->errattr);
 }
 
 static void dump_port(FILE * f, Port * port, int type)
@@ -708,7 +721,14 @@ static int dump_help(FILE * f)
 	fprintf(f, "\tGuid \"nodeid\" : set GUID value for this node\n");
 	fprintf(f, "\tGuid \"nodeid\"[port] : set GUID value for this port\n");
 	fprintf(f,
-		"\tError \"nodeid\"[port] <error-rate>: set error rate for port/node\n");
+		"\tError \"nodeid\"[port] <error-rate> [attribute]: set error rate for\n"
+		"\t\t\tport/node, optionally for specified attribute ID\n"
+		"\t\t\tSome common attribute IDs:\n"
+		"\t\t\t\tNodeDescription : 16\n"
+		"\t\t\t\tNodeInfo        : 17\n"
+		"\t\t\t\tSwitchInfo      : 18\n"
+		"\t\t\t\tPortInfo        : 19\n"
+		);
 	fprintf(f,
 		"\tBaselid \"nodeid\"[port] <lid> [lmc] : change port's lid (lmc)\n");
 	fprintf(f, "\tVerbose [newlevel] - show/set simulator verbosity\n");
