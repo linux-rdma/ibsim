@@ -762,16 +762,14 @@ int do_cmd(char *buf, FILE *f)
 
 	for (line = buf; *line && isspace(*line); line++) ;
 
-	/* special cases */
-	if (*line == '!')
-		r = sim_cmd_file(f, line);
-	else if (*line == '#' || *line == '\n' || *line == '\0')
-		goto out;
-
 	while (!isspace(line[cmd_len]))
 		cmd_len++;
 
-	if (!strncasecmp(line, "Dump", cmd_len))
+	if (*line == '#')
+		fprintf(f, line);
+	else if (*line == '!')
+		r = sim_cmd_file(f, line);
+	else if (!strncasecmp(line, "Dump", cmd_len))
 		r = dump_net(f, line);
 	else if (!strncasecmp(line, "Route", cmd_len))
 		r = dump_route(f, line);
@@ -816,14 +814,8 @@ int do_cmd(char *buf, FILE *f)
 	 *
 	 * please specify new command support below this comment.
 	 */
-	else {
-		char cmdbuf[cmd_len+1];
+	else if (*line != '\n' && *line != '\0')
+		fprintf(f, "command \'%s\' unknown - skipped\n", line);
 
-		memset(cmdbuf, '\0', cmd_len+1);
-		strncpy(cmdbuf, line, cmd_len);
-
-		fprintf(f, "command %s unknown - skipped\n", cmdbuf);
-	}
-out:
 	return r;
 }
