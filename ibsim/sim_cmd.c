@@ -756,91 +756,74 @@ int netstarted;
 
 int do_cmd(char *buf, FILE *f)
 {
+	unsigned int cmd_len = 0;
 	char *line;
 	int r = 0;
 
 	for (line = buf; *line && isspace(*line); line++) ;
 
-	switch (*line) {
-	case '!':
+	/* special cases */
+	if (*line == '!')
 		r = sim_cmd_file(f, line);
-		break;
-	case 'd':
-	case 'D':
+	else if (*line == '#' || *line == '\n' || *line == '\0')
+		goto out;
+
+	while (!isspace(line[cmd_len]))
+		cmd_len++;
+
+	if (!strncasecmp(line, "Dump", cmd_len))
 		r = dump_net(f, line);
-		break;
-	case 'r':
-	case 'R':
+	else if (!strncasecmp(line, "Route", cmd_len))
 		r = dump_route(f, line);
-		break;
-	case 'l':
-	case 'L':
+	else if (!strncasecmp(line, "Link", cmd_len))
 		r = do_link(f, line);
-		break;
-	case 'B':
-	case 'b':
-		r = do_change_baselid(f, line);
-		break;
-	case 'u':
-	case 'U':
+	else if (!strncasecmp(line, "Unlink", cmd_len))
 		r = do_unlink(f, line, 0);
-		break;
-	case 'G':
-	case 'g':
-		r = do_set_guid(f, line);
-		break;
-	case 'e':
-	case 'E':
-		r = do_seterror(f, line);
-		break;
-	case 'c':
-	case 'C':
+	else if (!strncasecmp(line, "Clear", cmd_len))
 		r = do_unlink(f, line, 1);
-		break;
-	case 'q':
-	case 'Q':
-		fprintf(f, "Exiting network simulator.\n");
-		free_core();
-		exit(0);
-		break;
-	case 'h':
-	case 'H':
-	case '?':
-		r = dump_help(f);
-		break;
-	case 'V':
-	case 'v':
-		r = change_verbose(f, line);
-		break;
-	case 'S':
-	case 's':
+	else if (!strncasecmp(line, "Guid", cmd_len))
+		r = do_set_guid(f, line);
+	else if (!strncasecmp(line, "Error", cmd_len))
+		r = do_seterror(f, line);
+	else if (!strncasecmp(line, "Baselid", cmd_len))
+		r = do_change_baselid(f, line);
+	else if (!strncasecmp(line, "Start", cmd_len)) {
 		if (!netstarted) {
 			DEBUG("starting...");
 			netstarted = 1;
 			return 0;
 		}
-		break;
-	case 'W':
-	case 'w':
-		r = do_wait(f, line);
-		break;
-	case 'A':
-	case 'a':
-		r = list_connections(f);
-		break;
-	case 'X':
-	case 'x':
-		r = do_disconnect_client(f, strtol(line + 2, 0, 0));
-		break;
-	case '#':
-		fprintf(f, line);
-		// fall through
-	case '\n':
-	case 0:
-		break;
-	default:
-		fprintf(f, "op %c unknown - skipped\n", line[0]);
 	}
+	else if (!strncasecmp(line, "Verbose", cmd_len))
+		r = change_verbose(f, line);
+	else if (!strncasecmp(line, "Wait", cmd_len))
+		r = do_wait(f, line);
+	else if (!strncasecmp(line, "Attached", cmd_len))
+		r = list_connections(f);
+	else if (!strncasecmp(line, "X", cmd_len))
+		r = do_disconnect_client(f, strtol(line + 2, 0, 0));
+	else if (!strncasecmp(line, "Help", cmd_len)
+		 || !strncasecmp(line, "?", cmd_len))
+		r = dump_help(f);
+	else if (!strncasecmp(line, "Quit", cmd_len)) {
+		fprintf(f, "Exiting network simulator.\n");
+		free_core();
+		exit(0);
+	}
+	/* commands specified above support legacy single
+	 * character options.  For example, 'g' or 'G' for "Guid"
+	 * and 'l' or 'L' for "Link".
+	 *
+	 * please specify new command support below this comment.
+	 */
+	else {
+		char cmdbuf[cmd_len+1];
 
+		memset(cmdbuf, '\0', cmd_len+1);
+		strncpy(cmdbuf, line, cmd_len);
+
+		fprintf(f, "command %s unknown - skipped\n", cmdbuf);
+	}
+out:
 	return r;
 }
