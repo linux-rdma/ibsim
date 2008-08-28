@@ -316,7 +316,7 @@ static int do_unlink(FILE * f, char *line, int clear)
 	if (portnum >= 0) {
 		port = ports + node->portsbase + portnum;
 		if (!clear && !port->remotenode) {
-			fprintf(f, "# port %d at nodeid \"%s\"\n is not linked",
+			fprintf(f, "# port %d at nodeid \"%s\" is not linked\n",
 				portnum, nodeid);
 			return -1;
 		}
