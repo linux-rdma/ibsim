@@ -149,13 +149,101 @@ static int do_link(FILE * f, char *line)
 	if (link_ports(lport, rport) < 0)
 		return -fprintf(f,
 				"# can't link: local/remote port are already connected\n");
+
+	lport->previous_remotenode = NULL;
+	rport->previous_remotenode = NULL;
+
 	return 0;
+}
+
+static int do_relink(FILE * f, char *line)
+{
+	Port *lport, *rport, *e;
+	Node *lnode;
+	char *orig = 0;
+	char *lnodeid = 0;
+	char *s = line, name[NAMELEN], *sp;
+	int lportnum = -1;
+	int numports, relinked = 0;
+
+	// parse local
+	if (strsep(&s, "\""))
+		orig = strsep(&s, "\"");
+
+	lnodeid = expand_name(orig, name, &sp);
+	if (!sp && s && *s == '[')
+		sp = s + 1;
+
+	DEBUG("lnodeid %s port [%s", lnodeid, sp);
+	if (!(lnode = find_node(lnodeid))) {
+		fprintf(f, "# nodeid \"%s\" (%s) not found\n", orig, lnodeid);
+		return -1;
+	}
+
+	if (sp) {
+		lportnum = strtoul(sp, &sp, 0);
+		if (lportnum < 1 || lportnum > lnode->numports) {
+			fprintf(f, "# nodeid \"%s\": bad port %d\n",
+				lnodeid, lportnum);
+			return -1;
+		}
+	}
+	numports = lnode->numports;
+
+	if (lnode->type == SWITCH_NODE)
+		numports++;	// To make the for-loop below run up to last port
+	else
+		lportnum--;
+	
+	if (lportnum >= 0) {
+		lport = ports + lnode->portsbase + lportnum;
+
+		if (!lport->previous_remotenode) {
+			fprintf(f, "# no previous link stored\n");
+			return -1;
+		}
+
+		rport = node_get_port(lport->previous_remotenode, lport->previous_remoteport);
+
+		if (link_ports(lport, rport) < 0)
+			return -fprintf(f,
+					"# can't link: local/remote port are already connected\n");
+
+		lport->previous_remotenode = NULL;
+		rport->previous_remotenode = NULL;
+
+		return 1;
+	}
+
+	for (lport = ports + lnode->portsbase, e = lport + numports; lport < e;
+	     lport++) {
+		if (!lport->previous_remotenode)
+			continue; 
+
+		rport = node_get_port(lport->previous_remotenode, lport->previous_remoteport);
+
+		if (link_ports(lport, rport) < 0)
+			continue;
+
+		lport->previous_remotenode = NULL;
+		rport->previous_remotenode = NULL;
+
+		relinked++;
+	}
+
+	return relinked;
 }
 
 static void unlink_port(Node * lnode, Port * lport, Node * rnode, int rportnum)
 {
 	Port *rport = node_get_port(rnode, rportnum);
 	Port *endport;
+
+	/* save current connection for potential relink later */
+	lport->previous_remotenode = lport->remotenode;
+	lport->previous_remoteport = lport->remoteport;
+	rport->previous_remotenode = rport->remotenode;
+	rport->previous_remoteport = rport->remoteport;
 
 	lport->remotenode = rport->remotenode = 0;
 	lport->remoteport = rport->remoteport = 0;
@@ -713,6 +801,8 @@ static int dump_help(FILE * f)
 	fprintf(f, "\tDump [nodeid] (def all network)\n");
 	fprintf(f, "\tRoute <from-lid> <to-lid>\n");
 	fprintf(f, "\tLink \"nodeid\"[port] \"remoteid\"[port]\n");
+	fprintf(f, "\tReLink \"nodeid\" : restore previously unconnected link(s) of the node\n");
+	fprintf(f, "\tReLink \"nodeid\"[port] : restore previously unconnected link\n");
 	fprintf(f, "\tUnlink \"nodeid\" : remove all links of the node\n");
 	fprintf(f, "\tUnlink \"nodeid\"[port]\n");
 	fprintf(f,
@@ -814,6 +904,8 @@ int do_cmd(char *buf, FILE *f)
 	 *
 	 * please specify new command support below this comment.
 	 */
+	else if (!strncasecmp(line, "ReLink", cmd_len))
+		r = do_relink(f, line);
 	else if (*line != '\n' && *line != '\0')
 		fprintf(f, "command \'%s\' unknown - skipped\n", line);
 

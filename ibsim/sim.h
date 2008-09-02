@@ -206,6 +206,8 @@ struct Port {
 	char alias[ALIASLEN + 1];
 	Node *remotenode;
 	int remoteport;
+	Node *previous_remotenode;
+	int previous_remoteport;
 	int errrate;
 	uint16_t errattr;
 	Node *node;
