@@ -571,8 +571,8 @@ static int dump_net(FILE * f, char *line)
 		fprintf(f, "\n%s %d \"%s\"",
 			node_type_name(node->type),
 			node->numports, node->nodeid);
-		fprintf(f, "\tnodeguid %" PRIx64 "\n", node->nodeguid);
-
+		fprintf(f, "\tnodeguid %" PRIx64 "\tsysimgguid %" PRIx64 "\n",
+			node->nodeguid, node->sysguid);
 		nports = node->numports;
 		if (node->type == SWITCH_NODE) {
 			nports++;

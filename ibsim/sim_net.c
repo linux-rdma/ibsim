@@ -190,7 +190,9 @@ char (*aliases)[NODEIDLEN + NODEPREFIX + 1];	// aliases map format: "%s@%s"
 
 int netnodes, netswitches, netports, netaliases;
 char netprefix[NODEPREFIX + 1];
+int netvendid;
 int netdevid;
+uint64_t netsysimgguid;
 int netwidth = DEFAULT_LINKWIDTH;
 int netspeed = DEFAULT_LINKSPEED;
 
@@ -324,17 +326,22 @@ static Node *new_node(int type, char *nodename, char *nodedesc, int nodeports)
 	}
 
 	mad_set_field(nd->nodeinfo, 0, IB_NODE_NPORTS_F, nd->numports);
+	mad_set_field(nd->nodeinfo, 0, IB_NODE_VENDORID_F, netvendid);
 	mad_set_field(nd->nodeinfo, 0, IB_NODE_DEVID_F, netdevid);
 
 	mad_encode_field(nd->nodeinfo, IB_NODE_GUID_F, &nd->nodeguid);
 	mad_encode_field(nd->nodeinfo, IB_NODE_PORT_GUID_F, &nd->nodeguid);
-	mad_encode_field(nd->nodeinfo, IB_NODE_SYSTEM_GUID_F, &nd->nodeguid);
+	mad_encode_field(nd->nodeinfo, IB_NODE_SYSTEM_GUID_F,
+			 netsysimgguid ? &netsysimgguid : &nd->nodeguid);
 
 	if ((nd->portsbase = new_ports(nd, nodeports, firstport)) < 0) {
 		IBWARN("can't alloc %d ports for node %s", nodeports,
 		       nd->nodeid);
 		return 0;
 	}
+
+	netvendid = 0;
+	netsysimgguid = 0;
 
 	return nd;
 }
@@ -805,6 +812,20 @@ static int parse_guidbase(int fd, char *line, int type)
 	return 1;
 }
 
+static int parse_vendid(int fd, char *line)
+{
+	char *s;
+
+	if (!(s = strchr(line, '='))) {
+		IBWARN("bad assignment: missing '=' sign");
+		return -1;
+	}
+
+	netvendid = strtol(s + 1, 0, 0);
+
+	return 1;
+}
+
 static int parse_devid(int fd, char *line)
 {
 	char *s;
@@ -815,6 +836,20 @@ static int parse_devid(int fd, char *line)
 	}
 
 	netdevid = strtol(s + 1, 0, 0);
+
+	return 1;
+}
+
+static uint64_t parse_sysimgguid(int fd, char *line)
+{
+	char *s;
+
+	if (!(s = strchr(line, '='))) {
+		IBWARN("bad assignment: missing '=' sign");
+		return -1;
+	}
+
+	netsysimgguid = strtoull(s + 1, 0, 0);
 
 	return 1;
 }
@@ -935,8 +970,12 @@ static int parse_netconf(int fd, FILE * out)
 			r = parse_guidbase(fd, line, HCA_NODE);
 		else if (!strncmp(line, "rtguid", 6))
 			r = parse_guidbase(fd, line, ROUTER_NODE);
+		else if (!strncmp(line, "vendid", 6))
+			r = parse_vendid(fd, line);
 		else if (!strncmp(line, "devid", 5))
 			r = parse_devid(fd, line);
+		else if (!strncmp(line, "sysimgguid", 10))
+			r = parse_sysimgguid(fd, line);
 		else if (!strncmp(line, "width", 5))
 			r = parse_width(fd, line);
 		else if (!strncmp(line, "speed", 5))
