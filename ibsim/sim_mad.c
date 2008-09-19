@@ -1324,7 +1324,10 @@ int send_trap(Port * port, int trapnum)
 		fflush(stdout);
 	}
 
-	ret = write(cl->fd, &req, sizeof(req));
+	do {
+		ret = write(cl->fd, &req, sizeof(req));
+	} while ((errno == EAGAIN) && (ret == -1));
+
 	if (ret == sizeof(req))
 		return 0;
 

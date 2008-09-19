@@ -497,7 +497,10 @@ static int sim_read_pkt(int fd, int client)
 		     size, sizeof(struct sim_request), dcl->id, dcl->fd);
 
 		// reply
-		ret = write(dcl->fd, buf, size);
+		do {
+			ret = write(dcl->fd, buf, size);
+		} while ((errno == EAGAIN) && (ret == -1));
+			 
 		if (ret == size)
 			return 0;
 
