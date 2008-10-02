@@ -399,8 +399,7 @@ static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count)
 	      mad_get_field(req.mad, 0, IB_MAD_RESPONSE_F),
 	      mgmt_class,
 	      mad_get_field(req.mad, 0, IB_MAD_ATTRID_F),
-	      mad_get_field(req.mad, 0, IB_MAD_ATTRMOD_F)
-	    );
+	      mad_get_field(req.mad, 0, IB_MAD_ATTRMOD_F));
 
 	if (mgmt_class >= arrsize(dev->agent_idx)) {
 		ERROR("bad mgmt_class 0x%x\n", mgmt_class);
@@ -461,8 +460,7 @@ static ssize_t umad2sim_write(struct umad2sim_dev *dev,
 	      mad_get_field(umad_get_mad(umad), 0, IB_MAD_RESPONSE_F),
 	      mad_get_field(umad_get_mad(umad), 0, IB_MAD_MGMTCLASS_F),
 	      mad_get_field(umad_get_mad(umad), 0, IB_MAD_ATTRID_F),
-	      mad_get_field(umad_get_mad(umad), 0, IB_MAD_ATTRMOD_F)
-	    );
+	      mad_get_field(umad_get_mad(umad), 0, IB_MAD_ATTRMOD_F));
 
 	req.dlid = umad->addr.lid;
 	req.slid = req.dlid == 0xffff ? 0xffff : 0;	/* 0 - means auto
@@ -483,9 +481,8 @@ static ssize_t umad2sim_write(struct umad2sim_dev *dev,
 		ERROR("umad2sim_write: cannot write\n");
 		return -1;
 	}
-	if (cnt < sizeof(req)) {
+	if (cnt < sizeof(req))
 		ERROR("umad2sim_write: partial write\n");
-	}
 
 	return count;
 }
