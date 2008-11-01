@@ -668,7 +668,7 @@ int disconnect_client(int id)
 
 static Client *client_by_trid(Port *port, uint64_t trid)
 {
-	unsigned i = (unsigned)(trid >> 32);
+	unsigned i = (unsigned)(trid >> 48);
 	if (i < IBSIM_MAX_CLIENTS && clients[i].pid &&
 	    clients[i].port->portguid == port->portguid)
 		return &clients[i];

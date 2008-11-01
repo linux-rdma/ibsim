@@ -406,7 +406,12 @@ static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count)
 		mgmt_class = 0;
 	}
 
-	umad->agent_id = dev->agent_idx[mgmt_class];
+	if (mad_get_field(req.mad, 0, IB_MAD_RESPONSE_F)) {
+		uint64_t trid = mad_get_field64(req.mad, 0, IB_MAD_TRID_F);
+		umad->agent_id = (trid >> 32) & 0xffff;
+	} else
+		umad->agent_id = dev->agent_idx[mgmt_class];
+
 	umad->status = ntohl(req.status);
 	umad->timeout_ms = 0;
 	umad->retries = 0;
@@ -475,6 +480,12 @@ static ssize_t umad2sim_write(struct umad2sim_dev *dev,
 	memcpy(req.mad, umad_get_mad(umad), cnt);
 
 	req.length = htonll(cnt);
+
+	if (!mad_get_field(req.mad, 0, IB_MAD_RESPONSE_F)) {
+		uint64_t trid = mad_get_field64(req.mad, 0, IB_MAD_TRID_F);
+		trid = (trid&0xffff0000ffffffffULL)|(((uint64_t)umad->agent_id)<<32);
+		mad_set_field64(req.mad, 0, IB_MAD_TRID_F, trid);
+	}
 
 	cnt = write(dev->sim_client.fd_pktout, (void *)&req, sizeof(req));
 	if (cnt < 0) {

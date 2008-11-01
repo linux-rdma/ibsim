@@ -108,7 +108,7 @@ static uint64_t update_trid(uint8_t *mad, unsigned response, Client *cl)
 {
 	uint64_t trid = mad_get_field64(mad, 0, IB_MAD_TRID_F);
 	if (!response) {
-		trid = (trid&0xffffffffULL)|(((uint64_t)cl->id)<<32);
+		trid = (trid&0xffffffffffffULL)|(((uint64_t)cl->id)<<48);
 		mad_set_field64(mad, 0, IB_MAD_TRID_F, trid);
 	}
 	return trid;
