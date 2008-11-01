@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2007 Voltaire, Inc. All rights reserved.
+ * Copyright (c) 2006-2008 Voltaire, Inc. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by
