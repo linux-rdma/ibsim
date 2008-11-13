@@ -513,7 +513,7 @@ static int sim_read_pkt(int fd, int client)
 		if (dcl != cl) { /* reply timeout */
 			struct sim_request *r = (struct sim_request *)buf;
 			r->status = htonl(110);
-			write(cl->fd, buf, size);
+			ret = write(cl->fd, buf, size);
 		}
 	}
 
