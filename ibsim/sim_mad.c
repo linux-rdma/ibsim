@@ -727,7 +727,6 @@ static int do_portcounters(Port * port, unsigned op, uint32_t unused,
 	mask = mad_get_field(data, 0, IB_PC_COUNTER_SELECT_F);
 
 	if (portnum != 0xff) {
-
 		if (!(p = node_get_port(node, portnum)))
 			return ERR_BAD_PARAM;
 
@@ -1197,7 +1196,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 	}
 
 	if ((status = fn(port, rpc.method, rpc.attr.mod, data)) < 0)
-		return -1;
+		goto _dropped;
 
 	if (rpc.method == 2)
 		modified++;
