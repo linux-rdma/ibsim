@@ -12,6 +12,7 @@
 #include <string.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <ctype.h>
 #include <getopt.h>
 
 #include <infiniband/umad.h>
@@ -173,7 +174,6 @@ static int rereg_send(struct addr_data *a, uint8_t * umad, int len,
 
 struct gid_list {
 	ibmad_gid_t gid;
-	uint64_t guid;
 	uint64_t trid;
 };
 
@@ -257,7 +257,7 @@ static int rereg_recv_all(struct addr_data *a,
 			}
 			info("guid 0x%016" PRIx64
 			     ": method = %x status = %x. Resending\n",
-			     ntohll(list[i].guid), method, status);
+			     get_guid_ho(list[i].gid), method, status);
 			rereg_port(a, umad, len, &list[i]);
 		}
 	}
@@ -304,7 +304,7 @@ static int rereg_query_all(struct addr_data *a,
 
 		if (status)
 			info("guid 0x%016" PRIx64 ": status %x, method %x\n",
-			     ntohll(list[i].guid), status, method);
+			     get_guid_ho(list[i].gid), status, method);
 	}
 
 	info("rereg_query_all: %u queried.\n", cnt);
@@ -313,78 +313,34 @@ static int rereg_query_all(struct addr_data *a,
 	return 0;
 }
 
-static int parse_guids_file(const char *guid_file, struct gid_list **gid_list)
-{
-	char line[256];
-	FILE *f;
-	ibmad_gid_t port_gid;
-	uint64_t guid, prefix = htonll(DEFAULT_PREFIX);
-	struct gid_list *list = NULL;
-	unsigned list_size = 0;
-	int i = 0;
+/* tests framework */
 
-	f = fopen(guid_file, "r");
-	if (!f) {
-		fprintf(stderr, "cannot fopen \'%s\' %s\n",
-			guid_file, strerror(errno));
-		return -1;
-	}
-
-	while (fgets(line, sizeof(line), f)) {
-		guid = strtoull(line, NULL, 0);
-		guid = htonll(guid);
-		memcpy(&port_gid[0], &prefix, 8);
-		memcpy(&port_gid[8], &guid, 8);
-
-		if (i >= list_size) {
-			list_size += 256;
-			list = realloc(list, list_size * sizeof(list[0]));
-			if (!list) {
-				err("cannot alloc mem for guid/trid list: %s\n",
-				    strerror(errno));
-				return -1;
-			}
-		}
-
-		memset(&list[i], 0, sizeof(list[i]));
-		list[i].guid = guid;
-		memcpy(list[i].gid, port_gid, sizeof(list[i].gid));
-		i++;
-	}
-	fclose(f);
-
-	*gid_list = list;
-
-	return i;
-}
+struct test_data {
+	unsigned gids_size;
+	struct gid_list *gids;
+	unsigned mgids_size;
+	struct gid_list *mgids;
+};
 
 #define MAX_CLIENTS 100
 
-static int run_port_rereg_test(struct addr_data *a, const char *guid_file,
-			       const char *mgid_file)
+static int run_port_rereg_test(struct addr_data *a, struct test_data *td)
 {
-	struct gid_list *list;
-	int size, cnt, i;
-
-	size = parse_guids_file(guid_file, &list);
-	if (size < 0)
-		return size;
+	int cnt, i, size = td->gids_size;
 
 	for (cnt = size; cnt;) {
 		i = cnt > MAX_CLIENTS ? MAX_CLIENTS : cnt;
-		rereg_send_all(a, list + (size - cnt), i);
-		rereg_recv_all(a, list, size);
+		rereg_send_all(a, td->gids + (size - cnt), i);
+		rereg_recv_all(a, td->gids, size);
 		cnt -= i;
 	}
 
-	rereg_query_all(a, list, size);
+	rereg_query_all(a, td->gids, size);
 
-	free(list);
 	return 0;
 }
 
-static int run_mcast_storm_test(struct addr_data *a,
-				const char *guid_file, const char *mgid_file)
+static int run_mcast_storm_test(struct addr_data *a, struct test_data *td)
 {
 	info("%s: not implemented yet\n", __func__);
 	return 0;
@@ -394,12 +350,11 @@ static int run_mcast_storm_test(struct addr_data *a,
 
 struct test {
 	const char *name;
-	int (*func)(struct addr_data *, const char *, const char *);
+	int (*func)(struct addr_data *, struct test_data *);
 	const char *description;
 };
 
-static int run_test(const struct test *t,
-		    const char *guid_file, const char *mgid_file)
+static int run_test(const struct test *t, struct test_data *td)
 {
 	int mgmt_classes[2] = { IB_SMI_CLASS, IB_SMI_DIRECT_CLASS };
 	struct addr_data addr;
@@ -423,18 +378,98 @@ static int run_test(const struct test *t,
 	addr.agent = umad_register(addr.port, IB_SA_CLASS, 2, 0, NULL);
 	addr.timeout = TMO;
 
-	ret = t->func(&addr, guid_file, mgid_file);
+	ret = t->func(&addr, td);
 
 	umad_unregister(addr.port, addr.agent);
 	umad_close_port(addr.port);
 	umad_done();
 
-	info("\'%s\' is done.\n", t->name);
+	info("\'%s\' %s.\n", t->name, ret ? "failed" : "is done");
 
 	return ret;
 }
 
-void make_str_opts(char *p, unsigned size, const struct option *o)
+static void make_gid(ibmad_gid_t gid, uint64_t prefix, uint64_t guid)
+{
+	prefix = ntohll(prefix);
+	guid = ntohll(guid);
+	memcpy(&gid[0], &prefix, 8);
+	memcpy(&gid[8], &guid, 8);
+}
+
+static int make_gids_list(ibmad_gid_t gid, unsigned n, struct gid_list **gid_list)
+{
+	struct gid_list *list = NULL;
+	uint64_t guid, prefix;
+	unsigned i;
+
+	list = calloc(1 + n, sizeof(list[0]));
+	if (!list) {
+		err("cannot alloc mem for guid/trid list: %s\n",
+		    strerror(errno));
+		return -1;
+	}
+
+	memcpy(&prefix, &gid[0], 8);
+	prefix = ntohll(prefix);
+	memcpy(&guid, &gid[8], 8);
+	guid = ntohll(guid);
+
+	for (i = 0; i <= n; i++)
+		make_gid(list[i].gid, prefix, guid++);
+
+	*gid_list = list;
+
+	return 0;
+}
+
+static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
+{
+	char line[256];
+	FILE *f;
+	uint64_t guid, prefix;
+	struct gid_list *list = NULL;
+	char *e;
+	unsigned list_size = 0;
+	int i = 0;
+
+	f = fopen(guid_file, "r");
+	if (!f) {
+		fprintf(stderr, "cannot fopen \'%s\' %s\n",
+			guid_file, strerror(errno));
+		return -1;
+	}
+
+	while (fgets(line, sizeof(line), f)) {
+		guid = strtoull(line, &e, 0);
+		if (e && isxdigit(*e)) {
+			prefix = guid;
+			guid = strtoull(line, NULL, 0);
+		} else
+			prefix = DEFAULT_PREFIX;
+
+		if (i >= list_size) {
+			list_size += 256;
+			list = realloc(list, list_size * sizeof(list[0]));
+			if (!list) {
+				err("cannot alloc mem for guid/trid list: %s\n",
+				    strerror(errno));
+				return -1;
+			}
+			memset(&list[i], 0, 256 * sizeof(list[0]));
+		}
+
+		make_gid(list[i].gid, prefix, guid);
+		i++;
+	}
+	fclose(f);
+
+	*gid_list = list;
+
+	return i;
+}
+
+static void make_str_opts(char *p, unsigned size, const struct option *o)
 {
 	int i, n = 0;
 
@@ -457,7 +492,7 @@ static const struct test *find_test(const struct test *t, const char *name)
 	return NULL;
 }
 
-void usage(char *prog, const struct option *o, const struct test *t)
+static void usage(char *prog, const struct option *o, const struct test *t)
 {
 	printf("Usage: %s [options] <test>\n", prog);
 
@@ -478,12 +513,14 @@ int main(int argc, char **argv)
 	const struct option long_opts [] = {
 		{"guidfile", 1, 0, 'g'},
 		{"mgidfile", 1, 0, 'm'},
+		{"GUID", 1, 0, 'G'},
+		{"MGID", 1, 0, 'M'},
+		{"increment", 1, 0, 'I'},
 		{"version", 0, 0, 'V'},
 		{"verbose", 0, 0, 'v'},
 		{"help", 0, 0, 'h'},
 		{}
 	};
-
 	const struct test tests[] = {
 		{"rereg", run_port_rereg_test, "simulates port reregistration"},
 		{"joins", run_mcast_storm_test, "run a lot of joins"},
@@ -491,17 +528,33 @@ int main(int argc, char **argv)
 	};
 
 	char opt_str[256];
+	struct test_data tdata;
+	ibmad_gid_t gid, mgid = {};
+	uint64_t guid = 0;
+	const char *guid_file = NULL, *mgid_file = NULL;
 	const struct test *t;
+	unsigned is_mgid = 0, increment = 0;
 	int ret, ch;
-
-	const char *guid_file = "port_guids.list";
-	const char *mgid_file = "mcast_groups.list";
 
 
 	make_str_opts(opt_str, sizeof(opt_str), long_opts);
 
 	while ((ch = getopt_long(argc, argv, opt_str, long_opts, NULL)) != -1) {
 		switch (ch) {
+		case 'G':
+			guid = strtoull(optarg, NULL, 0);
+			break;
+		case 'M':
+			{ char *e; uint64_t val1, val2;
+			val1 = strtoull(optarg, &e, 0);
+			val2 = strtoull(e, NULL, 0);
+			make_gid(mgid, val1, val2);
+			is_mgid = 1;
+			}
+			break;
+		case 'I':
+			increment = strtoul(optarg, NULL, 0);
+			break;
 		case 'g':
 			guid_file = optarg;
 			break;
@@ -520,17 +573,50 @@ int main(int argc, char **argv)
 		}
 	}
 
+	memset(&tdata, 0, sizeof(tdata));
+
+	if (guid) {
+		make_gid(gid, DEFAULT_PREFIX, guid);
+		ret = make_gids_list(gid, increment, &tdata.gids);
+	} else if (guid_file)
+		ret = parse_gids_file(guid_file, &tdata.gids);
+	else {
+		err("Unkown port guid(s) - use -G or -g option...\n");
+		usage(argv[0], long_opts, tests);
+		return -1;
+	}
+
+	if (ret < 0)
+		return ret;
+	tdata.gids_size = ret;
+
+	if (is_mgid)
+		ret = make_gids_list(mgid, increment, &tdata.mgids);
+	else if (mgid_file)
+		ret = parse_gids_file(mgid_file, &tdata.mgids);
+	else
+		ret = make_gids_list(mgid_ipoib, increment, &tdata.mgids);
+
+	if (ret < 0)
+		return ret;
+	tdata.mgids_size = ret;
+
 	if (argc <= optind)
-		return run_test(&tests[0], guid_file, mgid_file);
+		return run_test(&tests[0], &tdata);
 
 	do {
 		t = find_test(tests, argv[optind]);
 		if (!t)
 			usage(argv[0], long_opts, tests);
-		ret = run_test(t, guid_file, mgid_file);
+		ret = run_test(t, &tdata);
 		if (ret)
 			break;
 	} while (argc > ++optind);
+
+	if (tdata.gids)
+		free(tdata.gids);
+	if (tdata.mgids)
+		free(tdata.mgids);
 
 	return ret;
 }
