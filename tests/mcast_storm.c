@@ -48,6 +48,13 @@
 #define IB_MCR_COMPMASK_JOIN_STATE  (1ULL<<16)
 #define IB_MCR_COMPMASK_PROXY       (1ULL<<17)
 
+struct addr_data {
+	int port;
+	int agent;
+	int timeout;
+	ib_portid_t dport;
+};
+
 static ibmad_gid_t mgid_ipoib = {
 	0xff, 0x12, 0x40, 0x1b, 0xff, 0xff, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff
@@ -88,16 +95,16 @@ static uint64_t get_guid_ho(ibmad_gid_t gid)
 	return ntohll(guid);
 }
 
-static int rereg_send(int port, int agent, ib_portid_t * dport,
-		      uint8_t * umad, int len, int method, ibmad_gid_t port_gid)
+static int rereg_send(struct addr_data *a, uint8_t * umad, int len,
+		      int method, ibmad_gid_t port_gid)
 {
 	uint8_t data[IB_SA_DATA_SIZE];
 	uint64_t comp_mask;
 
 	comp_mask = build_mcm_rec(data, mgid_ipoib, port_gid);
 
-	build_mcm_rec_umad(umad, dport, method, comp_mask, data);
-	if (umad_send(port, agent, umad, len, TMO, 0) < 0) {
+	build_mcm_rec_umad(umad, &a->dport, method, comp_mask, data);
+	if (umad_send(a->port, a->agent, umad, len, a->timeout, 0) < 0) {
 		err("umad_send method %u failed for guid 0x%016" PRIx64
 		    ": %s\n", method, get_guid_ho(port_gid), strerror(errno));
 		return -1;
@@ -119,22 +126,20 @@ struct mgrp_list {
 	ibmad_gid_t mgid;
 };
 
-static int rereg_port(int port, int agent, ib_portid_t * dport,
-		      uint8_t * umad, int len, struct port_list *list)
+static int rereg_port(struct addr_data *a, uint8_t * umad, int len,
+		      struct port_list *list)
 {
-	if (rereg_send(port, agent, dport, umad, len,
-		       IB_MAD_METHOD_DELETE, list->gid))
+	if (rereg_send(a, umad, len, IB_MAD_METHOD_DELETE, list->gid))
 		return -1;
 
-	if (rereg_send(port, agent, dport, umad, len,
-		       IB_MAD_METHOD_SET, list->gid))
+	if (rereg_send(a, umad, len, IB_MAD_METHOD_SET, list->gid))
 		return -1;
 	list->trid = mad_get_field64(umad_get_mad(umad), 0, IB_MAD_TRID_F);
 
 	return 0;
 }
 
-static int rereg_send_all(int port, int agent, ib_portid_t * dport,
+static int rereg_send_all(struct addr_data *a,
 			  struct port_list *list, unsigned cnt)
 {
 	uint8_t *umad;
@@ -150,7 +155,7 @@ static int rereg_send_all(int port, int agent, ib_portid_t * dport,
 	}
 
 	for (i = 0; i < cnt; i++)
-		rereg_port(port, agent, dport, umad, len, &list[i]);
+		rereg_port(a, umad, len, &list[i]);
 
 	info("rereg_send_all: sent %u requests\n", cnt * 2);
 
@@ -159,13 +164,12 @@ static int rereg_send_all(int port, int agent, ib_portid_t * dport,
 	return 0;
 }
 
-static int rereg_recv(int port, int agent, ib_portid_t * dport,
-		      uint8_t * umad, int length, int tmo)
+static int rereg_recv(struct addr_data *a, uint8_t * umad, int length)
 {
 	int ret, retry = 0;
 	int len = length;
 
-	while ((ret = umad_recv(port, umad, &len, tmo)) < 0 &&
+	while ((ret = umad_recv(a->port, umad, &len, a->timeout)) < 0 &&
 	       errno == ETIMEDOUT) {
 		if (retry++ > 3)
 			return 0;
@@ -182,7 +186,7 @@ static int rereg_recv(int port, int agent, ib_portid_t * dport,
 	return 1;
 }
 
-static int rereg_recv_all(int port, int agent, ib_portid_t * dport,
+static int rereg_recv_all(struct addr_data *a,
 			  struct port_list *list, unsigned cnt)
 {
 	uint8_t *umad, *mad;
@@ -200,7 +204,7 @@ static int rereg_recv_all(int port, int agent, ib_portid_t * dport,
 	}
 
 	n = 0;
-	while (rereg_recv(port, agent, dport, umad, len, TMO) > 0) {
+	while (rereg_recv(a, umad, len) > 0) {
 		dbg("rereg_recv_all: done %d\n", n);
 		n++;
 		mad = umad_get_mad(umad);
@@ -225,7 +229,7 @@ static int rereg_recv_all(int port, int agent, ib_portid_t * dport,
 			info("guid 0x%016" PRIx64
 			     ": method = %x status = %x. Resending\n",
 			     ntohll(list[i].guid), method, status);
-			rereg_port(port, agent, dport, umad, len, &list[i]);
+			rereg_port(a, umad, len, &list[i]);
 		}
 	}
 
@@ -235,7 +239,7 @@ static int rereg_recv_all(int port, int agent, ib_portid_t * dport,
 	return 0;
 }
 
-static int rereg_query_all(int port, int agent, ib_portid_t * dport,
+static int rereg_query_all(struct addr_data *a,
 			   struct port_list *list, unsigned cnt)
 {
 	uint8_t *umad, *mad;
@@ -252,14 +256,13 @@ static int rereg_query_all(int port, int agent, ib_portid_t * dport,
 	}
 
 	for (i = 0; i < cnt; i++) {
-		ret = rereg_send(port, agent, dport, umad, len,
-				 IB_MAD_METHOD_GET, list[i].gid);
+		ret = rereg_send(a, umad, len, IB_MAD_METHOD_GET, list[i].gid);
 		if (ret < 0) {
 			err("query_all: rereg_send failed.\n");
 			continue;
 		}
 
-		ret = rereg_recv(port, agent, dport, umad, len, TMO);
+		ret = rereg_recv(a, umad, len);
 		if (ret < 0) {
 			err("query_all: rereg_recv failed.\n");
 			continue;
@@ -329,8 +332,7 @@ static int parse_port_guids_file(const char *guid_file,
 
 #define MAX_CLIENTS 100
 
-static int run_port_rereg_test(const char *guid_file, int port, int agent,
-			       ib_portid_t * dport, int timeout)
+static int run_port_rereg_test(struct addr_data *a, const char *guid_file)
 {
 	struct port_list *list;
 	int size, cnt, i;
@@ -341,18 +343,18 @@ static int run_port_rereg_test(const char *guid_file, int port, int agent,
 
 	for (cnt = size; cnt;) {
 		i = cnt > MAX_CLIENTS ? MAX_CLIENTS : cnt;
-		rereg_send_all(port, agent, dport, list + (size - cnt), i);
-		rereg_recv_all(port, agent, dport, list, size);
+		rereg_send_all(a, list + (size - cnt), i);
+		rereg_recv_all(a, list, size);
 		cnt -= i;
 	}
 
-	rereg_query_all(port, agent, dport, list, size);
+	rereg_query_all(a, list, size);
 
 	free(list);
 	return 0;
 }
 
-static int run_mcast_storm_test(int port, int agent, ib_portid_t * dport,
+static int run_mcast_storm_test(struct addr_data *a,
 				const char *file_gile, const char *mcgroup_file)
 {
 	return 0;
@@ -363,8 +365,7 @@ int main(int argc, char **argv)
 	const char *guid_file = "port_guids.list";
 	const char *mcast_file = "mcast_groups.list";
 	int mgmt_classes[2] = { IB_SMI_CLASS, IB_SMI_DIRECT_CLASS };
-	ib_portid_t dport_id;
-	int port, agent;
+	struct addr_data addr;
 	int ret;
 
 	if (argc > 1)
@@ -372,22 +373,21 @@ int main(int argc, char **argv)
 
 	madrpc_init(NULL, 0, mgmt_classes, 2);
 
-	ib_resolve_smlid(&dport_id, TMO);
-	/* dport_id.dlid = 1; */
-	dport_id.qp = 1;
-	if (!dport_id.qkey)
-		dport_id.qkey = IB_DEFAULT_QP1_QKEY;
+	ib_resolve_smlid(&addr.dport, TMO);
+	/* dport.dlid = 1; */
+	addr.dport.qp = 1;
+	if (!addr.dport.qkey)
+		addr.dport.qkey = IB_DEFAULT_QP1_QKEY;
 
-	port = madrpc_portid();
+	addr.port = madrpc_portid();
+	addr.agent = umad_register(addr.port, IB_SA_CLASS, 2, 0, NULL);
+	addr.timeout = TMO;
 
-	agent = umad_register(port, IB_SA_CLASS, 2, 0, NULL);
+	ret = run_port_rereg_test(&addr, guid_file);
+	ret = run_mcast_storm_test(&addr, guid_file, mcast_file);
 
-	ret = run_port_rereg_test(guid_file, port, agent, &dport_id, TMO);
-	ret = run_mcast_storm_test(port, agent, &dport_id,
-				   guid_file, mcast_file);
-
-	umad_unregister(port, agent);
-	umad_close_port(port);
+	umad_unregister(addr.port, addr.agent);
+	umad_close_port(addr.port);
 	umad_done();
 
 	return ret;
