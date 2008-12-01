@@ -12,6 +12,7 @@
 #include <string.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <getopt.h>
 
 #include <infiniband/umad.h>
 #include <infiniband/mad.h>
@@ -170,19 +171,14 @@ static int rereg_send(struct addr_data *a, uint8_t * umad, int len,
 	return 0;
 }
 
-struct port_list {
+struct gid_list {
 	ibmad_gid_t gid;
 	uint64_t guid;
 	uint64_t trid;
-	unsigned mgrp_count;
-};
-
-struct mgrp_list {
-	ibmad_gid_t mgid;
 };
 
 static int rereg_port(struct addr_data *a, uint8_t * umad, int len,
-		      struct port_list *list)
+		      struct gid_list *list)
 {
 	if (rereg_send(a, umad, len, IB_MAD_METHOD_DELETE, list->gid))
 		return -1;
@@ -195,7 +191,7 @@ static int rereg_port(struct addr_data *a, uint8_t * umad, int len,
 }
 
 static int rereg_send_all(struct addr_data *a,
-			  struct port_list *list, unsigned cnt)
+			  struct gid_list *list, unsigned cnt)
 {
 	uint8_t *umad;
 	int len = 256;
@@ -220,7 +216,7 @@ static int rereg_send_all(struct addr_data *a,
 }
 
 static int rereg_recv_all(struct addr_data *a,
-			  struct port_list *list, unsigned cnt)
+			  struct gid_list *list, unsigned cnt)
 {
 	uint8_t *umad, *mad;
 	int len = 256;
@@ -273,7 +269,7 @@ static int rereg_recv_all(struct addr_data *a,
 }
 
 static int rereg_query_all(struct addr_data *a,
-			   struct port_list *list, unsigned cnt)
+			   struct gid_list *list, unsigned cnt)
 {
 	uint8_t *umad, *mad;
 	int len = 256;
@@ -317,14 +313,13 @@ static int rereg_query_all(struct addr_data *a,
 	return 0;
 }
 
-static int parse_port_guids_file(const char *guid_file,
-				 struct port_list **port_list)
+static int parse_guids_file(const char *guid_file, struct gid_list **gid_list)
 {
 	char line[256];
 	FILE *f;
 	ibmad_gid_t port_gid;
 	uint64_t guid, prefix = htonll(DEFAULT_PREFIX);
-	struct port_list *list = NULL;
+	struct gid_list *list = NULL;
 	unsigned list_size = 0;
 	int i = 0;
 
@@ -358,19 +353,20 @@ static int parse_port_guids_file(const char *guid_file,
 	}
 	fclose(f);
 
-	*port_list = list;
+	*gid_list = list;
 
 	return i;
 }
 
 #define MAX_CLIENTS 100
 
-static int run_port_rereg_test(struct addr_data *a, const char *guid_file)
+static int run_port_rereg_test(struct addr_data *a, const char *guid_file,
+			       const char *mgid_file)
 {
-	struct port_list *list;
+	struct gid_list *list;
 	int size, cnt, i;
 
-	size = parse_port_guids_file(guid_file, &list);
+	size = parse_guids_file(guid_file, &list);
 	if (size < 0)
 		return size;
 
@@ -388,21 +384,28 @@ static int run_port_rereg_test(struct addr_data *a, const char *guid_file)
 }
 
 static int run_mcast_storm_test(struct addr_data *a,
-				const char *file_gile, const char *mcgroup_file)
+				const char *guid_file, const char *mgid_file)
 {
+	info("%s: not implemented yet\n", __func__);
 	return 0;
 }
 
-int main(int argc, char **argv)
+/* main stuff */
+
+struct test {
+	const char *name;
+	int (*func)(struct addr_data *, const char *, const char *);
+	const char *description;
+};
+
+static int run_test(const struct test *t,
+		    const char *guid_file, const char *mgid_file)
 {
-	const char *guid_file = "port_guids.list";
-	const char *mcast_file = "mcast_groups.list";
 	int mgmt_classes[2] = { IB_SMI_CLASS, IB_SMI_DIRECT_CLASS };
 	struct addr_data addr;
 	int ret;
 
-	if (argc > 1)
-		guid_file = argv[1];
+	info("Running \'%s\'...\n", t->name);
 
 	madrpc_init(NULL, 0, mgmt_classes, 2);
 
@@ -420,12 +423,114 @@ int main(int argc, char **argv)
 	addr.agent = umad_register(addr.port, IB_SA_CLASS, 2, 0, NULL);
 	addr.timeout = TMO;
 
-	ret = run_port_rereg_test(&addr, guid_file);
-	ret = run_mcast_storm_test(&addr, guid_file, mcast_file);
+	ret = t->func(&addr, guid_file, mgid_file);
 
 	umad_unregister(addr.port, addr.agent);
 	umad_close_port(addr.port);
 	umad_done();
+
+	info("\'%s\' is done.\n", t->name);
+
+	return ret;
+}
+
+void make_str_opts(char *p, unsigned size, const struct option *o)
+{
+	int i, n = 0;
+
+	for (n = 0; o->name  && n + 2 + o->has_arg < size; o++) {
+		p[n++] = o->val;
+		for (i = 0; i < o->has_arg; i++)
+			p[n++] = ':';
+	}
+	p[n] = '\0';
+}
+
+static const struct test *find_test(const struct test *t, const char *name)
+{
+	int len = strlen(name);
+
+	for (; t->name; t++)
+		if (!strncasecmp(name, t->name, len))
+			return t;
+
+	return NULL;
+}
+
+void usage(char *prog, const struct option *o, const struct test *t)
+{
+	printf("Usage: %s [options] <test>\n", prog);
+
+	printf("\n, where <test> could be:\n");
+	for (; t->name; t++)
+		printf("\t%s - %s\n", t->name, t->description ? t->description : "");
+	printf("\n, and [options] could be:\n");
+	for (; o->name; o++)
+		printf("\t--%s (-%c)\n", o->name, o->val);
+
+	printf("\n");
+
+	exit(2);
+}
+
+int main(int argc, char **argv)
+{
+	const struct option long_opts [] = {
+		{"guidfile", 1, 0, 'g'},
+		{"mgidfile", 1, 0, 'm'},
+		{"version", 0, 0, 'V'},
+		{"verbose", 0, 0, 'v'},
+		{"help", 0, 0, 'h'},
+		{}
+	};
+
+	const struct test tests[] = {
+		{"rereg", run_port_rereg_test, "simulates port reregistration"},
+		{"joins", run_mcast_storm_test, "run a lot of joins"},
+		{0}
+	};
+
+	char opt_str[256];
+	const struct test *t;
+	int ret, ch;
+
+	const char *guid_file = "port_guids.list";
+	const char *mgid_file = "mcast_groups.list";
+
+
+	make_str_opts(opt_str, sizeof(opt_str), long_opts);
+
+	while ((ch = getopt_long(argc, argv, opt_str, long_opts, NULL)) != -1) {
+		switch (ch) {
+		case 'g':
+			guid_file = optarg;
+			break;
+		case 'm':
+			mgid_file = optarg;
+			break;
+		case 'v':
+			break;
+		case 'V':
+			printf("%s version %s\n", argv[0], "0.1");
+			exit(0);
+		case 'h':
+		default:
+			usage(argv[0], long_opts, tests);
+			break;
+		}
+	}
+
+	if (argc <= optind)
+		return run_test(&tests[0], guid_file, mgid_file);
+
+	do {
+		t = find_test(tests, argv[optind]);
+		if (!t)
+			usage(argv[0], long_opts, tests);
+		ret = run_test(t, guid_file, mgid_file);
+		if (ret)
+			break;
+	} while (argc > ++optind);
 
 	return ret;
 }
