@@ -171,9 +171,6 @@ static const struct vlarb default_vlarb_low[] = {
 // map is in format "alias@nodeid[portnum]"
 #define ALIASMAPLEN (ALIASLEN+NODEIDLEN+6)
 
-uint64_t absguids[NODE_TYPES] = { ~0, 0x100000, 0x200000 };
-uint64_t guids[NODE_TYPES] = { ~0, 0x100000, 0x200000 };
-
 int maxnetnodes = MAXNETNODES;
 int maxnetswitches = MAXNETSWITCHS;
 int maxnetports = MAXNETPORTS;
@@ -189,12 +186,15 @@ Port **lids;
 char (*aliases)[NODEIDLEN + NODEPREFIX + 1];	// aliases map format: "%s@%s"
 
 int netnodes, netswitches, netports, netaliases;
-char netprefix[NODEPREFIX + 1];
-int netvendid;
-int netdevid;
-uint64_t netsysimgguid;
-int netwidth = DEFAULT_LINKWIDTH;
-int netspeed = DEFAULT_LINKSPEED;
+
+static uint64_t absguids[NODE_TYPES] = { ~0, 0x100000, 0x200000 };
+static uint64_t guids[NODE_TYPES] = { ~0, 0x100000, 0x200000 };
+static char netprefix[NODEPREFIX + 1];
+static int netvendid;
+static int netdevid;
+static uint64_t netsysimgguid;
+static int netwidth = DEFAULT_LINKWIDTH;
+static int netspeed = DEFAULT_LINKSPEED;
 
 const char *node_type_name(unsigned type)
 {

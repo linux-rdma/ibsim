@@ -63,7 +63,7 @@ static Smpfn do_nodeinfo, do_nodedesc, do_switchinfo, do_portinfo,
 static EncodeTrapfn encode_trap128;
 static EncodeTrapfn encode_trap144;
 
-Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
+static Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
 	[IB_SMI_CLASS] {[IB_ATTR_NODE_DESC] do_nodedesc,
 			[IB_ATTR_NODE_INFO] do_nodeinfo,
 			[IB_ATTR_SWITCH_INFO] do_switchinfo,
@@ -89,7 +89,7 @@ Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
 				},
 };
 
-EncodeTrapfn *encodetrap[] = {
+static EncodeTrapfn *encodetrap[] = {
 	[TRAP_128] encode_trap128,
 	[TRAP_144] encode_trap144,
 

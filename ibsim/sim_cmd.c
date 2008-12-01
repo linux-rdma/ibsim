@@ -58,20 +58,20 @@ extern int netnodes, netports, netswitches;
 
 #define NAMELEN	NODEIDLEN
 
-char *portstates[] = {
+static const char *portstates[] = {
 	"-", "Down", "Init", "Armed", "Active",
 };
 
-char *physstates[] = {
+static const char *physstates[] = {
 	"-", "Sleep", "Polling", "Disabled", "Training", "LinkUp",
 	    "ErrorRecovery",
 };
 
-char *portlinkwidth[] = {
+static const char *portlinkwidth[] = {
 	"-", " 1x", " 4x", "-", " 8x", "-", "-", "-", "12x",
 };
 
-char *portlinkspeed[] = {
+static const char *portlinkspeed[] = {
 	"-", " 2.5G", " 5.0G", "-", "10.0G",
 };
 

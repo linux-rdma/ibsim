@@ -62,16 +62,6 @@
 #define DEBUG	if (simverb > 1 || ibdebug) IBWARN
 #define VERB	if (simverb || ibdebug) IBWARN
 
-int ibdebug;
-int parsedebug;
-int simverb;
-
-Client clients[IBSIM_MAX_CLIENTS];
-int simctl = -1;
-int maxfd;
-FILE *simout;
-char *simnetfile;
-
 extern int maxnetnodes;
 extern int maxnetswitches;
 extern int maxnetports;
@@ -80,6 +70,14 @@ extern int maxmcastcap;
 extern int maxnetaliases;
 extern int ignoreduplicate;
 
+int ibdebug;
+int parsedebug;
+int simverb;
+
+static Client clients[IBSIM_MAX_CLIENTS];
+static int simctl = -1;
+static int maxfd;
+static FILE *simout;
 static int listen_to_port = IBSIM_DEFAULT_SERVER_PORT;
 static int remote_mode = 0;
 
