@@ -60,15 +60,34 @@ static ibmad_gid_t mgid_ipoib = {
 	0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff
 };
 
-uint64_t build_mcm_rec(uint8_t * data, ibmad_gid_t mgid, ibmad_gid_t port_gid)
+uint64_t build_mcm_rec(uint8_t * data, ibmad_gid_t mgid, ibmad_gid_t port_gid,
+		       uint8_t join_state)
 {
 	memset(data, 0, IB_SA_DATA_SIZE);
 	mad_set_array(data, 0, IB_SA_MCM_MGID_F, mgid);
 	mad_set_array(data, 0, IB_SA_MCM_PORTGID_F, port_gid);
-	mad_set_field(data, 0, IB_SA_MCM_JOIN_STATE_F, 1);
+	mad_set_field(data, 0, IB_SA_MCM_JOIN_STATE_F, join_state);
 
 	return IB_MCR_COMPMASK_MGID | IB_MCR_COMPMASK_PORT_GID |
 	    IB_MCR_COMPMASK_JOIN_STATE;
+}
+
+uint64_t build_mcm_create_rec(uint8_t * data, ibmad_gid_t mgid,
+			      ibmad_gid_t port_gid, uint8_t join_state)
+{
+	uint64_t comp_mask = build_mcm_rec(data, mgid, port_gid, join_state);
+
+	mad_set_field(data, 0, IB_SA_MCM_QKEY_F, 0x80010000);
+	mad_set_field(data, 0, IB_SA_MCM_SL_F, 0);
+	mad_set_field(data, 0, IB_SA_MCM_MTU_F, 4);
+	mad_set_field(data, 0, IB_SA_MCM_RATE_F, 3);
+	mad_set_field(data, 0, IB_SA_MCM_TCLASS_F, 0);
+	mad_set_field(data, 0, IB_SA_MCM_PKEY_F, 0xffff);
+	mad_set_field(data, 0, IB_SA_MCM_FLOW_LABEL_F, 0);
+
+	return comp_mask | IB_MCR_COMPMASK_QKEY | IB_MCR_COMPMASK_SL |
+	    IB_MCR_COMPMASK_MTU | IB_MCR_COMPMASK_RATE | IB_MCR_COMPMASK_PKEY |
+	    IB_MCR_COMPMASK_TCLASS | IB_MCR_COMPMASK_FLOW;
 }
 
 static void build_mcm_rec_umad(void *umad, ib_portid_t * dport, int method,
@@ -95,22 +114,58 @@ static uint64_t get_guid_ho(ibmad_gid_t gid)
 	return ntohll(guid);
 }
 
+static int send_req(struct addr_data *a, uint8_t * umad, int len,
+		    int method, uint64_t comp_mask, uint8_t data[])
+{
+	build_mcm_rec_umad(umad, &a->dport, method, comp_mask, data);
+	if (umad_send(a->port, a->agent, umad, len, a->timeout, 0) < 0) {
+		err("umad_send method %u, tid 0x%016" PRIx64 "failed: %s\n",
+		    method,
+		    mad_get_field64(umad_get_mad(umad), 0, IB_MAD_TRID_F),
+		    strerror(errno));
+		return -1;
+	}
+	dbg("umad_send %d: tid = 0x%016" PRIx64 "\n", method,
+	    mad_get_field64(umad_get_mad(umad), 0, IB_MAD_TRID_F));
+
+	return 0;
+}
+
+static int recv_res(struct addr_data *a, uint8_t * umad, int length)
+{
+	int ret, retry = 0;
+	int len = length;
+
+	while ((ret = umad_recv(a->port, umad, &len, a->timeout)) < 0 &&
+	       errno == ETIMEDOUT) {
+		if (retry++ > 3)
+			return 0;
+	}
+	if (ret < 0) {
+		err("umad_recv %d failed: %s\n", ret, strerror(errno));
+		return -1;
+	}
+	dbg("umad_recv (retries %d), tid = 0x%016" PRIx64
+	    ": len = %d, status = %d\n", retry,
+	    mad_get_field64(umad_get_mad(umad), 0, IB_MAD_TRID_F), len,
+	    umad_status(umad));
+
+	return 1;
+}
+
 static int rereg_send(struct addr_data *a, uint8_t * umad, int len,
 		      int method, ibmad_gid_t port_gid)
 {
 	uint8_t data[IB_SA_DATA_SIZE];
 	uint64_t comp_mask;
 
-	comp_mask = build_mcm_rec(data, mgid_ipoib, port_gid);
+	comp_mask = build_mcm_rec(data, mgid_ipoib, port_gid, 1);
 
-	build_mcm_rec_umad(umad, &a->dport, method, comp_mask, data);
-	if (umad_send(a->port, a->agent, umad, len, a->timeout, 0) < 0) {
+	if (send_req(a, umad, len, method, comp_mask, data)) {
 		err("umad_send method %u failed for guid 0x%016" PRIx64
 		    ": %s\n", method, get_guid_ho(port_gid), strerror(errno));
 		return -1;
 	}
-	dbg("umad_send %d: tid = 0x%016" PRIx64 "\n", method,
-	    mad_get_field64(umad_get_mad(umad), 0, IB_MAD_TRID_F));
 
 	return 0;
 }
@@ -164,28 +219,6 @@ static int rereg_send_all(struct addr_data *a,
 	return 0;
 }
 
-static int rereg_recv(struct addr_data *a, uint8_t * umad, int length)
-{
-	int ret, retry = 0;
-	int len = length;
-
-	while ((ret = umad_recv(a->port, umad, &len, a->timeout)) < 0 &&
-	       errno == ETIMEDOUT) {
-		if (retry++ > 3)
-			return 0;
-	}
-	if (ret < 0) {
-		err("umad_recv %d failed: %s\n", ret, strerror(errno));
-		return -1;
-	}
-	dbg("umad_recv (retries %d), tid = 0x%016" PRIx64
-	    ": len = %d, status = %d\n", retry,
-	    mad_get_field64(umad_get_mad(umad), 0, IB_MAD_TRID_F), len,
-	    umad_status(umad));
-
-	return 1;
-}
-
 static int rereg_recv_all(struct addr_data *a,
 			  struct port_list *list, unsigned cnt)
 {
@@ -204,7 +237,7 @@ static int rereg_recv_all(struct addr_data *a,
 	}
 
 	n = 0;
-	while (rereg_recv(a, umad, len) > 0) {
+	while (recv_res(a, umad, len) > 0) {
 		dbg("rereg_recv_all: done %d\n", n);
 		n++;
 		mad = umad_get_mad(umad);
@@ -262,9 +295,9 @@ static int rereg_query_all(struct addr_data *a,
 			continue;
 		}
 
-		ret = rereg_recv(a, umad, len);
+		ret = recv_res(a, umad, len);
 		if (ret < 0) {
-			err("query_all: rereg_recv failed.\n");
+			err("query_all: recv_res failed.\n");
 			continue;
 		}
 
@@ -374,7 +407,11 @@ int main(int argc, char **argv)
 	madrpc_init(NULL, 0, mgmt_classes, 2);
 
 	ib_resolve_smlid(&addr.dport, TMO);
-	/* dport.dlid = 1; */
+	if (!addr.dport.lid) {
+		/* dport.lid = 1; */
+		err("No SM. Exit.\n");
+		exit(1);
+	}
 	addr.dport.qp = 1;
 	if (!addr.dport.qkey)
 		addr.dport.qkey = IB_DEFAULT_QP1_QKEY;
