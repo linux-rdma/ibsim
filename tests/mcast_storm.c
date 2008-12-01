@@ -26,6 +26,8 @@
 
 #define TMO 100
 
+#define DEFAULT_PREFIX 0xfe80000000000000ULL
+
 /* Multicast Member Record Component Masks */
 #define IB_MCR_COMPMASK_MGID        (1ULL<<0)
 #define IB_MCR_COMPMASK_PORT_GID    (1ULL<<1)
@@ -285,7 +287,7 @@ static int parse_port_guids_file(const char *guid_file,
 	char line[256];
 	FILE *f;
 	ibmad_gid_t port_gid;
-	uint64_t prefix, guid;
+	uint64_t guid, prefix = htonll(DEFAULT_PREFIX);
 	struct port_list *list = NULL;
 	unsigned list_size = 0;
 	int i = 0;
