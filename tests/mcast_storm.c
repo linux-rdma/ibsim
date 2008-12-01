@@ -172,6 +172,17 @@ static int rereg_send(struct addr_data *a, uint8_t * umad, int len,
 	return 0;
 }
 
+static int send_create(struct addr_data *a, uint8_t * umad, int len,
+		      ibmad_gid_t mgid, ibmad_gid_t port_gid)
+{
+	uint8_t data[IB_SA_DATA_SIZE];
+	uint64_t comp_mask;
+
+	comp_mask = build_mcm_create_rec(data, mgid, port_gid, 1);
+
+	return send_req(a, umad, len, IB_MAD_METHOD_SET, comp_mask, data);
+}
+
 struct gid_list {
 	ibmad_gid_t gid;
 	uint64_t trid;
@@ -340,9 +351,36 @@ static int run_port_rereg_test(struct addr_data *a, struct test_data *td)
 	return 0;
 }
 
-static int run_mcast_storm_test(struct addr_data *a, struct test_data *td)
+static int run_mcast_joins_test(struct addr_data *a, struct test_data *td)
 {
-	info("%s: not implemented yet\n", __func__);
+	uint8_t *umad;
+	int len = 256;
+	unsigned status;
+
+	info("%s...\n", __func__);
+
+	umad = calloc(1, len + umad_size());
+	if (!umad) {
+		err("cannot alloc mem for umad: %s\n", strerror(errno));
+		return -1;
+	}
+
+	if (send_create(a, umad, len, td->mgids[0].gid, td->gids[0].gid))
+		return -1;
+
+	status = mad_get_field(umad_get_mad(umad), 0, IB_MAD_STATUS_F);
+	if (status)
+		err("1 create MAD status %x\n", status);
+
+	if (recv_res(a, umad, len) < 0)
+		return -1;
+
+	status = mad_get_field(umad_get_mad(umad), 0, IB_MAD_STATUS_F);
+	if (status)
+		err("2 create MAD status %x\n", status);
+
+	free(umad);
+
 	return 0;
 }
 
@@ -523,7 +561,7 @@ int main(int argc, char **argv)
 	};
 	const struct test tests[] = {
 		{"rereg", run_port_rereg_test, "simulates port reregistration"},
-		{"joins", run_mcast_storm_test, "run a lot of joins"},
+		{"joins", run_mcast_joins_test, "run a single (yet) join"},
 		{0}
 	};
 
