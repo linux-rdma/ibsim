@@ -458,7 +458,7 @@ static int make_gids_list(ibmad_gid_t gid, unsigned n, struct gid_list **gid_lis
 
 	*gid_list = list;
 
-	return 0;
+	return i;
 }
 
 static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
