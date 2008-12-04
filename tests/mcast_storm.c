@@ -394,13 +394,10 @@ struct test {
 
 static int run_test(const struct test *t, struct test_data *td)
 {
-	int mgmt_classes[2] = { IB_SMI_CLASS, IB_SMI_DIRECT_CLASS };
 	struct addr_data addr;
 	int ret;
 
 	info("Running \'%s\'...\n", t->name);
-
-	madrpc_init(NULL, 0, mgmt_classes, 2);
 
 	ib_resolve_smlid(&addr.dport, TMO);
 	if (!addr.dport.lid) {
@@ -553,6 +550,7 @@ int main(int argc, char **argv)
 		{"mgidfile", 1, 0, 'm'},
 		{"GUID", 1, 0, 'G'},
 		{"MGID", 1, 0, 'M'},
+		{"ipv4", 0, 0, 'i'},
 		{"increment", 1, 0, 'I'},
 		{"version", 0, 0, 'V'},
 		{"verbose", 0, 0, 'v'},
@@ -566,14 +564,14 @@ int main(int argc, char **argv)
 	};
 
 	char opt_str[256];
+	int mgmt_classes[2] = { IB_SMI_CLASS, IB_SMI_DIRECT_CLASS };
 	struct test_data tdata;
 	ibmad_gid_t gid, mgid = {};
 	uint64_t guid = 0;
 	const char *guid_file = NULL, *mgid_file = NULL;
 	const struct test *t;
-	unsigned is_mgid = 0, increment = 0;
+	unsigned is_mgid = 0, is_ipv4 = 1, increment = 0;
 	int ret, ch;
-
 
 	make_str_opts(opt_str, sizeof(opt_str), long_opts);
 
@@ -617,17 +615,24 @@ int main(int argc, char **argv)
 		}
 	}
 
+	madrpc_init(NULL, 0, mgmt_classes, 2);
+
 	memset(&tdata, 0, sizeof(tdata));
 
 	if (guid) {
 		make_gid(gid, DEFAULT_PREFIX, guid);
 		ret = make_gids_list(gid, increment, &tdata.gids);
-	} else if (guid_file)
+	} else if (guid_file) {
 		ret = parse_gids_file(guid_file, &tdata.gids);
-	else {
-		err("Unkown port guid(s) - use -G or -g option...\n");
-		usage(argv[0], long_opts, tests);
-		return -1;
+		guid = get_guid_ho(tdata.gids[0].gid);
+	} else {
+		ib_portid_t portid = {0};
+		if (ib_resolve_self(&portid, NULL, &gid) < 0) {
+			err("Cannot resolve self port...\n");
+			exit(1);
+		}
+		guid = get_guid_ho(gid);
+		ret = make_gids_list(gid, increment, &tdata.gids);
 	}
 
 	if (ret < 0)
@@ -638,8 +643,12 @@ int main(int argc, char **argv)
 		ret = make_gids_list(mgid, increment, &tdata.mgids);
 	else if (mgid_file)
 		ret = parse_gids_file(mgid_file, &tdata.mgids);
-	else
+	else if (is_ipv4)
 		ret = make_gids_list(mgid_ipoib, increment, &tdata.mgids);
+	else {
+		make_gid(gid, 0xff00000000000000ULL, guid);
+		ret = make_gids_list(gid, increment, &tdata.mgids);
+	}
 
 	if (ret < 0)
 		return ret;
