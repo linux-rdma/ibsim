@@ -183,6 +183,17 @@ static int send_create(struct addr_data *a, uint8_t * umad, int len,
 	return send_req(a, umad, len, IB_MAD_METHOD_SET, comp_mask, data);
 }
 
+static int send_leave(struct addr_data *a, uint8_t * umad, int len,
+		      ibmad_gid_t mgid, ibmad_gid_t port_gid)
+{
+	uint8_t data[IB_SA_DATA_SIZE];
+	uint64_t comp_mask;
+
+	comp_mask = build_mcm_rec(data, mgid, port_gid, 1);
+
+	return send_req(a, umad, len, IB_MAD_METHOD_DELETE, comp_mask, data);
+}
+
 struct gid_list {
 	ibmad_gid_t gid;
 	uint64_t trid;
@@ -410,6 +421,34 @@ static int run_mcast_joins_test(struct addr_data *a, struct test_data *td)
 	return 0;
 }
 
+static int run_mcast_leave_test(struct addr_data *a, struct test_data *td)
+{
+	uint8_t *umad;
+	int len = 256;
+	unsigned i, j;
+
+	info("%s...\n", __func__);
+
+	umad = calloc(1, len + umad_size());
+	if (!umad) {
+		err("cannot alloc mem for umad: %s\n", strerror(errno));
+		return -1;
+	}
+
+	for (i = 0; i < td->gids_size; i++)
+		for (j = 0; j < td->mgids_size; j++)
+			if (send_leave(a, umad, len,
+				       td->mgids[j].gid, td->gids[i].gid))
+				return -1;
+
+	if (recv_all(a, umad, len) < 0)
+		return -1;
+
+	free(umad);
+
+	return 0;
+}
+
 /* main stuff */
 
 struct test {
@@ -586,6 +625,7 @@ int main(int argc, char **argv)
 	const struct test tests[] = {
 		{"rereg", run_port_rereg_test, "simulates port reregistration"},
 		{"joins", run_mcast_joins_test, "run a lot of join requests"},
+		{"leave", run_mcast_leave_test, "run a lot of leave requests"},
 		{0}
 	};
 
