@@ -188,6 +188,37 @@ struct gid_list {
 	uint64_t trid;
 };
 
+static int recv_all(struct addr_data *a, void *umad, int len)
+{
+	uint8_t *mad;
+	uint64_t trid;
+	unsigned n, method, status;
+
+	info("%s...\n", __func__);
+
+	n = 0;
+	while (recv_res(a, umad, len) > 0) {
+		dbg("%s: done %d\n", __func__, n);
+		n++;
+		mad = umad_get_mad(umad);
+
+		method = mad_get_field(mad, 0, IB_MAD_METHOD_F);
+		status = mad_get_field(mad, 0, IB_MAD_STATUS_F);
+
+		if (status &&
+		    (method & 0x7f) == (IB_MAD_METHOD_GET_RESPONSE & 0x7f)) {
+			trid = mad_get_field64(mad, 0, IB_MAD_TRID_F);
+			info("mad trid 0x%016" PRIx64
+			     ": method = %x status = %x.\n",
+			     trid, method, status);
+		}
+	}
+
+	info("%s: got %u responses\n", __func__, n);
+
+	return 0;
+}
+
 static int rereg_port(struct addr_data *a, uint8_t * umad, int len,
 		      struct gid_list *list)
 {
@@ -355,7 +386,7 @@ static int run_mcast_joins_test(struct addr_data *a, struct test_data *td)
 {
 	uint8_t *umad;
 	int len = 256;
-	unsigned status;
+	unsigned i, j;
 
 	info("%s...\n", __func__);
 
@@ -365,19 +396,14 @@ static int run_mcast_joins_test(struct addr_data *a, struct test_data *td)
 		return -1;
 	}
 
-	if (send_create(a, umad, len, td->mgids[0].gid, td->gids[0].gid))
+	for (i = 0; i < td->gids_size; i++)
+		for (j = 0; j < td->mgids_size; j++)
+			if (send_create(a, umad, len,
+					td->mgids[j].gid, td->gids[i].gid))
+				return -1;
+
+	if (recv_all(a, umad, len) < 0)
 		return -1;
-
-	status = mad_get_field(umad_get_mad(umad), 0, IB_MAD_STATUS_F);
-	if (status)
-		err("1 create MAD status %x\n", status);
-
-	if (recv_res(a, umad, len) < 0)
-		return -1;
-
-	status = mad_get_field(umad_get_mad(umad), 0, IB_MAD_STATUS_F);
-	if (status)
-		err("2 create MAD status %x\n", status);
 
 	free(umad);
 
@@ -559,7 +585,7 @@ int main(int argc, char **argv)
 	};
 	const struct test tests[] = {
 		{"rereg", run_port_rereg_test, "simulates port reregistration"},
-		{"joins", run_mcast_joins_test, "run a single (yet) join"},
+		{"joins", run_mcast_joins_test, "run a lot of join requests"},
 		{0}
 	};
 
