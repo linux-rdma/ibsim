@@ -155,30 +155,24 @@ static int recv_res(struct addr_data *a, uint8_t * umad, int length)
 	return 1;
 }
 
-static int rereg_send(struct addr_data *a, uint8_t * umad, int len,
-		      int method, ibmad_gid_t port_gid)
-{
-	uint8_t data[IB_SA_DATA_SIZE];
-	uint64_t comp_mask;
-
-	comp_mask = build_mcm_rec(data, mgid_ipoib, port_gid, 1);
-
-	if (send_req(a, umad, len, method, comp_mask, data)) {
-		err("umad_send method %u failed for guid 0x%016" PRIx64
-		    ": %s\n", method, get_guid_ho(port_gid), strerror(errno));
-		return -1;
-	}
-
-	return 0;
-}
-
 static int send_create(struct addr_data *a, uint8_t * umad, int len,
-		      ibmad_gid_t mgid, ibmad_gid_t port_gid)
+		       ibmad_gid_t mgid, ibmad_gid_t port_gid)
 {
 	uint8_t data[IB_SA_DATA_SIZE];
 	uint64_t comp_mask;
 
 	comp_mask = build_mcm_create_rec(data, mgid, port_gid, 1);
+
+	return send_req(a, umad, len, IB_MAD_METHOD_SET, comp_mask, data);
+}
+
+static int send_join(struct addr_data *a, uint8_t * umad, int len,
+		     ibmad_gid_t mgid, ibmad_gid_t port_gid)
+{
+	uint8_t data[IB_SA_DATA_SIZE];
+	uint64_t comp_mask;
+
+	comp_mask = build_mcm_rec(data, mgid, port_gid, 1);
 
 	return send_req(a, umad, len, IB_MAD_METHOD_SET, comp_mask, data);
 }
@@ -192,6 +186,17 @@ static int send_leave(struct addr_data *a, uint8_t * umad, int len,
 	comp_mask = build_mcm_rec(data, mgid, port_gid, 1);
 
 	return send_req(a, umad, len, IB_MAD_METHOD_DELETE, comp_mask, data);
+}
+
+static int send_query(struct addr_data *a, uint8_t * umad, int len,
+		      ibmad_gid_t mgid, ibmad_gid_t port_gid)
+{
+	uint8_t data[IB_SA_DATA_SIZE];
+	uint64_t comp_mask;
+
+	comp_mask = build_mcm_rec(data, mgid, port_gid, 1);
+
+	return send_req(a, umad, len, IB_MAD_METHOD_GET, comp_mask, data);
 }
 
 struct gid_list {
@@ -231,26 +236,26 @@ static int recv_all(struct addr_data *a, void *umad, int len)
 }
 
 static int rereg_port(struct addr_data *a, uint8_t * umad, int len,
-		      struct gid_list *list)
+		      ibmad_gid_t mgid, struct gid_list *list)
 {
-	if (rereg_send(a, umad, len, IB_MAD_METHOD_DELETE, list->gid))
+	if (send_leave(a, umad, len, mgid, list->gid))
 		return -1;
 
-	if (rereg_send(a, umad, len, IB_MAD_METHOD_SET, list->gid))
+	if (send_join(a, umad, len, mgid, list->gid))
 		return -1;
 	list->trid = mad_get_field64(umad_get_mad(umad), 0, IB_MAD_TRID_F);
 
 	return 0;
 }
 
-static int rereg_send_all(struct addr_data *a,
+static int rereg_send_all(struct addr_data *a, ibmad_gid_t mgid,
 			  struct gid_list *list, unsigned cnt)
 {
 	uint8_t *umad;
 	int len = 256;
 	int i;
 
-	info("rereg_send_all... cnt = %u\n", cnt);
+	info("%s:... cnt = %u\n", __func__, cnt);
 
 	umad = calloc(1, len + umad_size());
 	if (!umad) {
@@ -259,16 +264,16 @@ static int rereg_send_all(struct addr_data *a,
 	}
 
 	for (i = 0; i < cnt; i++)
-		rereg_port(a, umad, len, &list[i]);
+		rereg_port(a, umad, len, mgid, &list[i]);
 
-	info("rereg_send_all: sent %u requests\n", cnt * 2);
+	info("%s: sent %u requests\n", __func__, cnt * 2);
 
 	free(umad);
 
 	return 0;
 }
 
-static int rereg_recv_all(struct addr_data *a,
+static int rereg_recv_all(struct addr_data *a, ibmad_gid_t mgid,
 			  struct gid_list *list, unsigned cnt)
 {
 	uint8_t *umad, *mad;
@@ -277,7 +282,7 @@ static int rereg_recv_all(struct addr_data *a,
 	unsigned n, method, status;
 	int i;
 
-	info("rereg_recv_all...\n");
+	info("%s...\n", __func__);
 
 	umad = calloc(1, len + umad_size());
 	if (!umad) {
@@ -311,17 +316,17 @@ static int rereg_recv_all(struct addr_data *a,
 			info("guid 0x%016" PRIx64
 			     ": method = %x status = %x. Resending\n",
 			     get_guid_ho(list[i].gid), method, status);
-			rereg_port(a, umad, len, &list[i]);
+			rereg_port(a, umad, len, mgid, &list[i]);
 		}
 	}
 
-	info("rereg_recv_all: got %u responses\n", n);
+	info("%s: got %u responses\n", __func__, n);
 
 	free(umad);
 	return 0;
 }
 
-static int rereg_query_all(struct addr_data *a,
+static int rereg_query_all(struct addr_data *a, ibmad_gid_t mgid,
 			   struct gid_list *list, unsigned cnt)
 {
 	uint8_t *umad, *mad;
@@ -329,7 +334,7 @@ static int rereg_query_all(struct addr_data *a,
 	unsigned method, status;
 	int i, ret;
 
-	info("rereg_query_all...\n");
+	info("%s...\n", __func__);
 
 	umad = calloc(1, len + umad_size());
 	if (!umad) {
@@ -338,15 +343,15 @@ static int rereg_query_all(struct addr_data *a,
 	}
 
 	for (i = 0; i < cnt; i++) {
-		ret = rereg_send(a, umad, len, IB_MAD_METHOD_GET, list[i].gid);
+		ret = send_query(a, umad, len, mgid, list[i].gid);
 		if (ret < 0) {
-			err("query_all: rereg_send failed.\n");
+			err("%s: rereg_send failed.\n", __func__);
 			continue;
 		}
 
 		ret = recv_res(a, umad, len);
 		if (ret < 0) {
-			err("query_all: recv_res failed.\n");
+			err("%s: recv_res failed.\n", __func__);
 			continue;
 		}
 
@@ -360,7 +365,7 @@ static int rereg_query_all(struct addr_data *a,
 			     get_guid_ho(list[i].gid), status, method);
 	}
 
-	info("rereg_query_all: %u queried.\n", cnt);
+	info("%s: %u queried.\n", __func__, cnt);
 
 	free(umad);
 	return 0;
@@ -383,12 +388,12 @@ static int run_port_rereg_test(struct addr_data *a, struct test_data *td)
 
 	for (cnt = size; cnt;) {
 		i = cnt > MAX_CLIENTS ? MAX_CLIENTS : cnt;
-		rereg_send_all(a, td->gids + (size - cnt), i);
-		rereg_recv_all(a, td->gids, size);
+		rereg_send_all(a, td->mgids[0].gid, td->gids + (size - cnt), i);
+		rereg_recv_all(a, td->mgids[0].gid, td->gids, size);
 		cnt -= i;
 	}
 
-	rereg_query_all(a, td->gids, size);
+	rereg_query_all(a, td->mgids[0].gid, td->gids, size);
 
 	return 0;
 }
