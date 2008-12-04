@@ -584,8 +584,14 @@ int main(int argc, char **argv)
 			break;
 		case 'M':
 			{ char *e; uint64_t val1, val2;
-			val1 = strtoull(optarg, &e, 0);
-			val2 = strtoull(e, NULL, 0);
+			int len = strlen(optarg);
+			if (len > 16)
+				e = optarg + len - 16;
+			else
+				e = optarg;
+			val2 = strtoull(e, NULL, 16);
+			*e = '\0';
+			val1 = strtoull(optarg, NULL, 16);
 			make_gid(mgid, val1, val2);
 			is_mgid = 1;
 			}
