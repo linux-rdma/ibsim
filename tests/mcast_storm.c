@@ -248,47 +248,16 @@ static int rereg_port(struct addr_data *a, uint8_t * umad, int len,
 	return 0;
 }
 
-static int rereg_send_all(struct addr_data *a, ibmad_gid_t mgid,
+static int rereg_recv_all(struct addr_data *a, void *umad, int len,
+			  ibmad_gid_t mgid,
 			  struct gid_list *list, unsigned cnt)
 {
-	uint8_t *umad;
-	int len = 256;
-	int i;
-
-	info("%s:... cnt = %u\n", __func__, cnt);
-
-	umad = calloc(1, len + umad_size());
-	if (!umad) {
-		err("cannot alloc mem for umad: %s\n", strerror(errno));
-		return -1;
-	}
-
-	for (i = 0; i < cnt; i++)
-		rereg_port(a, umad, len, mgid, &list[i]);
-
-	info("%s: sent %u requests\n", __func__, cnt * 2);
-
-	free(umad);
-
-	return 0;
-}
-
-static int rereg_recv_all(struct addr_data *a, ibmad_gid_t mgid,
-			  struct gid_list *list, unsigned cnt)
-{
-	uint8_t *umad, *mad;
-	int len = 256;
+	uint8_t *mad;
 	uint64_t trid;
 	unsigned n, method, status;
 	int i;
 
 	info("%s...\n", __func__);
-
-	umad = calloc(1, len + umad_size());
-	if (!umad) {
-		err("cannot alloc mem for umad: %s\n", strerror(errno));
-		return -1;
-	}
 
 	n = 0;
 	while (recv_res(a, umad, len) > 0) {
@@ -322,25 +291,18 @@ static int rereg_recv_all(struct addr_data *a, ibmad_gid_t mgid,
 
 	info("%s: got %u responses\n", __func__, n);
 
-	free(umad);
 	return 0;
 }
 
-static int rereg_query_all(struct addr_data *a, ibmad_gid_t mgid,
+static int rereg_query_all(struct addr_data *a, void *umad, int len,
+			   ibmad_gid_t mgid,
 			   struct gid_list *list, unsigned cnt)
 {
-	uint8_t *umad, *mad;
-	int len = 256;
+	uint8_t *mad;
 	unsigned method, status;
 	int i, ret;
 
 	info("%s...\n", __func__);
-
-	umad = calloc(1, len + umad_size());
-	if (!umad) {
-		err("cannot alloc mem for umad: %s\n", strerror(errno));
-		return -1;
-	}
 
 	for (i = 0; i < cnt; i++) {
 		ret = send_query(a, umad, len, mgid, list[i].gid);
@@ -367,7 +329,6 @@ static int rereg_query_all(struct addr_data *a, ibmad_gid_t mgid,
 
 	info("%s: %u queried.\n", __func__, cnt);
 
-	free(umad);
 	return 0;
 }
 
@@ -384,74 +345,71 @@ struct test_data {
 
 static int run_port_rereg_test(struct addr_data *a, struct test_data *td)
 {
-	int cnt, i, size = td->gids_size;
+	uint8_t *umad;
+	int len = 256;
+	int cnt, i, n, size = td->gids_size;
+
+	umad = calloc(1, len + umad_size());
+	if (!umad) {
+		err("cannot alloc mem for umad: %s\n", strerror(errno));
+		return -1;
+	}
 
 	for (cnt = size; cnt;) {
-		i = cnt > MAX_CLIENTS ? MAX_CLIENTS : cnt;
-		rereg_send_all(a, td->mgids[0].gid, td->gids + (size - cnt), i);
-		rereg_recv_all(a, td->mgids[0].gid, td->gids, size);
+		n = cnt > MAX_CLIENTS ? MAX_CLIENTS : cnt;
+		for (i = 0; i < n; i++) {
+			rereg_port(a, umad, len, td->mgids[0].gid,
+				   &td->gids[size - cnt + i]);
+			info("%s: sent %u requests\n", __func__, n * 2);
+		}
+		rereg_recv_all(a, umad, len, td->mgids[0].gid, td->gids, size);
 		cnt -= i;
 	}
 
-	rereg_query_all(a, td->mgids[0].gid, td->gids, size);
+	rereg_query_all(a, umad, len, td->mgids[0].gid, td->gids, size);
+
+	free(umad);
+
+	return 0;
+}
+
+static int run_mcast_member_test(struct addr_data *a, struct test_data *td,
+				 int (*func)(struct addr_data *a,
+					     uint8_t * umad, int len,
+					     ibmad_gid_t mgid, ibmad_gid_t gid))
+{
+	uint8_t *umad;
+	int len = 256;
+	unsigned i, j;
+
+	umad = calloc(1, len + umad_size());
+	if (!umad) {
+		err("cannot alloc mem for umad: %s\n", strerror(errno));
+		return -1;
+	}
+
+	for (i = 0; i < td->gids_size; i++)
+		for (j = 0; j < td->mgids_size; j++)
+			if (func(a, umad, len, td->mgids[j].gid,
+				 td->gids[i].gid))
+				return -1;
+
+	if (recv_all(a, umad, len) < 0)
+		return -1;
+
+	free(umad);
 
 	return 0;
 }
 
 static int run_mcast_joins_test(struct addr_data *a, struct test_data *td)
 {
-	uint8_t *umad;
-	int len = 256;
-	unsigned i, j;
-
-	info("%s...\n", __func__);
-
-	umad = calloc(1, len + umad_size());
-	if (!umad) {
-		err("cannot alloc mem for umad: %s\n", strerror(errno));
-		return -1;
-	}
-
-	for (i = 0; i < td->gids_size; i++)
-		for (j = 0; j < td->mgids_size; j++)
-			if (send_create(a, umad, len,
-					td->mgids[j].gid, td->gids[i].gid))
-				return -1;
-
-	if (recv_all(a, umad, len) < 0)
-		return -1;
-
-	free(umad);
-
-	return 0;
+	return run_mcast_member_test(a, td, send_create);
 }
 
 static int run_mcast_leave_test(struct addr_data *a, struct test_data *td)
 {
-	uint8_t *umad;
-	int len = 256;
-	unsigned i, j;
-
-	info("%s...\n", __func__);
-
-	umad = calloc(1, len + umad_size());
-	if (!umad) {
-		err("cannot alloc mem for umad: %s\n", strerror(errno));
-		return -1;
-	}
-
-	for (i = 0; i < td->gids_size; i++)
-		for (j = 0; j < td->mgids_size; j++)
-			if (send_leave(a, umad, len,
-				       td->mgids[j].gid, td->gids[i].gid))
-				return -1;
-
-	if (recv_all(a, umad, len) < 0)
-		return -1;
-
-	free(umad);
-
-	return 0;
+	return run_mcast_member_test(a, td, send_leave);
 }
 
 /* main stuff */
