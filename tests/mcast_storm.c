@@ -57,39 +57,76 @@ struct addr_data {
 	ib_portid_t dport;
 };
 
+struct mcmember_params {
+	uint32_t qkey;
+	uint16_t mlid;
+	uint8_t mtu;
+	uint8_t tclass;
+	uint16_t pkey;
+	uint8_t rate;
+	uint8_t sl;
+	uint32_t flow_label;
+	uint8_t hop_limit;
+	uint8_t scope;
+	uint8_t join_state;
+	uint8_t proxy_join;
+};
+
+static const struct mcmember_params mcmember_params_join = {
+	.join_state = 1,
+};
+
+static const struct mcmember_params mcmember_params_create = {
+	.qkey = 0x80010000,
+	.mtu = 4,
+	.tclass = 0,
+	.pkey = 0xffff,
+	.rate = 3,
+	.sl = 0,
+	.flow_label = 0,
+	.join_state = 1,
+};
+
 static ibmad_gid_t mgid_ipoib = {
 	0xff, 0x12, 0x40, 0x1b, 0xff, 0xff, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff
 };
 
-uint64_t build_mcm_rec(uint8_t * data, ibmad_gid_t mgid, ibmad_gid_t port_gid,
-		       uint8_t join_state)
+static int64_t add_rid(uint8_t *data, ibmad_gid_t mgid, ibmad_gid_t port_gid)
 {
-	memset(data, 0, IB_SA_DATA_SIZE);
 	mad_set_array(data, 0, IB_SA_MCM_MGID_F, mgid);
 	mad_set_array(data, 0, IB_SA_MCM_PORTGID_F, port_gid);
-	mad_set_field(data, 0, IB_SA_MCM_JOIN_STATE_F, join_state);
 
-	return IB_MCR_COMPMASK_MGID | IB_MCR_COMPMASK_PORT_GID |
-	    IB_MCR_COMPMASK_JOIN_STATE;
+	return IB_MCR_COMPMASK_MGID | IB_MCR_COMPMASK_PORT_GID;
 }
 
-uint64_t build_mcm_create_rec(uint8_t * data, ibmad_gid_t mgid,
-			      ibmad_gid_t port_gid, uint8_t join_state)
+static uint64_t build_mcm_rec(uint8_t * data, const struct mcmember_params *p)
 {
-	uint64_t comp_mask = build_mcm_rec(data, mgid, port_gid, join_state);
+#define SET_FIELD(val, mask, field) \
+	if (val) { \
+		mad_set_field(data, 0, field, val); \
+		comp_mask |= mask; \
+	}
 
-	mad_set_field(data, 0, IB_SA_MCM_QKEY_F, 0x80010000);
-	mad_set_field(data, 0, IB_SA_MCM_SL_F, 0);
-	mad_set_field(data, 0, IB_SA_MCM_MTU_F, 4);
-	mad_set_field(data, 0, IB_SA_MCM_RATE_F, 3);
-	mad_set_field(data, 0, IB_SA_MCM_TCLASS_F, 0);
-	mad_set_field(data, 0, IB_SA_MCM_PKEY_F, 0xffff);
-	mad_set_field(data, 0, IB_SA_MCM_FLOW_LABEL_F, 0);
+	uint64_t comp_mask = 0;
 
-	return comp_mask | IB_MCR_COMPMASK_QKEY | IB_MCR_COMPMASK_SL |
-	    IB_MCR_COMPMASK_MTU | IB_MCR_COMPMASK_RATE | IB_MCR_COMPMASK_PKEY |
-	    IB_MCR_COMPMASK_TCLASS | IB_MCR_COMPMASK_FLOW;
+	memset(data, 0, IB_SA_DATA_SIZE);
+
+	if (!p)
+		return comp_mask;
+
+	SET_FIELD(p->qkey, IB_MCR_COMPMASK_QKEY, IB_SA_MCM_QKEY_F);
+	SET_FIELD(p->mlid, IB_MCR_COMPMASK_MLID, IB_SA_MCM_MLID_F);
+	SET_FIELD(p->mtu, IB_MCR_COMPMASK_MTU, IB_SA_MCM_MTU_F);
+	SET_FIELD(p->tclass, IB_MCR_COMPMASK_TCLASS, IB_SA_MCM_TCLASS_F);
+	SET_FIELD(p->pkey, IB_MCR_COMPMASK_PKEY, IB_SA_MCM_PKEY_F);
+	SET_FIELD(p->rate, IB_MCR_COMPMASK_RATE, IB_SA_MCM_RATE_F);
+	SET_FIELD(p->sl, IB_MCR_COMPMASK_SL, IB_SA_MCM_SL_F);
+	SET_FIELD(p->flow_label, IB_MCR_COMPMASK_FLOW, IB_SA_MCM_FLOW_LABEL_F);
+	SET_FIELD(p->join_state, IB_MCR_COMPMASK_JOIN_STATE, IB_SA_MCM_JOIN_STATE_F);
+	SET_FIELD(p->proxy_join, IB_MCR_COMPMASK_PROXY, IB_SA_MCM_PROXY_JOIN_F);
+
+	return comp_mask;
 }
 
 static void build_mcm_rec_umad(void *umad, ib_portid_t * dport, int method,
@@ -155,46 +192,29 @@ static int recv_res(struct addr_data *a, uint8_t * umad, int length)
 	return 1;
 }
 
-static int send_create(struct addr_data *a, uint8_t * umad, int len,
-		       ibmad_gid_t mgid, ibmad_gid_t port_gid)
-{
-	uint8_t data[IB_SA_DATA_SIZE];
-	uint64_t comp_mask;
-
-	comp_mask = build_mcm_create_rec(data, mgid, port_gid, 1);
-
-	return send_req(a, umad, len, IB_MAD_METHOD_SET, comp_mask, data);
-}
-
 static int send_join(struct addr_data *a, uint8_t * umad, int len,
-		     ibmad_gid_t mgid, ibmad_gid_t port_gid)
+		     ibmad_gid_t mgid, ibmad_gid_t port_gid,
+		     uint64_t comp_mask, uint8_t data[])
 {
-	uint8_t data[IB_SA_DATA_SIZE];
-	uint64_t comp_mask;
-
-	comp_mask = build_mcm_rec(data, mgid, port_gid, 1);
+	comp_mask |= add_rid(data, mgid, port_gid);
 
 	return send_req(a, umad, len, IB_MAD_METHOD_SET, comp_mask, data);
 }
 
 static int send_leave(struct addr_data *a, uint8_t * umad, int len,
-		      ibmad_gid_t mgid, ibmad_gid_t port_gid)
+		      ibmad_gid_t mgid, ibmad_gid_t port_gid,
+		      uint64_t comp_mask, uint8_t data[])
 {
-	uint8_t data[IB_SA_DATA_SIZE];
-	uint64_t comp_mask;
-
-	comp_mask = build_mcm_rec(data, mgid, port_gid, 1);
+	comp_mask |= add_rid(data, mgid, port_gid);
 
 	return send_req(a, umad, len, IB_MAD_METHOD_DELETE, comp_mask, data);
 }
 
 static int send_query(struct addr_data *a, uint8_t * umad, int len,
-		      ibmad_gid_t mgid, ibmad_gid_t port_gid)
+		      ibmad_gid_t mgid, ibmad_gid_t port_gid,
+		      uint64_t comp_mask, uint8_t data[])
 {
-	uint8_t data[IB_SA_DATA_SIZE];
-	uint64_t comp_mask;
-
-	comp_mask = build_mcm_rec(data, mgid, port_gid, 1);
+	comp_mask |= add_rid(data, mgid, port_gid);
 
 	return send_req(a, umad, len, IB_MAD_METHOD_GET, comp_mask, data);
 }
@@ -236,13 +256,15 @@ static int recv_all(struct addr_data *a, void *umad, int len)
 }
 
 static int rereg_port(struct addr_data *a, uint8_t * umad, int len,
-		      ibmad_gid_t mgid, struct gid_list *list)
+		      ibmad_gid_t mgid, struct gid_list *list,
+		      uint64_t comp_mask, uint8_t data[])
 {
-	if (send_leave(a, umad, len, mgid, list->gid))
+	if (send_leave(a, umad, len, mgid, list->gid, comp_mask, data))
 		return -1;
 
-	if (send_join(a, umad, len, mgid, list->gid))
+	if (send_join(a, umad, len, mgid, list->gid, comp_mask, data))
 		return -1;
+
 	list->trid = mad_get_field64(umad_get_mad(umad), 0, IB_MAD_TRID_F);
 
 	return 0;
@@ -250,7 +272,8 @@ static int rereg_port(struct addr_data *a, uint8_t * umad, int len,
 
 static int rereg_recv_all(struct addr_data *a, void *umad, int len,
 			  ibmad_gid_t mgid,
-			  struct gid_list *list, unsigned cnt)
+			  struct gid_list *list, unsigned cnt,
+			  uint64_t comp_mask, uint8_t data[])
 {
 	uint8_t *mad;
 	uint64_t trid;
@@ -285,7 +308,8 @@ static int rereg_recv_all(struct addr_data *a, void *umad, int len,
 			info("guid 0x%016" PRIx64
 			     ": method = %x status = %x. Resending\n",
 			     get_guid_ho(list[i].gid), method, status);
-			rereg_port(a, umad, len, mgid, &list[i]);
+			rereg_port(a, umad, len, mgid, &list[i],
+				   comp_mask, data);
 		}
 	}
 
@@ -296,7 +320,8 @@ static int rereg_recv_all(struct addr_data *a, void *umad, int len,
 
 static int rereg_query_all(struct addr_data *a, void *umad, int len,
 			   ibmad_gid_t mgid,
-			   struct gid_list *list, unsigned cnt)
+			   struct gid_list *list, unsigned cnt,
+			   uint64_t comp_mask, uint8_t data[])
 {
 	uint8_t *mad;
 	unsigned method, status;
@@ -305,7 +330,8 @@ static int rereg_query_all(struct addr_data *a, void *umad, int len,
 	info("%s...\n", __func__);
 
 	for (i = 0; i < cnt; i++) {
-		ret = send_query(a, umad, len, mgid, list[i].gid);
+		ret = send_query(a, umad, len, mgid, list[i].gid,
+				 comp_mask, data);
 		if (ret < 0) {
 			err("%s: rereg_send failed.\n", __func__);
 			continue;
@@ -339,12 +365,15 @@ struct test_data {
 	struct gid_list *gids;
 	unsigned mgids_size;
 	struct gid_list *mgids;
+	const struct mcmember_params *params;
 };
 
 #define MAX_CLIENTS 100
 
 static int run_port_rereg_test(struct addr_data *a, struct test_data *td)
 {
+	uint8_t data[256];
+	uint64_t comp_mask;
 	uint8_t *umad;
 	int len = 256;
 	int cnt, i, n, size = td->gids_size;
@@ -355,18 +384,25 @@ static int run_port_rereg_test(struct addr_data *a, struct test_data *td)
 		return -1;
 	}
 
+	if (!td->params)
+		td->params = &mcmember_params_join;
+
+	comp_mask = build_mcm_rec(data, td->params);
+
 	for (cnt = size; cnt;) {
 		n = cnt > MAX_CLIENTS ? MAX_CLIENTS : cnt;
 		for (i = 0; i < n; i++) {
 			rereg_port(a, umad, len, td->mgids[0].gid,
-				   &td->gids[size - cnt + i]);
+				   &td->gids[size - cnt + i], comp_mask, data);
 			info("%s: sent %u requests\n", __func__, n * 2);
 		}
-		rereg_recv_all(a, umad, len, td->mgids[0].gid, td->gids, size);
+		rereg_recv_all(a, umad, len, td->mgids[0].gid, td->gids, size,
+			       comp_mask, data);
 		cnt -= i;
 	}
 
-	rereg_query_all(a, umad, len, td->mgids[0].gid, td->gids, size);
+	rereg_query_all(a, umad, len, td->mgids[0].gid, td->gids, size,
+			comp_mask, data);
 
 	free(umad);
 
@@ -376,8 +412,11 @@ static int run_port_rereg_test(struct addr_data *a, struct test_data *td)
 static int run_mcast_member_test(struct addr_data *a, struct test_data *td,
 				 int (*func)(struct addr_data *a,
 					     uint8_t * umad, int len,
-					     ibmad_gid_t mgid, ibmad_gid_t gid))
+					     ibmad_gid_t mgid, ibmad_gid_t gid,
+					     uint64_t comp_mask, uint8_t *data))
 {
+	uint8_t data[256];
+	uint64_t comp_mask;
 	uint8_t *umad;
 	int len = 256;
 	unsigned i, j;
@@ -388,10 +427,12 @@ static int run_mcast_member_test(struct addr_data *a, struct test_data *td,
 		return -1;
 	}
 
+	comp_mask = build_mcm_rec(data, td->params);
+
 	for (i = 0; i < td->gids_size; i++)
 		for (j = 0; j < td->mgids_size; j++)
 			if (func(a, umad, len, td->mgids[j].gid,
-				 td->gids[i].gid))
+				 td->gids[i].gid, comp_mask, data))
 				return -1;
 
 	if (recv_all(a, umad, len) < 0)
@@ -404,11 +445,15 @@ static int run_mcast_member_test(struct addr_data *a, struct test_data *td,
 
 static int run_mcast_joins_test(struct addr_data *a, struct test_data *td)
 {
-	return run_mcast_member_test(a, td, send_create);
+	if (!td->params)
+		td->params = &mcmember_params_create;
+	return run_mcast_member_test(a, td, send_join);
 }
 
 static int run_mcast_leave_test(struct addr_data *a, struct test_data *td)
 {
+	if (!td->params)
+		td->params = &mcmember_params_join;
 	return run_mcast_member_test(a, td, send_leave);
 }
 
@@ -580,6 +625,16 @@ int main(int argc, char **argv)
 		{"MGID", 1, 0, 'M'},
 		{"ipv4", 0, 0, 'i'},
 		{"increment", 1, 0, 'I'},
+		{"qkey", 1, 0, 'q'},
+		{"mlid", 1, 0, 'z'},
+		{"mtu", 1, 0, 'y'},
+		{"tclass", 1, 0, 't'},
+		{"pkey", 1, 0, 'p'},
+		{"rate", 1, 0, 'r'},
+		{"sl", 1, 0, 's'},
+		{"flowlabel", 1, 0, 'f'},
+		{"joinstate", 1, 0, 'j'},
+		{"proxy", 0, 0, 'x'},
 		{"version", 0, 0, 'V'},
 		{"verbose", 0, 0, 'v'},
 		{"help", 0, 0, 'h'},
@@ -594,6 +649,7 @@ int main(int argc, char **argv)
 
 	char opt_str[256];
 	int mgmt_classes[2] = { IB_SMI_CLASS, IB_SMI_DIRECT_CLASS };
+	struct mcmember_params params = {}, zero_params = {};
 	struct test_data tdata;
 	ibmad_gid_t gid, mgid = {};
 	uint64_t guid = 0;
@@ -631,6 +687,36 @@ int main(int argc, char **argv)
 			break;
 		case 'm':
 			mgid_file = optarg;
+			break;
+		case 'q':
+			params.qkey = strtoul(optarg, NULL, 0);
+			break;
+		case 'z':
+			params.mlid = strtoul(optarg, NULL, 0);
+			break;
+		case 'y':
+			params.mtu = strtoul(optarg, NULL, 0);
+			break;
+		case 't':
+			params.tclass = strtoul(optarg, NULL, 0);
+			break;
+		case 'p':
+			params.pkey = strtoul(optarg, NULL, 0);
+			break;
+		case 'r':
+			params.rate = strtoul(optarg, NULL, 0);
+			break;
+		case 's':
+			params.sl = strtoul(optarg, NULL, 0);
+			break;
+		case 'f':
+			params.flow_label = strtoul(optarg, NULL, 0);
+			break;
+		case 'j':
+			params.join_state = strtoul(optarg, NULL, 0);
+			break;
+		case 'x':
+			params.proxy_join = 1;
 			break;
 		case 'v':
 			break;
@@ -682,6 +768,9 @@ int main(int argc, char **argv)
 	if (ret < 0)
 		return ret;
 	tdata.mgids_size = ret;
+
+	if (memcmp(&params, &zero_params, sizeof(params)))
+		tdata.params = &params;
 
 	if (argc <= optind)
 		return run_test(&tests[0], &tdata);
