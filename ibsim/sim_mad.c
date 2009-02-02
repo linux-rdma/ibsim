@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2004-2008 Voltaire, Inc. All rights reserved.
+ * Copyright (c) 2009 HNR Consulting. All rights reserved.
  *
  * This file is part of ibsim.
  *
@@ -58,7 +59,7 @@ typedef int (EncodeTrapfn) (Port * port, char *data);
 
 static Smpfn do_nodeinfo, do_nodedesc, do_switchinfo, do_portinfo,
     do_linearforwtbl, do_multicastforwtbl, do_portcounters, do_extcounters,
-    do_pkeytbl, do_sl2vl, do_vlarb, do_guidinfo, do_nothing;
+    do_pkeytbl, do_sl2vl, do_vlarb, do_guidinfo, do_cpi;
 
 static EncodeTrapfn encode_trap128;
 static EncodeTrapfn encode_trap144;
@@ -78,7 +79,7 @@ static Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
 
 			[IB_ATTR_LAST] 0,
 			},
-	[IB_PERFORMANCE_CLASS] {[CLASS_PORT_INFO] = do_nothing,
+	[IB_PERFORMANCE_CLASS] {[CLASS_PORT_INFO] = do_cpi,
 				[IB_GSI_PORT_SAMPLES_CONTROL] = 0,
 				[IB_GSI_PORT_SAMPLES_RESULT] = 0,
 				[IB_GSI_PORT_COUNTERS] = do_portcounters,
@@ -219,9 +220,18 @@ static int reply_MAD(void *buf, ib_rpc_t * rpc, ib_dr_path_t * path,
 	return 0;
 }
 
-static int do_nothing(Port * port, unsigned op, uint32_t mod, uint8_t * data)
+static int do_cpi(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 {
-	return 0;
+	int status = 0;
+
+	if (op != 1)		// get
+		status = ERR_METHOD_UNSUPPORTED;
+	memset(data, 0, IB_SMP_DATA_SIZE);
+	mad_set_field(data, 0, IB_CPI_BASEVER_F, 1);
+	mad_set_field(data, 0, IB_CPI_CLASSVER_F, 1);
+	mad_set_field(data, 0, IB_CPI_CAPMASK_F, 0x300);
+	mad_set_field(data, 0, IB_CPI_RESP_TIME_VALUE_F, 0x12);
+	return status;
 }
 
 static int do_nodedesc(Port * port, unsigned op, uint32_t mod, uint8_t * data)
