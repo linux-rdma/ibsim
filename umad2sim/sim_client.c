@@ -45,7 +45,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#include <infiniband/common.h>
 #include <infiniband/mad.h>
 
 #include <ibsim.h>

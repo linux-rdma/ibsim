@@ -35,7 +35,6 @@
 #ifndef __SIM_H__
 #define __SIM_H__
 
-#include <infiniband/common.h>
 #include <infiniband/mad.h>
 
 #define MAXNETNODES	2048

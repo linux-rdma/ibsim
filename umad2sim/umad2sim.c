@@ -50,7 +50,6 @@
 #include <dlfcn.h>
 #include <netinet/in.h>
 
-#include <infiniband/common.h>
 #include <infiniband/umad.h>
 #include <infiniband/mad.h>
 

@@ -13,15 +13,15 @@ libpath:= $(strip $(if $(libpath),$(libpath),\
 		$(prefix)/lib64,$(prefix)/lib)))
 binpath:= $(if $(binpath),$(binpath),$(prefix)/bin)
 
-#IB_DEV_DIR:=$(HOME)/src/p
+#IB_DEV_DIR:=$(HOME)/src/m
 ifdef IB_DEV_DIR
- INCS:= $(foreach l, mad umad common, -I$(IB_DEV_DIR)/libib$(l)/include) \
+ INCS:= $(foreach l, mad umad, -I$(IB_DEV_DIR)/libib$(l)/include) \
   -I/usr/local/include
  LIBS:= \
-  $(foreach l, mad umad common, $(IB_DEV_DIR)/libib$(l)/.libs/libib$(l).so)
+  $(foreach l, mad umad, $(IB_DEV_DIR)/libib$(l)/.libs/libib$(l).so)
 else
  INCS:= -I$(dir $(libpath))/include
- LIBS:= -L$(libpath) -libmad -libumad -libcommon
+ LIBS:= -L$(libpath) -libmad -libumad
 endif
 
 CFLAGS += -Wall -g -fpic -I. -I../include $(INCS)
