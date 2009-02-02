@@ -856,7 +856,7 @@ int do_cmd(char *buf, FILE *f)
 		cmd_len++;
 
 	if (*line == '#')
-		fprintf(f, line);
+		fprintf(f, "%s", line);
 	else if (*line == '!')
 		r = sim_cmd_file(f, line);
 	else if (!strncasecmp(line, "Dump", cmd_len))
