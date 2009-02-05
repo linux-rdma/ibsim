@@ -59,6 +59,7 @@
 #endif
 
 static unsigned int remote_mode = 0;
+static char* socket_basename;
 
 static int sim_ctl(struct sim_client *sc, int type, void *data, int len)
 {
@@ -213,6 +214,10 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 
 	connect_port = getenv("IBSIM_SERVER_PORT");
 	connect_host = getenv("IBSIM_SERVER_NAME");
+	socket_basename = getenv("IBSIM_SOCKNAME");
+
+	if(!socket_basename)
+		socket_basename=SIM_BASENAME;
 
 	if (connect_host && *connect_host)
 		remote_mode = 1;
@@ -226,7 +231,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 	if ((ctlfd = socket(remote_mode ? PF_INET : PF_LOCAL, SOCK_DGRAM, 0)) < 0)
 		IBPANIC("can't get socket (ctlfd)");
 
-	size = make_name(&name, NULL, 0, "%s:ctl%d", SIM_BASENAME, pid);
+	size = make_name(&name, NULL, 0, "%s:ctl%d", socket_basename, pid);
 
 	if (bind(ctlfd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't bind ctl socket");
@@ -235,13 +240,13 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 	      pid, ctlfd, get_name(&name));
 
 	port = connect_port ? atoi(connect_port) : IBSIM_DEFAULT_SERVER_PORT;
-	size = make_name(&name, connect_host, port, "%s:ctl", SIM_BASENAME);
+	size = make_name(&name, connect_host, port, "%s:ctl", socket_basename);
 
 	sim_attach(ctlfd, &name, size);
 
 	sc->fd_ctl = ctlfd;
 
-	size = make_name(&name, NULL, 0, "%s:in%d", SIM_BASENAME, pid);
+	size = make_name(&name, NULL, 0, "%s:in%d", socket_basename, pid);
 
 	if (bind(fd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't bind input socket");
@@ -258,7 +263,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 
 	port = connect_port ? atoi(connect_port) : IBSIM_DEFAULT_SERVER_PORT;
 	size = make_name(&name, connect_host, port + sc->clientid + 1,
-			 "%s:out%d", SIM_BASENAME, sc->clientid);
+			 "%s:out%d", socket_basename, sc->clientid);
 
 	sim_attach(fd, &name, size);
 

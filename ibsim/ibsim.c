@@ -80,6 +80,7 @@ static int maxfd;
 static FILE *simout;
 static int listen_to_port = IBSIM_DEFAULT_SERVER_PORT;
 static int remote_mode = 0;
+static char* socket_basename;
 
 static size_t make_name(union name_t *name, uint32_t addr, unsigned short port,
 			const char *fmt, ...)
@@ -237,7 +238,7 @@ static int sim_ctl_new_client(Client * cl, struct sim_ctl * ctl, union name_t *f
 	}
 
 	size = make_name(&name, from->name_i.sin_addr.s_addr, id,
-			 "%s:in%d", SIM_BASENAME, id);
+			 "%s:in%d", socket_basename, id);
 
 	if (connect(cl->fd, (struct sockaddr *)&name, size) < 0)
 		IBPANIC("can't connect to in socket %s - fd %d client pid %d",
@@ -606,7 +607,11 @@ static int sim_run(int con_fd)
 	fd_set rfds;
 	int i;
 
-	if (sim_init_conn(SIM_BASENAME) < 0)
+	socket_basename=getenv("IBSIM_SOCKNAME");
+	if(!socket_basename)
+		socket_basename=SIM_BASENAME;
+
+	if (sim_init_conn(socket_basename) < 0)
 		return -1;
 
 	while (!netstarted)
