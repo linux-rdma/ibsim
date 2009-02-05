@@ -469,7 +469,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 			if (p->lid > 0 && p->lid < maxlinearcap
 			    && lids[p->lid] != p && lids[p->lid])
 				IBWARN
-				    ("Port %s:%d overwrite lid table entry for lid %d (was %s:%d)",
+				    ("Port %s:%d overwrite lid table entry for lid %u (was %s:%d)",
 				     node->nodeid, p->portnum, p->lid,
 				     lids[p->lid]->node->nodeid,
 				     lids[p->lid]->portnum);
@@ -861,7 +861,7 @@ static char *pathstr(int lid, ib_dr_path_t * path)
 	int i;
 
 	if (0 && lid != -1) {
-		sprintf(buf, "lid 0x%x", lid);
+		sprintf(buf, "lid %u", lid);
 		return buf;
 	}
 	for (i = 0; i < path->cnt + 1; i++) {
@@ -880,12 +880,12 @@ static int switch_lookup(Node * node, int lid)
 {
 	int outport;
 
-	DEBUG("node 0x%" PRIx64 " lid %d", node->nodeguid, lid);
+	DEBUG("node 0x%" PRIx64 " lid %u", node->nodeguid, lid);
 	if (!node->sw)
 		return -1;
 
 	if (lid > node->sw->linearFDBtop || (outport = node->sw->fdb[lid]) < 0) {
-		IBWARN("sw guid %" PRIx64 ": bad lid %d", node->nodeguid, lid);
+		IBWARN("sw guid %" PRIx64 ": bad lid %u", node->nodeguid, lid);
 		return -1;
 	}
 
@@ -905,7 +905,7 @@ static int port_get_remote(Port * port, Node ** remotenode, Port ** remoteport)
 
 static int is_port_lid(Port * port, int lid)
 {
-	DEBUG("port 0x%" PRIx64 " lid %d lmc %d target lid %d",
+	DEBUG("port 0x%" PRIx64 " lid %u lmc %d target lid %u",
 	      port->portguid, port->lid, port->lmc, lid);
 	if (lid < port->lid || lid > port->lid + (1 << port->lmc) - 1)
 		return 0;
@@ -939,7 +939,7 @@ static Port *lid_route_MAD(Port * port, int lid)
 	Node *node = port->node;
 	Port *tport = port;
 
-	DEBUG("Node %" PRIx64 " port %" PRIx64 " (%d) lid %d",
+	DEBUG("Node %" PRIx64 " port %" PRIx64 " (%d) lid %u",
 	      node->nodeguid, port->portguid, port->portnum, lid);
 
 	if (lid == 0) {
@@ -965,7 +965,7 @@ static Port *lid_route_MAD(Port * port, int lid)
 
 		if (portnum < 0 || portnum > node->numports) {
 			pc_add_error_rcvswitchrelay(port);
-			DEBUG("illegal lid %d (outport %d node %s ports %d)",
+			DEBUG("illegal lid %u (outport %d node %s ports %d)",
 			      lid, portnum, node->nodeid, node->numports);
 			return 0;
 		}
@@ -1175,7 +1175,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 	}
 
 	if (!(port = route_MAD(cl->port, response, ntohs(r->dlid), &path))) {
-		IBWARN("routing failed: no route to dest lid %d path %s",
+		IBWARN("routing failed: no route to dest lid %u path %s",
 		       ntohs(r->dlid), pathstr(0, &path));
 		goto _dropped;
 	}
@@ -1236,7 +1236,7 @@ static int encode_trap128(Port * port, char *data)
 	if (port->node->type != SWITCH_NODE)
 		return -1;
 	if (!port->lid || !port->smlid) {
-		VERB("switch trap 128 for lid %d with smlid %d",
+		VERB("switch trap 128 for lid %u with smlid %u",
 		     port->lid, port->smlid);
 		return -1;
 	}
@@ -1256,7 +1256,7 @@ static int encode_trap128(Port * port, char *data)
 static int encode_trap144(Port * port, char *data)
 {
 	if (!port->lid || !port->smlid) {
-		VERB("switch trap 144 for lid %d with smlid %d",
+		VERB("switch trap 144 for lid %u with smlid %u",
 		     port->lid, port->smlid);
 		return -1;
 	}
@@ -1306,7 +1306,7 @@ int send_trap(Port * port, int trapnum)
 		return -1;
 
 	if (!(destport = lid_route_MAD(port, port->smlid))) {
-		IBWARN("routing failed: no route to dest lid %d", port->smlid);
+		IBWARN("routing failed: no route to dest lid %u", port->smlid);
 		return -1;
 	}
 

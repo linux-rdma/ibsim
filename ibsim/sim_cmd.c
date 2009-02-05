@@ -541,7 +541,7 @@ static void dump_port(FILE * f, Port * port, int type)
 			PORTSTATE(port->state), PHYSSTATE(port->physstate),
 			comment);
 	else
-		fprintf(f, "\t lid %d lmc %d smlid %d %s %s %s/%s%s\n",
+		fprintf(f, "\t lid %u lmc %d smlid %u %s %s %s/%s%s\n",
 			port->lid, port->lmc, port->smlid,
 			PORTLINKWIDTH(port->linkwidth),
 			PORTLINKSPEED(port->linkspeed),
@@ -714,7 +714,7 @@ static int dump_route(FILE * f, char *line)
 	node = fromport->node;
 	port = fromport;
 	portnum = port->portnum;
-	fprintf(f, "From node \"%s\" port %d lid %d\n", node->nodeid, portnum,
+	fprintf(f, "From node \"%s\" port %d lid %u\n", node->nodeid, portnum,
 		from);
 	while (maxhops--) {
 		if (port->state != 4)
@@ -749,7 +749,7 @@ static int dump_route(FILE * f, char *line)
 		fprintf(f, "no route found after %d hops\n", MAXHOPS);
 		return -1;
 	}
-	fprintf(f, "To node \"%s\" port %d lid %d\n", node->nodeid, portnum,
+	fprintf(f, "To node \"%s\" port %d lid %u\n", node->nodeid, portnum,
 		to);
 	return 0;
 

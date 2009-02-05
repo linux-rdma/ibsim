@@ -651,7 +651,7 @@ int list_connections(FILE * out)
 			continue;
 		fprintf(out,
 			"Client %d: pid %d connected at \"%s\" port 0x%" PRIx64
-			", lid %d, qp %d %s\n", i, clients[i].pid,
+			", lid %u, qp %d %s\n", i, clients[i].pid,
 			clients[i].port->node->nodeid,
 			clients[i].port->portguid, clients[i].port->lid,
 			clients[i].qp, clients[i].issm ? "SM" : "");
