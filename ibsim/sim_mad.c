@@ -1118,8 +1118,6 @@ static Port *route_MAD(Port * port, int response, int lid, ib_dr_path_t * path)
 	    direct_route_out_MAD(port, path);
 }
 
-int modified;
-
 Smpfn *get_handle_fn(ib_rpc_t rpc, int response)
 {
 	Smpfn *fn;
@@ -1207,9 +1205,6 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 
 	if ((status = fn(port, rpc.method, rpc.attr.mod, data)) < 0)
 		goto _dropped;
-
-	if (rpc.method == 2)
-		modified++;
 
 	reply_MAD(r->mad, &rpc, &path, status, data);
 

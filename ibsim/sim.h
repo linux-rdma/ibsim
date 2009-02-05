@@ -289,7 +289,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl);
 int send_trap(Port * port, int trapnum);
 
 extern Port *default_port;
-extern int simverb, modified;
+extern int simverb;
 extern int netstarted;
 
 #endif				/* __SIM_H__ */
