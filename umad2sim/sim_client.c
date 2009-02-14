@@ -284,19 +284,21 @@ int sim_client_set_sm(struct sim_client *sc, unsigned issm)
 	return sim_ctl(sc, SIM_CTL_SET_ISSM, &issm, sizeof(int));
 }
 
-int sim_client_init(struct sim_client *sc, char *nodeid)
+int sim_client_init(struct sim_client *sc)
 {
-	if (!nodeid)
-		nodeid = getenv("SIM_HOST");
+	char *nodeid;
+
+	nodeid = getenv("SIM_HOST");
 	if (sim_init(sc, 0, nodeid) < 0)
 		return -1;
-	if (sim_ctl(sc, SIM_CTL_GET_VENDOR, &sc->vendor, sizeof(sc->vendor)) <
-	    0)
+	if (sim_ctl(sc, SIM_CTL_GET_VENDOR, &sc->vendor,
+		    sizeof(sc->vendor)) < 0)
 		goto _exit;
 	if (sim_ctl(sc, SIM_CTL_GET_NODEINFO, sc->nodeinfo,
 		    sizeof(sc->nodeinfo)) < 0)
 		goto _exit;
-	sc->portinfo[0] = 0;
+
+	sc->portinfo[0] = 0;	// portno requested
 	if (sim_ctl(sc, SIM_CTL_GET_PORTINFO, sc->portinfo,
 		    sizeof(sc->portinfo)) < 0)
 		goto _exit;

@@ -47,7 +47,7 @@ struct sim_client {
 };
 
 extern int sim_client_set_sm(struct sim_client *sc, unsigned issm);
-extern int sim_client_init(struct sim_client *sc, char *nodeid);
+extern int sim_client_init(struct sim_client *sc);
 extern void sim_client_exit(struct sim_client *sc);
 
 #endif				/* _SIM_CLIENT_H_ */

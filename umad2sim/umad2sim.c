@@ -53,7 +53,6 @@
 #include <infiniband/umad.h>
 #include <infiniband/mad.h>
 
-#include <ibsim.h>
 #include <sim_client.h>
 
 #ifdef UMAD2SIM_NOISY_DEBUG
@@ -562,7 +561,7 @@ static struct umad2sim_dev *umad2sim_dev_create(unsigned num, const char *name)
 	dev->num = num;
 	strncpy(dev->name, name, sizeof(dev->name) - 1);
 
-	if (sim_client_init(&dev->sim_client, NULL) < 0)
+	if (sim_client_init(&dev->sim_client) < 0)
 		goto _error;
 
 	dev->port = mad_get_field(&dev->sim_client.portinfo, 0,
