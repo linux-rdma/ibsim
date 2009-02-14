@@ -308,7 +308,7 @@ int sim_client_init(struct sim_client *sc, char *nodeid)
   _exit:
 	sim_disconnect(sc);
 	sc->fd_ctl = sc->fd_pktin = sc->fd_pktout = -1;
-	return 0;
+	return -1;
 }
 
 void sim_client_exit(struct sim_client *sc)
