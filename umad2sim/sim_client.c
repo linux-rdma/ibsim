@@ -202,7 +202,7 @@ static int sim_disconnect(struct sim_client *sc)
 	return sim_ctl(sc, SIM_CTL_DISCONNECT, 0, 0);
 }
 
-static int sim_init(struct sim_client *sc, int qp, char *nodeid)
+static int sim_init(struct sim_client *sc, char *nodeid)
 {
 	union name_t name;
 	socklen_t size;
@@ -222,8 +222,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 	if (connect_host && *connect_host)
 		remote_mode = 1;
 
-	DEBUG("init client pid=%d, qp=%d nodeid=%s",
-	      pid, qp, nodeid ? nodeid : "none");
+	DEBUG("init client pid=%d, nodeid=%s", pid, nodeid ? nodeid : "none");
 
 	if ((fd = socket(remote_mode ? PF_INET : PF_LOCAL, SOCK_DGRAM, 0)) < 0)
 		IBPANIC("can't get socket (fd)");
@@ -257,7 +256,7 @@ static int sim_init(struct sim_client *sc, int qp, char *nodeid)
 		IBPANIC("can't read data from bound socket");
 	port = ntohs(name.name_i.sin_port);
 
-	sc->clientid = sim_connect(sc, remote_mode ? port : pid, qp, nodeid);
+	sc->clientid = sim_connect(sc, remote_mode ? port : pid, 0, nodeid);
 	if (sc->clientid < 0)
 		IBPANIC("connect failed");
 
@@ -289,7 +288,7 @@ int sim_client_init(struct sim_client *sc)
 	char *nodeid;
 
 	nodeid = getenv("SIM_HOST");
-	if (sim_init(sc, 0, nodeid) < 0)
+	if (sim_init(sc, nodeid) < 0)
 		return -1;
 	if (sim_ctl(sc, SIM_CTL_GET_VENDOR, &sc->vendor,
 		    sizeof(sc->vendor)) < 0)
