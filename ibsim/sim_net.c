@@ -322,6 +322,8 @@ static Node *new_node(int type, char *nodename, char *nodedesc, int nodeports)
 		guids[type]++;	// reserve single guid;
 	} else {
 		memcpy(nd->nodeinfo, hcanodeinfo, sizeof(nd->nodeinfo));
+		if (type == ROUTER_NODE)
+			mad_set_field(nd->nodeinfo, 0, IB_NODE_TYPE_F, ROUTER_NODE);
 		guids[type] += nodeports + 1;	// reserve guids;
 	}
 
