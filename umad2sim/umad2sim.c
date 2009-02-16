@@ -814,7 +814,7 @@ int ioctl(int fd, unsigned long request, ...)
 		return real_ioctl(fd, request, arg);
 }
 
-int poll(struct pollfd *pfds, unsigned long nfds, int timeout)
+int poll(struct pollfd *pfds, nfds_t nfds, int timeout)
 {
 	int saved_fds[nfds];
 	unsigned i;
@@ -827,7 +827,8 @@ int poll(struct pollfd *pfds, unsigned long nfds, int timeout)
 			struct umad2sim_dev *dev = devices[pfds[i].fd - 1024];
 			saved_fds[i] = pfds[i].fd;
 			pfds[i].fd = dev->sim_client.fd_pktin;
-		}
+		} else
+			saved_fds[i] = 0;
 	}
 
 	ret = real_poll(pfds, nfds, timeout);
