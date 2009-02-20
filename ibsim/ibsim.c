@@ -369,7 +369,6 @@ static int sim_ctl_get_pkeys(Client * cl, struct sim_ctl * ctl)
 	memcpy(ctl->data, port->pkey_tbl, size);
 	if (size < sizeof(ctl->data))
 		memset(ctl->data + size, 0, sizeof(ctl->data) - size);
-
 	return 0;
 }
 
@@ -720,6 +719,7 @@ int main(int argc, char **argv)
 	extern void free_core(void);
 	char *outfname = 0, *netfile;
 	FILE *infile, *outfile;
+	int status;
 
 	static char const str_opts[] = "rf:dpvIsN:S:P:L:M:l:Vhu";
 	static const struct option long_opts[] = {
@@ -808,8 +808,9 @@ int main(int argc, char **argv)
 		IBPANIC("not enough memory for core structure");
 
 	DEBUG("initializing net \"%s\"", netfile);
-	if (sim_init_net(netfile, outfile) < 0)
-		IBPANIC("sim_init failed");
+	status = sim_init_net(netfile, outfile);
+	if (status < 0)
+		IBPANIC("sim_init failed, status %d", status);
 
 	sim_init_console(outfile);
 

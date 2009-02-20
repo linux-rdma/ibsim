@@ -1116,7 +1116,7 @@ int link_ports(Port * lport, Port * rport)
 	rport->remoteport = lport->portnum;
 	set_portinfo(rport, rnode->type == SWITCH_NODE ? swport : hcaport);
 	memcpy(rport->remotenodeid, lnode->nodeid, sizeof(rport->remotenodeid));
-	lport->state = rport->state = 2;	// Initialilze
+	lport->state = rport->state = 2;	// Initialize
 	lport->physstate = rport->physstate = 5;	// LinkUP
 	if (lnode->sw)
 		lnode->sw->portchange = 1;

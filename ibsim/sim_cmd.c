@@ -203,7 +203,8 @@ static int do_relink(FILE * f, char *line)
 			return -1;
 		}
 
-		rport = node_get_port(lport->previous_remotenode, lport->previous_remoteport);
+		rport = node_get_port(lport->previous_remotenode,
+				      lport->previous_remoteport);
 
 		if (link_ports(lport, rport) < 0)
 			return -fprintf(f,
@@ -220,7 +221,8 @@ static int do_relink(FILE * f, char *line)
 		if (!lport->previous_remotenode)
 			continue; 
 
-		rport = node_get_port(lport->previous_remotenode, lport->previous_remoteport);
+		rport = node_get_port(lport->previous_remotenode,
+				      lport->previous_remoteport);
 
 		if (link_ports(lport, rport) < 0)
 			continue;

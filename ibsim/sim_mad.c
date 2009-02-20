@@ -379,7 +379,7 @@ static int do_vlarb(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 	if (op == IB_MAD_METHOD_SET) {
 		memcpy(vlarb, data, size);
 	} else {
-		memset(data, 0, 64);
+		memset(data, 0, IB_SMP_DATA_SIZE);
 		memcpy(data, vlarb, size);
 	}
 
@@ -395,7 +395,7 @@ static int do_guidinfo(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 	if (op != IB_MAD_METHOD_GET)    // only get currently supported (non compliant)
 		status = ERR_METHOD_UNSUPPORTED;
 
-	memset(data, 0, 64);
+	memset(data, 0, IB_SMP_DATA_SIZE);
 	if (mod == 0) {
 		if (node->type == SWITCH_NODE)
 			mad_encode_field(data, IB_GUID_GUID0_F, &node->nodeguid);
@@ -614,7 +614,7 @@ static int pc_updated(Port ** srcport, Port * destport)
 	uint32_t madsize_div_4 = 72;	//real data divided by 4
 
 	if (*srcport != destport) {
-		//PKT get out of port ..
+		//PKT got out of port ..
 		srcpc->flow_xmt_pkts =
 		    addval(srcpc->flow_xmt_pkts, 1, GS_PERF_XMT_PKTS_LIMIT);
 		srcpc->flow_xmt_bytes =
@@ -630,7 +630,7 @@ static int pc_updated(Port ** srcport, Port * destport)
 			VERB("drop pkt due error rate %d", destport->errrate);
 			return 0;
 		}
-		//PKT get in to the port ..
+		//PKT got into the port ..
 		destpc->flow_rcv_pkts =
 		    addval(destpc->flow_rcv_pkts, 1, GS_PERF_RCV_PKTS_LIMIT);
 		destpc->flow_rcv_bytes =
