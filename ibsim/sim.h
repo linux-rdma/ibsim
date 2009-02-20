@@ -197,8 +197,8 @@ struct Port {
 	int physstate;
 	int lmc;
 	int hoqlife;
-	uint8_t op_vls;
 	uint8_t portinfo[64];
+	uint8_t op_vls;
 
 	char remotenodeid[NODEIDLEN];
 	char remotealias[ALIASLEN + 1];
