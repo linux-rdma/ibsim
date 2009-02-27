@@ -483,6 +483,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 
 	update_portinfo(p);
 	memcpy(data, p->portinfo, IB_SMP_DATA_SIZE);
+	mad_set_field(data, 0, IB_PORT_LOCAL_PORT_F, port->portnum);
 
 	return 0;
 }
