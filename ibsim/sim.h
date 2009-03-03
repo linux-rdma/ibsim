@@ -71,7 +71,7 @@
 #define MAXHOPS 16
 
 enum NODE_TYPES {
-	NO_NODE = 0,
+	NO_NODE,
 	HCA_NODE,
 	SWITCH_NODE,
 	ROUTER_NODE,
@@ -286,7 +286,7 @@ void *sim_cmd_thread(void *file);
 
 // sim_mad.c
 int process_packet(Client * cl, void *p, int size, Client ** dcl);
-int send_trap(Port * port, int trapnum);
+int send_trap(Port * port, unsigned trapnum);
 
 extern Port *default_port;
 extern int simverb;

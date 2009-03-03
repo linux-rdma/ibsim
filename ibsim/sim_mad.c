@@ -1168,7 +1168,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 		return -1;
 
 	if (rpc.method == 0x7) {
-		IBWARN("got trap repress - drop");
+		IBWARN("lid %u got trap repress - dropping", ntohs(r->dlid));
 		*dcl = 0;
 		return 0;
 	}
@@ -1285,20 +1285,21 @@ static int encode_trap_header(char *buf)
 	return 0;
 }
 
-int send_trap(Port * port, int trapnum)
+int send_trap(Port * port, unsigned trapnum)
 {
 	struct sim_request req;
 	Client *cl;
 	int ret, lid = port->lid;
 	char *data = req.mad + 64;	/* data offset */
-	EncodeTrapfn *encode_trapfn = encodetrap[trapnum];
+	EncodeTrapfn *encode_trapfn;
 	Port *destport;
 
-	if (!encode_trapfn) {
+	if (trapnum >= TRAP_NUM_LAST) {
 		IBWARN("trap number %d not supported", trapnum);
 		return -1;
 	}
 
+	encode_trapfn = encodetrap[trapnum];
 	memset(req.mad, 0, sizeof(req.mad));
 	encode_trap_header(req.mad);
 	if (encode_trapfn(port, data) < 0)
