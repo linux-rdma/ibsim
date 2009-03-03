@@ -86,7 +86,6 @@ static Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
 				[IB_GSI_PORT_COUNTERS_EXT] = do_extcounters,
 
 				[IB_GSI_ATTR_LAST] 0,
-
 				},
 };
 
@@ -95,7 +94,6 @@ static EncodeTrapfn *encodetrap[] = {
 	[TRAP_144] encode_trap144,
 
 	[TRAP_NUM_LAST] 0,
-
 };
 
 extern Node *nodes;
