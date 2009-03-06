@@ -534,12 +534,13 @@ static int make_gids_list(ibmad_gid_t gid, unsigned n, struct gid_list **gid_lis
 static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 {
 	char line[256];
+	ibmad_gid_t gid;
 	FILE *f;
 	uint64_t guid, prefix;
 	struct gid_list *list = NULL;
-	char *e;
+	char *p, *e;
 	unsigned list_size = 0;
-	int i = 0;
+	int ret, i = 0;
 
 	f = fopen(guid_file, "r");
 	if (!f) {
@@ -549,12 +550,37 @@ static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 	}
 
 	while (fgets(line, sizeof(line), f)) {
-		guid = strtoull(line, &e, 0);
-		if (e && isxdigit(*e)) {
-			prefix = guid;
-			guid = strtoull(line, NULL, 0);
-		} else
-			prefix = DEFAULT_PREFIX;
+		p = line;
+
+		while (isspace(*p))
+			p++;
+		e = strchr(p, '\n');
+		if (e) {
+			while (isspace(*e))
+				*e-- = '\0';
+		}
+
+		ret = inet_pton(AF_INET6, p, gid);
+		if (ret <= 0) { /* parse as numeric */
+			char save_char = 0;
+			if (strlen(p) > 18) {
+				e = p + 18;
+				save_char = *e;
+				*e = '\0';
+			}
+			guid = strtoull(p, NULL, 0);
+			if (!save_char)
+				prefix = DEFAULT_PREFIX;
+			else {
+				if (isxdigit(save_char))
+					*e = save_char;
+				else if (save_char == ':')
+					e++;
+				prefix = guid;
+				guid = strtoull(e, NULL, 16);
+			}
+			make_gid(gid, prefix, guid);
+		}
 
 		if (i >= list_size) {
 			list_size += 256;
@@ -567,7 +593,7 @@ static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 			memset(&list[i], 0, 256 * sizeof(list[0]));
 		}
 
-		make_gid(list[i].gid, prefix, guid);
+		memcpy(list[i].gid, gid, 16);
 		i++;
 	}
 	fclose(f);
