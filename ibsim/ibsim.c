@@ -110,11 +110,10 @@ static size_t make_name(union name_t *name, uint32_t addr, unsigned short port,
 
 static char *get_name(union name_t *name)
 {
-	if (remote_mode) {
+	if (remote_mode)
 		return inet_ntoa(name->name_i.sin_addr);
-	} else {
+	else
 		return name->name_u.sun_path + 1;
-	}
 }
 
 /**
@@ -608,7 +607,7 @@ static int sim_run(int con_fd)
 
 	socket_basename=getenv("IBSIM_SOCKNAME");
 	if(!socket_basename)
-		socket_basename=SIM_BASENAME;
+		socket_basename = SIM_BASENAME;
 
 	if (sim_init_conn(socket_basename) < 0)
 		return -1;

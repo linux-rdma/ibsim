@@ -580,9 +580,8 @@ static int dump_net(FILE * f, char *line)
 			nports++;
 			dump_switch(f, node->sw);
 		}
-		for (i = 0; i < nports; i++) {
+		for (i = 0; i < nports; i++)
 			dump_port(f, ports + node->portsbase + i, node->type);
-		}
 		nnodes++;
 	}
 

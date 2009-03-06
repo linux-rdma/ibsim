@@ -143,11 +143,10 @@ static size_t make_name(union name_t *name, char *host, unsigned port,
 
 static char *get_name(union name_t *name)
 {
-	if (remote_mode) {
+	if (remote_mode)
 		return inet_ntoa(name->name_i.sin_addr);
-	} else {
+	else
 		return name->name_u.sun_path + 1;
-	}
 }
 
 static int sim_attach(int fd, union name_t *name, size_t size)
@@ -159,8 +158,7 @@ static int sim_attach(int fd, union name_t *name, size_t size)
 		DEBUG("attempt to connect to %s (attempt %d)",
 		      get_name(name), retries);
 
-		if ((r =
-		     connect(fd, (struct sockaddr *)name, size)) >= 0)
+		if ((r = connect(fd, (struct sockaddr *)name, size)) >= 0)
 			break;
 
 		if (r < 0 && errno == ECONNREFUSED) {
@@ -217,7 +215,7 @@ static int sim_init(struct sim_client *sc, char *nodeid)
 	socket_basename = getenv("IBSIM_SOCKNAME");
 
 	if(!socket_basename)
-		socket_basename=SIM_BASENAME;
+		socket_basename = SIM_BASENAME;
 
 	if (connect_host && *connect_host)
 		remote_mode = 1;

@@ -405,7 +405,7 @@ static int is_linkwidth_valid(int width)
 
 static int is_linkspeed_valid(int speed)
 {
-	/* speed is 2.5G, 5.0G, or 10.0 G */
+	/* speed is 2.5G, 5.0G, or 10.0G */
 	if (speed < 1 || speed > 7) {
 		IBWARN("bad speed %d - should be between 1 to 7", speed);
 		return 0;

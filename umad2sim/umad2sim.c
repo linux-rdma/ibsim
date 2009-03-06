@@ -441,8 +441,8 @@ static ssize_t umad2sim_write(struct umad2sim_dev *dev,
 	{ static int err_count;
 	if (++err_count == 15)
 		return -1;
-	if (mad_get_field(umad_get_mad(umad), 0, IB_MAD_METHOD_F) == 0x7) {
-		printf("Drop trap repress...\n");
+	if (mad_get_field(umad_get_mad(umad), 0, IB_MAD_METHOD_F) == IB_MAD_METHOD_TRAP_REPRESS) {
+		printf("Dropping trap repress...\n");
 		return  -1;
 	}
 	}

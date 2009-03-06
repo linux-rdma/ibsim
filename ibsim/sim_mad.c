@@ -222,7 +222,7 @@ static int do_cpi(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 {
 	int status = 0;
 
-	if (op != 1)		// get
+	if (op != IB_MAD_METHOD_GET)
 		status = ERR_METHOD_UNSUPPORTED;
 	memset(data, 0, IB_SMP_DATA_SIZE);
 	mad_set_field(data, 0, IB_CPI_BASEVER_F, 1);
@@ -236,7 +236,7 @@ static int do_nodedesc(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 {
 	int status = 0;
 
-	if (op != 1)		// get
+	if (op != IB_MAD_METHOD_GET)
 		status = ERR_METHOD_UNSUPPORTED;
 	memcpy(data, port->node->nodedesc, IB_SMP_DATA_SIZE);
 
@@ -249,7 +249,7 @@ static int do_nodeinfo(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 	int status = 0;
 	uint64_t portguid = node->nodeguid + port->portnum;
 
-	if (op != IB_MAD_METHOD_GET)	// get
+	if (op != IB_MAD_METHOD_GET)
 		status = ERR_METHOD_UNSUPPORTED;
 	memcpy(data, node->nodeinfo, IB_SMP_DATA_SIZE);
 
@@ -269,7 +269,7 @@ static int do_switchinfo(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 	if (!sw)		// not a Switch?
 		return ERR_ATTR_UNSUPPORTED;
 
-	if (op == 2) {		// Set
+	if (op == IB_MAD_METHOD_SET) {
 		if (mad_get_field(data, 0, IB_SW_STATE_CHANGE_F))
 			sw->portchange = 0;
 		sw->linearFDBtop =
@@ -335,11 +335,10 @@ static int do_sl2vl(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 
 	sl2vl = port->sl2vl + 8 * n;
 
-	if (op == IB_MAD_METHOD_SET) {
+	if (op == IB_MAD_METHOD_SET)
 		memcpy(sl2vl, data, 8);
-	} else {
+	else
 		memcpy(data, sl2vl, 8);
-	}
 
 	return 0;
 }
@@ -374,9 +373,9 @@ static int do_vlarb(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 
 	size *= sizeof(*vlarb);
 
-	if (op == IB_MAD_METHOD_SET) {
+	if (op == IB_MAD_METHOD_SET)
 		memcpy(vlarb, data, size);
-	} else {
+	else {
 		memset(data, 0, IB_SMP_DATA_SIZE);
 		memcpy(data, vlarb, size);
 	}
@@ -421,7 +420,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 	DEBUG("in node %" PRIx64 " port %" PRIx64 ": port %" PRIx64 " (%d(%d))",
 	      node->nodeguid, port->portguid, p->portguid, p->portnum, portnum);
 
-	if (op == IB_MAD_METHOD_SET) {	// set
+	if (op == IB_MAD_METHOD_SET) {
 		unsigned val;
 		if (node->type != SWITCH_NODE && port->portnum != p->portnum)
 			return ERR_BAD_PARAM;	// on HCA or rtr can't "set" on other port
@@ -497,10 +496,9 @@ static int do_linearforwtbl(Port * port, unsigned op, uint32_t mod,
 	if (mod < 0 || mod > 767)
 		return ERR_BAD_PARAM;
 
-	if (op == IB_MAD_METHOD_SET) {	// Set
+	if (op == IB_MAD_METHOD_SET)
 		mad_get_array(data, 0, IB_LINEAR_FORW_TBL_F,
 			      sw->fdb + mod * 64);
-	}
 
 	mad_set_array(data, 0, IB_LINEAR_FORW_TBL_F, sw->fdb + mod * 64);
 
@@ -527,10 +525,9 @@ static int do_multicastforwtbl(Port * port, unsigned op, uint32_t mod,
 	}
 
 	blockposition = (numBlock32 * NUMBEROFPORTMASK + numPortMsk) * 64;
-	if (op == IB_MAD_METHOD_SET) {	// Set
+	if (op == IB_MAD_METHOD_SET)
 		mad_get_array(data, 0, IB_MULTICAST_FORW_TBL_F,
 			      sw->mfdb + blockposition);
-	}
 	mad_set_array(data, 0, IB_MULTICAST_FORW_TBL_F,
 		      sw->mfdb + blockposition);
 	return 0;
@@ -749,13 +746,10 @@ static int do_portcounters(Port * port, unsigned op, uint32_t unused,
 	memset(&totals, 0, sizeof totals);
 
 	for (i = 0; i <= node->numports; i++) {
-
 		if (!(p = node_get_port(node, i)))
 			return ERR_BAD_PARAM;
-
 		if (op == IB_MAD_METHOD_SET)
 			pc_reset(&p->portcounters, mask);
-
 		pc_sum(&totals, &p->portcounters);
 	}
 
@@ -1117,7 +1111,7 @@ static Port *route_MAD(Port * port, int response, int lid, ib_dr_path_t * path)
 	    direct_route_out_MAD(port, path);
 }
 
-Smpfn *get_handle_fn(ib_rpc_t rpc, int response)
+static Smpfn *get_handle_fn(ib_rpc_t rpc, int response)
 {
 	Smpfn *fn;
 
@@ -1127,14 +1121,14 @@ Smpfn *get_handle_fn(ib_rpc_t rpc, int response)
 	if (rpc.mgtclass == IB_SMI_CLASS || rpc.mgtclass == IB_SMI_DIRECT_CLASS) {
 		if (rpc.attr.id >= IB_ATTR_LAST
 		    || !(fn = attrs[rpc.mgtclass & 0xf][rpc.attr.id]))
-			return 0;	// not supported attribute ???
+			return 0;	// attribute/method not supported ???
 		return fn;
 	}
 
 	if (rpc.mgtclass == IB_PERFORMANCE_CLASS) {
 		if (rpc.attr.id >= IB_GSI_ATTR_LAST
 		    || !(fn = attrs[rpc.mgtclass & 0xf][rpc.attr.id]))
-			return 0;	// not supported attribute ???
+			return 0;	// attribute/method not supported ???
 		return fn;
 	}
 
