@@ -567,6 +567,8 @@ static void pc_reset(Portcounters * pc, uint mask)
 		pc->flow_xmt_pkts = 0;
 	if (mask & GS_PERF_RCV_PKTS_MASK)
 		pc->flow_rcv_pkts = 0;
+	if (mask & GS_PERF_XMT_WAIT_MASK)
+		pc->xmt_wait = 0;
 }
 
 static inline uint32_t addval(uint32_t val, uint32_t delta, uint32_t max)
@@ -641,6 +643,9 @@ static int pc_updated(Port ** srcport, Port * destport)
 
 static void pc_sum(Portcounters * totals, Portcounters * pc)
 {
+	totals->xmt_wait =
+	    addval(totals->xmt_wait, pc->xmt_wait,
+		   GS_PERF_XMT_WAIT_LIMIT);
 	totals->flow_xmt_pkts =
 	    addval(totals->flow_xmt_pkts, pc->flow_xmt_pkts,
 		   GS_PERF_XMT_PKTS_LIMIT);
@@ -691,6 +696,7 @@ static void pc_sum(Portcounters * totals, Portcounters * pc)
 
 static void pc_get(Portcounters * pc, uint8_t * data)
 {
+	mad_set_field(data, 0, IB_PC_XMT_WAIT_F, pc->xmt_wait);
 	mad_set_field(data, 0, IB_PC_XMT_PKTS_F, pc->flow_xmt_pkts);
 	mad_set_field(data, 0, IB_PC_XMT_BYTES_F, pc->flow_xmt_bytes);
 	mad_set_field(data, 0, IB_PC_RCV_PKTS_F, pc->flow_rcv_pkts);
@@ -716,7 +722,7 @@ static int do_portcounters(Port * port, unsigned op, uint32_t unused,
 	Node *node = port->node;
 	int portnum = mad_get_field(data, 0, IB_PC_PORT_SELECT_F);
 	Portcounters totals;
-	uint mask;
+	uint mask, mask2;
 	Port *p;
 	int i;
 
@@ -731,6 +737,9 @@ static int do_portcounters(Port * port, unsigned op, uint32_t unused,
 	      node->nodeguid, port->portguid, portnum);
 
 	mask = mad_get_field(data, 0, IB_PC_COUNTER_SELECT_F);
+	mask2 = mad_get_field(data, 0, IB_PC_COUNTER_SELECT2_F);
+	if (mask2)
+		mask |= GS_PERF_XMT_WAIT_MASK;
 
 	if (portnum != 0xff) {
 		if (!(p = node_get_port(node, portnum)))

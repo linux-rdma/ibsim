@@ -111,6 +111,7 @@ enum GS_PERF_COUNTER_SELECT_MASK {
 	GS_PERF_RCV_BYTES_MASK = (1UL << 13),	// PORT_RCV_DATA
 	GS_PERF_XMT_PKTS_MASK = (1UL << 14),	// PORT_XMIT_PKTS
 	GS_PERF_RCV_PKTS_MASK = (1UL << 15),	// PORT_RCV_PKTS
+	GS_PERF_XMT_WAIT_MASK = (1UL << 16),	// PORT_XMIT_WAIT
 };
 
 enum GS_PC_EXT_SELECT_MASK {
@@ -141,6 +142,7 @@ enum GS_PERF_COUNTER_SELECT_LIMIT {
 	GS_PERF_RCV_BYTES_LIMIT = 0xffffffff,
 	GS_PERF_XMT_PKTS_LIMIT = 0xffffffff,
 	GS_PERF_RCV_PKTS_LIMIT = 0xffffffff,
+	GS_PERF_XMT_WAIT_LIMIT = 0xffffffff,
 };
 
 typedef struct Port Port;
@@ -182,6 +184,7 @@ struct Portcounters {
 	uint8_t errs_rcvconstraint;
 	uint16_t errs_rcvswitchrelay;
 	uint8_t errs_excessbufovrrun;
+	uint32_t xmt_wait;
 };
 
 struct Port {
