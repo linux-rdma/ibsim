@@ -533,7 +533,7 @@ static int do_multicastforwtbl(Port * port, unsigned op, uint32_t mod,
 	return 0;
 }
 
-static void pc_reset(Portcounters * pc, uint mask)
+static void pc_reset(Portcounters * pc, unsigned mask)
 {
 	if (mask & GS_PERF_ERR_SYM_MASK)
 		pc->errs_sym = 0;
@@ -722,7 +722,7 @@ static int do_portcounters(Port * port, unsigned op, uint32_t unused,
 	Node *node = port->node;
 	int portnum = mad_get_field(data, 0, IB_PC_PORT_SELECT_F);
 	Portcounters totals;
-	uint mask, mask2;
+	unsigned mask, mask2;
 	Port *p;
 	int i;
 
@@ -778,7 +778,7 @@ static void pc_ext_sum(Portcounters * total, Portcounters * pc)
 	ADDVAL64(total->ext_mcast_recv, pc->ext_mcast_recv);
 }
 
-static void pc_ext_reset(Portcounters * pc, uint mask)
+static void pc_ext_reset(Portcounters * pc, unsigned mask)
 {
 	if (mask & GS_PC_EXT_XMIT_DATA)
 		pc->ext_xmit_data = 0;
