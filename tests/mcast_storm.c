@@ -465,14 +465,15 @@ struct test {
 	const char *description;
 };
 
-static int run_test(const struct test *t, struct test_data *td)
+static int run_test(const struct test *t, struct test_data *td,
+		    struct ibmad_port *mad_port)
 {
 	struct addr_data addr;
 	int ret;
 
 	info("Running \'%s\'...\n", t->name);
 
-	ib_resolve_smlid(&addr.dport, TMO);
+	ib_resolve_smlid_via(&addr.dport, TMO, mad_port);
 	if (!addr.dport.lid) {
 		/* dport.lid = 1; */
 		err("No SM. Exit.\n");
@@ -482,7 +483,7 @@ static int run_test(const struct test *t, struct test_data *td)
 	if (!addr.dport.qkey)
 		addr.dport.qkey = IB_DEFAULT_QP1_QKEY;
 
-	addr.port = madrpc_portid();
+	addr.port = mad_rpc_portid(mad_port);
 	addr.agent = umad_register(addr.port, IB_SA_CLASS, 2, 0, NULL);
 	addr.timeout = TMO;
 
@@ -680,6 +681,7 @@ int main(int argc, char **argv)
 	ibmad_gid_t gid, mgid = {};
 	uint64_t guid = 0;
 	const char *guid_file = NULL, *mgid_file = NULL;
+	struct ibmad_port *mad_port;
 	const struct test *t;
 	unsigned is_mgid = 0, is_ipv4 = 1, increment = 0;
 	int ret, ch;
@@ -756,7 +758,11 @@ int main(int argc, char **argv)
 		}
 	}
 
-	madrpc_init(NULL, 0, mgmt_classes, 2);
+	mad_port = mad_rpc_open_port(NULL, 0, mgmt_classes, 2);
+	if (!mad_port) {
+		err("Cannot open local port...\n");
+		exit(-1);
+	}
 
 	memset(&tdata, 0, sizeof(tdata));
 
@@ -768,7 +774,7 @@ int main(int argc, char **argv)
 		guid = get_guid_ho(tdata.gids[0].gid);
 	} else {
 		ib_portid_t portid = {0};
-		if (ib_resolve_self(&portid, NULL, &gid) < 0) {
+		if (ib_resolve_self_via(&portid, NULL, &gid, mad_port) < 0) {
 			err("Cannot resolve self port...\n");
 			exit(1);
 		}
@@ -799,13 +805,13 @@ int main(int argc, char **argv)
 		tdata.params = &params;
 
 	if (argc <= optind)
-		return run_test(&tests[0], &tdata);
+		return run_test(&tests[0], &tdata, mad_port);
 
 	do {
 		t = find_test(tests, argv[optind]);
 		if (!t)
 			usage(argv[0], long_opts, tests);
-		ret = run_test(t, &tdata);
+		ret = run_test(t, &tdata, mad_port);
 		if (ret)
 			break;
 	} while (argc > ++optind);
@@ -814,6 +820,8 @@ int main(int argc, char **argv)
 		free(tdata.gids);
 	if (tdata.mgids)
 		free(tdata.mgids);
+
+	mad_rpc_close_port(mad_port);
 
 	return ret;
 }
