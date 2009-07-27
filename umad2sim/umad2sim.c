@@ -94,9 +94,16 @@ static ssize_t(*real_write) (int fd, const void *buf, size_t count);
 static int (*real_poll) (struct pollfd * pfds, nfds_t nfds, int timeout);
 static int (*real_ioctl) (int d, int request, ...);
 static DIR *(*real_opendir) (const char *dir);
+#if __GLIBC_PREREQ(2,10)
+static int (*real_scandir) (const char *dir, struct dirent *** namelist,
+			    int (*filter) (const struct dirent *),
+			    int (*compar) (const struct dirent **,
+					   const struct dirent **));
+#else
 static int (*real_scandir) (const char *dir, struct dirent *** namelist,
 			    int (*filter) (const struct dirent *),
 			    int (*compar) (const void *, const void *));
+#endif
 
 static char sysfs_infiniband_dir[] = SYS_INFINIBAND;
 static char sysfs_infiniband_mad_dir[] = IB_UMAD_ABI_DIR;
@@ -694,9 +701,15 @@ DIR *opendir(const char *path)
 	return real_opendir(path);
 }
 
+#if __GLIBC_PREREQ(2,10)
+int scandir(const char *path, struct dirent ***namelist,
+	    int (*filter) (const struct dirent *),
+	    int (*compar) (const struct dirent **, const struct dirent **))
+#else
 int scandir(const char *path, struct dirent ***namelist,
 	    int (*filter) (const struct dirent *),
 	    int (*compar) (const void *, const void *))
+#endif
 {
 	char new_path[4096];
 
