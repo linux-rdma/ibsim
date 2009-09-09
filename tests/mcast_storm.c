@@ -563,23 +563,21 @@ static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 
 		ret = inet_pton(AF_INET6, p, gid);
 		if (ret <= 0) { /* parse as numeric */
-			char save_char = 0;
-			if (strlen(p) > 18) {
-				e = p + 18;
-				save_char = *e;
-				*e = '\0';
-			}
-			guid = strtoull(p, NULL, 0);
-			if (!save_char)
-				prefix = DEFAULT_PREFIX;
-			else {
-				if (isxdigit(save_char))
-					*e = save_char;
-				else if (save_char == ':')
-					e++;
-				prefix = guid;
+			e = strchr(p, ':');
+			if (e) {
+				prefix = strtoull(p, NULL, 0);
+				guid = strtoull(e + 1, NULL, 0);
+			} else if (strlen(p) > 18) {
+				e = p + strlen(p) - 16;
 				guid = strtoull(e, NULL, 16);
-			}
+				*e = '\0';
+				prefix = strtoull(p, NULL, 0);
+			} else
+				guid = strtoull(p, NULL, 0);
+
+			if (!prefix)
+				prefix = DEFAULT_PREFIX;
+
 			make_gid(gid, prefix, guid);
 		}
 
