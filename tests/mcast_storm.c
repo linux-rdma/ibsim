@@ -537,7 +537,7 @@ static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 	char line[256];
 	ibmad_gid_t gid;
 	FILE *f;
-	uint64_t guid, prefix;
+	uint64_t guid, prefix = 0;
 	struct gid_list *list = NULL;
 	char *p, *e;
 	unsigned list_size = 0;
