@@ -61,19 +61,32 @@ struct mcmember_params {
 	uint32_t qkey;
 	uint16_t mlid;
 	uint8_t mtu;
-	uint8_t tclass;
+	int tclass;
 	uint16_t pkey;
 	uint8_t rate;
-	uint8_t sl;
-	uint32_t flow_label;
-	uint8_t hop_limit;
+	int sl;
+	int flow_label;
+	int hop_limit;
 	uint8_t scope;
 	uint8_t join_state;
-	uint8_t proxy_join;
+	int proxy_join;
+};
+
+static const struct mcmember_params null_params = {
+	.tclass = -1,
+	.sl = -1,
+	.flow_label = -1,
+	.hop_limit = -1,
+	.proxy_join = -1,
 };
 
 static const struct mcmember_params mcmember_params_join = {
+	.tclass = -1,
+	.sl = -1,
+	.flow_label = -1,
+	.hop_limit = -1,
 	.join_state = 1,
+	.proxy_join = -1,
 };
 
 static const struct mcmember_params mcmember_params_create = {
@@ -84,7 +97,9 @@ static const struct mcmember_params mcmember_params_create = {
 	.rate = 3,
 	.sl = 0,
 	.flow_label = 0,
+	.hop_limit = -1,
 	.join_state = 1,
+	.proxy_join = -1,
 };
 
 static ibmad_gid_t mgid_ipoib = {
@@ -102,9 +117,15 @@ static int64_t add_rid(uint8_t *data, ibmad_gid_t mgid, ibmad_gid_t port_gid)
 
 static uint64_t build_mcm_rec(uint8_t * data, const struct mcmember_params *p)
 {
-#define SET_FIELD(val, mask, field) \
+#define SET_FIELD1(val, mask, field) \
 	if (val) { \
 		mad_set_field(data, 0, field, val); \
+		comp_mask |= mask; \
+	}
+
+#define SET_FIELD(obj, name, mask, field) \
+	if (obj->name != null_params.name) { \
+		mad_set_field(data, 0, field, obj->name); \
 		comp_mask |= mask; \
 	}
 
@@ -115,16 +136,16 @@ static uint64_t build_mcm_rec(uint8_t * data, const struct mcmember_params *p)
 	if (!p)
 		return comp_mask;
 
-	SET_FIELD(p->qkey, IB_MCR_COMPMASK_QKEY, IB_SA_MCM_QKEY_F);
-	SET_FIELD(p->mlid, IB_MCR_COMPMASK_MLID, IB_SA_MCM_MLID_F);
-	SET_FIELD(p->mtu, IB_MCR_COMPMASK_MTU, IB_SA_MCM_MTU_F);
-	SET_FIELD(p->tclass, IB_MCR_COMPMASK_TCLASS, IB_SA_MCM_TCLASS_F);
-	SET_FIELD(p->pkey, IB_MCR_COMPMASK_PKEY, IB_SA_MCM_PKEY_F);
-	SET_FIELD(p->rate, IB_MCR_COMPMASK_RATE, IB_SA_MCM_RATE_F);
-	SET_FIELD(p->sl, IB_MCR_COMPMASK_SL, IB_SA_MCM_SL_F);
-	SET_FIELD(p->flow_label, IB_MCR_COMPMASK_FLOW, IB_SA_MCM_FLOW_LABEL_F);
-	SET_FIELD(p->join_state, IB_MCR_COMPMASK_JOIN_STATE, IB_SA_MCM_JOIN_STATE_F);
-	SET_FIELD(p->proxy_join, IB_MCR_COMPMASK_PROXY, IB_SA_MCM_PROXY_JOIN_F);
+	SET_FIELD(p, qkey, IB_MCR_COMPMASK_QKEY, IB_SA_MCM_QKEY_F);
+	SET_FIELD(p, mlid, IB_MCR_COMPMASK_MLID, IB_SA_MCM_MLID_F);
+	SET_FIELD(p, mtu, IB_MCR_COMPMASK_MTU, IB_SA_MCM_MTU_F);
+	SET_FIELD(p, tclass, IB_MCR_COMPMASK_TCLASS, IB_SA_MCM_TCLASS_F);
+	SET_FIELD(p, pkey, IB_MCR_COMPMASK_PKEY, IB_SA_MCM_PKEY_F);
+	SET_FIELD(p, rate, IB_MCR_COMPMASK_RATE, IB_SA_MCM_RATE_F);
+	SET_FIELD(p, sl, IB_MCR_COMPMASK_SL, IB_SA_MCM_SL_F);
+	SET_FIELD(p, flow_label, IB_MCR_COMPMASK_FLOW, IB_SA_MCM_FLOW_LABEL_F);
+	SET_FIELD(p, join_state, IB_MCR_COMPMASK_JOIN_STATE, IB_SA_MCM_JOIN_STATE_F);
+	SET_FIELD(p, proxy_join, IB_MCR_COMPMASK_PROXY, IB_SA_MCM_PROXY_JOIN_F);
 
 	return comp_mask;
 }
@@ -674,7 +695,7 @@ int main(int argc, char **argv)
 
 	char opt_str[256];
 	int mgmt_classes[2] = { IB_SMI_CLASS, IB_SMI_DIRECT_CLASS };
-	struct mcmember_params params = {}, zero_params = {};
+	struct mcmember_params params;
 	struct test_data tdata;
 	ibmad_gid_t gid, mgid = {};
 	uint64_t guid = 0;
@@ -683,6 +704,8 @@ int main(int argc, char **argv)
 	const struct test *t;
 	unsigned is_mgid = 0, is_ipv4 = 1, increment = 0;
 	int ret, ch;
+
+	params = null_params;
 
 	make_str_opts(opt_str, sizeof(opt_str), long_opts);
 
@@ -799,7 +822,7 @@ int main(int argc, char **argv)
 		return ret;
 	tdata.mgids_size = ret;
 
-	if (memcmp(&params, &zero_params, sizeof(params)))
+	if (memcmp(&params, &null_params, sizeof(params)))
 		tdata.params = &params;
 
 	if (argc <= optind)
