@@ -29,6 +29,7 @@
 #define TMO 100
 
 #define DEFAULT_PREFIX 0xfe80000000000000ULL
+#define DEFAULT_MGID_PREFIX 0xff00000000000000ULL
 
 /* Multicast Member Record Component Masks */
 #define IB_MCR_COMPMASK_MGID        (1ULL<<0)
@@ -553,16 +554,49 @@ static int make_gids_list(ibmad_gid_t gid, unsigned n, struct gid_list **gid_lis
 	return i;
 }
 
+static void parse_gid_str(ibmad_gid_t gid, char *str, uint64_t default_prefix)
+{
+	uint64_t guid, prefix = 0;
+	char *p, *e;
+
+	p = str;
+	while (isspace(*p))
+		p++;
+	e = strchr(p, '\n');
+	if (e) {
+		while (isspace(*e))
+			*e-- = '\0';
+	}
+
+	if (inet_pton(AF_INET6, p, gid) > 0)
+		return;
+
+	e = strchr(p, ':');
+	if (e) {
+		prefix = strtoull(p, NULL, 0);
+		guid = strtoull(e + 1, NULL, 0);
+	} else if (strlen(p) > 18) {
+		e = p + strlen(p) - 16;
+		guid = strtoull(e, NULL, 16);
+		*e = '\0';
+		prefix = strtoull(p, NULL, 0);
+	} else
+		guid = strtoull(p, NULL, 0);
+
+	if (!prefix)
+		prefix = default_prefix;
+
+	make_gid(gid, prefix, guid);
+}
+
 static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 {
 	char line[256];
 	ibmad_gid_t gid;
 	FILE *f;
-	uint64_t guid, prefix = 0;
 	struct gid_list *list = NULL;
-	char *p, *e;
 	unsigned list_size = 0;
-	int ret, i = 0;
+	int i = 0;
 
 	f = fopen(guid_file, "r");
 	if (!f) {
@@ -572,35 +606,7 @@ static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 	}
 
 	while (fgets(line, sizeof(line), f)) {
-		p = line;
-
-		while (isspace(*p))
-			p++;
-		e = strchr(p, '\n');
-		if (e) {
-			while (isspace(*e))
-				*e-- = '\0';
-		}
-
-		ret = inet_pton(AF_INET6, p, gid);
-		if (ret <= 0) { /* parse as numeric */
-			e = strchr(p, ':');
-			if (e) {
-				prefix = strtoull(p, NULL, 0);
-				guid = strtoull(e + 1, NULL, 0);
-			} else if (strlen(p) > 18) {
-				e = p + strlen(p) - 16;
-				guid = strtoull(e, NULL, 16);
-				*e = '\0';
-				prefix = strtoull(p, NULL, 0);
-			} else
-				guid = strtoull(p, NULL, 0);
-
-			if (!prefix)
-				prefix = DEFAULT_PREFIX;
-
-			make_gid(gid, prefix, guid);
-		}
+		parse_gid_str(gid, line, DEFAULT_PREFIX);
 
 		if (i >= list_size) {
 			list_size += 256;
@@ -715,18 +721,8 @@ int main(int argc, char **argv)
 			guid = strtoull(optarg, NULL, 0);
 			break;
 		case 'M':
-			{ char *e; uint64_t val1, val2;
-			int len = strlen(optarg);
-			if (len > 16)
-				e = optarg + len - 16;
-			else
-				e = optarg;
-			val2 = strtoull(e, NULL, 16);
-			*e = '\0';
-			val1 = strtoull(optarg, NULL, 16);
-			make_gid(mgid, val1, val2);
+			parse_gid_str(mgid, optarg, DEFAULT_MGID_PREFIX);
 			is_mgid = 1;
-			}
 			break;
 		case 'I':
 			increment = strtoul(optarg, NULL, 0);
@@ -814,7 +810,7 @@ int main(int argc, char **argv)
 	else if (is_ipv4)
 		ret = make_gids_list(mgid_ipoib, increment, &tdata.mgids);
 	else {
-		make_gid(gid, 0xff00000000000000ULL, guid);
+		make_gid(gid, DEFAULT_MGID_PREFIX, guid);
 		ret = make_gids_list(gid, increment, &tdata.mgids);
 	}
 
