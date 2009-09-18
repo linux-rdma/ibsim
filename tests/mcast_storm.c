@@ -263,8 +263,7 @@ static int recv_all(struct addr_data *a, void *umad, int len)
 		method = mad_get_field(mad, 0, IB_MAD_METHOD_F);
 		status = mad_get_field(mad, 0, IB_MAD_STATUS_F);
 
-		if (status &&
-		    (method & 0x7f) == (IB_MAD_METHOD_GET_RESPONSE & 0x7f)) {
+		if (status) {
 			trid = mad_get_field64(mad, 0, IB_MAD_TRID_F);
 			info("mad trid 0x%016" PRIx64
 			     ": method = %x status = %x.\n",
