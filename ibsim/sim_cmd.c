@@ -295,7 +295,7 @@ static int do_seterror(FILE * f, char *line)
 		orig = strsep(&s, "\"");
 
 	if (!s) {
-		fprintf(f, "# unlink: bad parameter in \"%s\"\n", line);
+		fprintf(f, "# set error: bad parameter in \"%s\"\n", line);
 		return -1;
 	}
 
