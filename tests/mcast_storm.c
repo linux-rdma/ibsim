@@ -554,7 +554,7 @@ static int make_gids_list(ibmad_gid_t gid, unsigned n, struct gid_list **gid_lis
 	return i;
 }
 
-static void parse_gid_str(ibmad_gid_t gid, char *str, uint64_t default_prefix)
+static int parse_gid_str(ibmad_gid_t gid, char *str, uint64_t default_prefix)
 {
 	uint64_t guid, prefix = 0;
 	char *p, *e;
@@ -568,8 +568,11 @@ static void parse_gid_str(ibmad_gid_t gid, char *str, uint64_t default_prefix)
 			*e-- = '\0';
 	}
 
+	if (*p == '\0' || *p == '#')
+		return 1;
+
 	if (inet_pton(AF_INET6, p, gid) > 0)
-		return;
+		return 0;
 
 	e = strchr(p, ':');
 	if (e) {
@@ -583,10 +586,15 @@ static void parse_gid_str(ibmad_gid_t gid, char *str, uint64_t default_prefix)
 	} else
 		guid = strtoull(p, NULL, 0);
 
+	if (!guid)
+		return -1;
+
 	if (!prefix)
 		prefix = default_prefix;
 
 	make_gid(gid, prefix, guid);
+
+	return 0;
 }
 
 static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
@@ -606,7 +614,8 @@ static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 	}
 
 	while (fgets(line, sizeof(line), f)) {
-		parse_gid_str(gid, line, DEFAULT_PREFIX);
+		if (parse_gid_str(gid, line, DEFAULT_PREFIX))
+			continue;
 
 		if (i >= list_size) {
 			list_size += 256;
@@ -721,7 +730,10 @@ int main(int argc, char **argv)
 			guid = strtoull(optarg, NULL, 0);
 			break;
 		case 'M':
-			parse_gid_str(mgid, optarg, DEFAULT_MGID_PREFIX);
+			if (parse_gid_str(mgid, optarg, DEFAULT_MGID_PREFIX)) {
+				err("cannot parse MGID \'%s\'", optarg);
+				exit(2);
+			}
 			is_mgid = 1;
 			break;
 		case 'I':
