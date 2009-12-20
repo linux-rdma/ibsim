@@ -1,4 +1,4 @@
-progs:= mcast_storm
+progs:= subnet_discover mcast_storm
 
 -include ../defs.mk
 
