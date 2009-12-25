@@ -17,6 +17,8 @@
 #include <infiniband/umad.h>
 #include <infiniband/mad.h>
 
+#define MAX_HOPS 63
+
 struct port {
 	struct node *node;
 	uint64_t guid;
@@ -217,8 +219,9 @@ static int process_port_info(void *umad, unsigned node_id, int fd, int agent,
 	if (port_num &&
 	    mad_get_field(port_info, 0, IB_PORT_PHYS_STATE_F) == 5 &&
 	    ((node->is_switch && port_num != local_port) ||
-	     (node_id == 0 && port_num == local_port))) {
-		path[++path_cnt] = port_num;
+	     (node_id == 0 && port_num == local_port)) &&
+	    path_cnt++ < MAX_HOPS) {
+		path[path_cnt] = port_num;
 		return query_node_info(fd, agent, umad, node_id, path,
 				       path_cnt);
 	}
