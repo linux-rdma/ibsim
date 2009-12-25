@@ -40,6 +40,7 @@ static struct node *node_array[32 * 1024];
 static unsigned node_count = 0;
 static unsigned trid_cnt = 0;
 static unsigned outstanding = 0;
+static unsigned max_outstanding = 8;
 static unsigned timeout = 100;
 static unsigned retries = 3;
 static unsigned verbose = 0;
@@ -93,14 +94,12 @@ static void build_umad_req(void *umad, uint8_t path[], unsigned path_cnt,
 	mad_set_field64(mad, 0, IB_MAD_MKEY_F, mkey);
 }
 
-static int send_query(int fd, int agent, void *umad, unsigned node_id,
-		      uint8_t path[], size_t path_cnt, uint16_t attr_id,
-		      uint32_t attr_mod)
+static int send_request(int fd, int agent, uint64_t trid, uint8_t * path,
+			size_t path_cnt, uint16_t attr_id, uint32_t attr_mod)
 {
-	uint64_t trid;
+	uint8_t umad[IB_MAD_SIZE + umad_size()];
 	int ret;
 
-	trid = (trid_cnt++ << 16) | (node_id & 0xffff);
 	build_umad_req(umad, path, path_cnt, trid, IB_MAD_METHOD_GET, attr_id,
 		       attr_mod, 0);
 
@@ -112,10 +111,81 @@ static int send_query(int fd, int agent, void *umad, unsigned node_id,
 		return -1;
 	}
 
-	outstanding++;
-
 	VERBOSE("send %016" PRIx64 ": attr %x, mod %x to %s\n", trid, attr_id,
 		attr_mod, print_path(path, path_cnt));
+
+	return ret;
+}
+
+static struct request_queue {
+	struct request_queue *next;
+	uint64_t trid;
+	uint16_t attr_id;
+	uint32_t attr_mod;
+	size_t path_cnt;
+	uint8_t path[0];
+} request_queue;
+
+static struct request_queue *request_last = &request_queue;
+
+static void run_request_queue(int fd, int agent)
+{
+	struct request_queue *prev, *q = request_queue.next;
+
+	while (q) {
+		if (outstanding > max_outstanding)
+			break;
+		if (send_request(fd, agent, q->trid, q->path, q->path_cnt,
+				 q->attr_id, q->attr_mod) < 0)
+			break;
+		prev = q;
+		q = q->next;
+		free(prev);
+		outstanding++;
+	}
+	request_queue.next = q;
+	if (!q)
+		request_last = &request_queue;
+}
+
+static int queue_request(uint64_t trid, uint8_t * path, size_t path_cnt,
+			 uint16_t attr_id, uint32_t attr_mod)
+{
+	struct request_queue *q = malloc(sizeof(*q) + path_cnt + 1);
+	if (!q)
+		return -1;
+	q->next = NULL;
+	q->trid = trid;
+	q->attr_id = attr_id;
+	q->attr_mod = attr_mod;
+	memcpy(q->path, path, path_cnt + 1);
+	q->path_cnt = path_cnt;
+
+	request_last->next = q;
+	request_last = q;
+
+	return 0;
+}
+
+static int send_query(int fd, int agent, unsigned node_id, uint8_t path[],
+		      size_t path_cnt, uint16_t attr_id, uint32_t attr_mod)
+{
+	uint64_t trid;
+	int ret;
+
+	trid = (trid_cnt++ << 16) | (node_id & 0xffff);
+
+	ret = queue_request(trid, path, path_cnt, attr_id, attr_mod);
+	if (ret < 0) {
+		ERROR("queue failed: trid 0x%016" PRIx64 ", attr_id %x,"
+		      " attr_mod %x\n", trid, attr_id, attr_mod);
+		return -1;
+	}
+
+	VERBOSE("queue %016" PRIx64 ": attr %x, mod %x to %s\n", trid, attr_id,
+		attr_mod, print_path(path, path_cnt));
+
+	run_request_queue(fd, agent);
 
 	return ret;
 }
@@ -137,31 +207,31 @@ static int recv_response(int fd, int agent, uint8_t * umad, size_t length)
 	return ret;
 }
 
-static int query_node_info(int fd, int agent, void *umad, unsigned node_id,
+static int query_node_info(int fd, int agent, unsigned node_id,
 			   uint8_t path[], size_t path_cnt)
 {
-	return send_query(fd, agent, umad, node_id, path, path_cnt,
+	return send_query(fd, agent, node_id, path, path_cnt,
 			  IB_ATTR_NODE_INFO, 0);
 }
 
-static int query_node_desc(int fd, int agent, void *umad, unsigned node_id,
+static int query_node_desc(int fd, int agent, unsigned node_id,
 			   uint8_t path[], size_t path_cnt)
 {
-	return send_query(fd, agent, umad, node_id, path, path_cnt,
+	return send_query(fd, agent, node_id, path, path_cnt,
 			  IB_ATTR_NODE_DESC, 0);
 }
 
-static int query_switch_info(int fd, int agent, void *umad, unsigned node_id,
+static int query_switch_info(int fd, int agent, unsigned node_id,
 			     uint8_t path[], size_t path_cnt)
 {
-	return send_query(fd, agent, umad, node_id, path, path_cnt,
+	return send_query(fd, agent, node_id, path, path_cnt,
 			  IB_ATTR_SWITCH_INFO, 0);
 }
 
-static int query_port_info(int fd, int agent, void *umad, unsigned node_id,
+static int query_port_info(int fd, int agent, unsigned node_id,
 			   uint8_t path[], size_t path_cnt, unsigned port_num)
 {
-	return send_query(fd, agent, umad, node_id, path, path_cnt,
+	return send_query(fd, agent, node_id, path, path_cnt,
 			  IB_ATTR_PORT_INFO, port_num);
 }
 
@@ -222,8 +292,7 @@ static int process_port_info(void *umad, unsigned node_id, int fd, int agent,
 	     (node_id == 0 && port_num == local_port)) &&
 	    path_cnt++ < MAX_HOPS) {
 		path[path_cnt] = port_num;
-		return query_node_info(fd, agent, umad, node_id, path,
-				       path_cnt);
+		return query_node_info(fd, agent, node_id, path, path_cnt);
 	}
 
 	return 0;
@@ -289,13 +358,13 @@ static int process_node(void *umad, unsigned remote_id, int fd, int agent,
 	if (!node_is_new)
 		return 0;
 
-	query_node_desc(fd, agent, umad, id, path, path_cnt);
+	query_node_desc(fd, agent, id, path, path_cnt);
 
 	if (node->is_switch)
-		query_switch_info(fd, agent, umad, id, path, path_cnt);
+		query_switch_info(fd, agent, id, path, path_cnt);
 
 	for (i = !node->is_switch; i <= node->num_ports; i++)
-		query_port_info(fd, agent, umad, id, path, path_cnt, i);
+		query_port_info(fd, agent, id, path, path_cnt, i);
 
 	return 0;
 }
@@ -327,6 +396,7 @@ static int recv_smp_resp(int fd, int agent, uint8_t * umad, uint8_t path[])
 		return 0;
 
 	outstanding--;
+	run_request_queue(fd, agent);
 
 	if (ret < 0 || status) {
 		ERROR("error response 0x%016" PRIx64 ": attr_id %x"
@@ -362,17 +432,13 @@ static int recv_smp_resp(int fd, int agent, uint8_t * umad, uint8_t path[])
 	return ret;
 }
 
-static int discovery(int fd, int agent)
+static int discover(int fd, int agent)
 {
+	uint8_t umad[IB_MAD_SIZE + umad_size()];
 	uint8_t path[64] = { 0 };
-	void *umad;
 	int ret;
 
-	umad = malloc(IB_MAD_SIZE + umad_size());
-	if (!umad)
-		return -ENOMEM;
-
-	ret = query_node_info(fd, agent, umad, 0, path, 0);
+	ret = query_node_info(fd, agent, 0, path, 0);
 	if (ret < 0)
 		return ret;
 
@@ -380,12 +446,10 @@ static int discovery(int fd, int agent)
 		if (recv_smp_resp(fd, agent, umad, path))
 			ret = 1;
 
-	free(umad);
-
 	return ret;
 }
 
-static int umad_discovery(char *card_name, unsigned int port_num)
+static int umad_discover(char *card_name, unsigned int port_num)
 {
 	int fd, agent, ret;
 
@@ -411,7 +475,7 @@ static int umad_discovery(char *card_name, unsigned int port_num)
 		return -1;
 	}
 
-	ret = discovery(fd, agent);
+	ret = discover(fd, agent);
 	if (ret)
 		ERROR("Failed to discover.\n");
 
@@ -454,6 +518,7 @@ int main(int argc, char **argv)
 	const struct option long_opts[] = {
 		{"Card", 1, 0, 'C'},
 		{"Port", 1, 0, 'P'},
+		{"maxsmps", 1, 0, 'n'},
 		{"timeout", 1, 0, 't'},
 		{"retries", 1, 0, 'r'},
 		{"verbose", 0, 0, 'v'},
@@ -465,7 +530,7 @@ int main(int argc, char **argv)
 	int ch, ret;
 
 	while (1) {
-		ch = getopt_long(argc, argv, "C:P:t:r:vh", long_opts, NULL);
+		ch = getopt_long(argc, argv, "C:P:n:t:r:vh", long_opts, NULL);
 		if (ch == -1)
 			break;
 		switch (ch) {
@@ -474,6 +539,11 @@ int main(int argc, char **argv)
 			break;
 		case 'P':
 			port_num = strtoul(optarg, NULL, 0);
+			break;
+		case 'n':
+			max_outstanding = strtoul(optarg, NULL, 0);
+			if (!max_outstanding)
+				max_outstanding = -1;
 			break;
 		case 't':
 			timeout = strtoul(optarg, NULL, 0);
@@ -487,13 +557,14 @@ int main(int argc, char **argv)
 		case 'h':
 		default:
 			printf("usage: %s [-C card_name] [-P port_num]"
-			       " [-t timeout] [-r retries] [-v[v]]\n", argv[0]);
+			       " [-n maxsmps] [-t timeout] [-r retries]"
+			       " [-v[v]]\n", argv[0]);
 			exit(2);
 			break;
 		}
 	}
 
-	ret = umad_discovery(card_name, port_num);
+	ret = umad_discover(card_name, port_num);
 
 	print_subnet();
 
