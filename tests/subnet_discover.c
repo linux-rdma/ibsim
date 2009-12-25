@@ -70,7 +70,7 @@ DBG_DUMP_FUNC(nodedesc);
 DBG_DUMP_FUNC(portinfo);
 DBG_DUMP_FUNC(switchinfo);
 
-static void build_umad_req(void *umad, uint8_t * path, unsigned path_cnt,
+static void build_umad_req(void *umad, uint8_t path[], unsigned path_cnt,
 			   uint64_t trid, uint8_t method,
 			   uint16_t attr_id, uint32_t attr_mod, uint64_t mkey)
 {
@@ -94,7 +94,7 @@ static void build_umad_req(void *umad, uint8_t * path, unsigned path_cnt,
 }
 
 static int send_query(int fd, int agent, void *umad, unsigned node_id,
-		      uint8_t * path, size_t path_cnt, uint16_t attr_id,
+		      uint8_t path[], size_t path_cnt, uint16_t attr_id,
 		      uint32_t attr_mod)
 {
 	uint64_t trid;
@@ -138,28 +138,28 @@ static int recv_response(int fd, int agent, uint8_t * umad, size_t length)
 }
 
 static int query_node_info(int fd, int agent, void *umad, unsigned node_id,
-			   uint8_t * path, size_t path_cnt)
+			   uint8_t path[], size_t path_cnt)
 {
 	return send_query(fd, agent, umad, node_id, path, path_cnt,
 			  IB_ATTR_NODE_INFO, 0);
 }
 
 static int query_node_desc(int fd, int agent, void *umad, unsigned node_id,
-			   uint8_t * path, size_t path_cnt)
+			   uint8_t path[], size_t path_cnt)
 {
 	return send_query(fd, agent, umad, node_id, path, path_cnt,
 			  IB_ATTR_NODE_DESC, 0);
 }
 
 static int query_switch_info(int fd, int agent, void *umad, unsigned node_id,
-			     uint8_t * path, size_t path_cnt)
+			     uint8_t path[], size_t path_cnt)
 {
 	return send_query(fd, agent, umad, node_id, path, path_cnt,
 			  IB_ATTR_SWITCH_INFO, 0);
 }
 
 static int query_port_info(int fd, int agent, void *umad, unsigned node_id,
-			   uint8_t * path, size_t path_cnt, unsigned port_num)
+			   uint8_t path[], size_t path_cnt, unsigned port_num)
 {
 	return send_query(fd, agent, umad, node_id, path, path_cnt,
 			  IB_ATTR_PORT_INFO, port_num);
@@ -456,6 +456,8 @@ int main(int argc, char **argv)
 		{"Port", 1, 0, 'P'},
 		{"timeout", 1, 0, 't'},
 		{"retries", 1, 0, 'r'},
+		{"verbose", 0, 0, 'v'},
+		{"help", 0, 0, 'h'},
 		{}
 	};
 	char *card_name = NULL;
@@ -463,7 +465,7 @@ int main(int argc, char **argv)
 	int ch, ret;
 
 	while (1) {
-		ch = getopt_long(argc, argv, "C:P:t:r:v", long_opts, NULL);
+		ch = getopt_long(argc, argv, "C:P:t:r:vh", long_opts, NULL);
 		if (ch == -1)
 			break;
 		switch (ch) {
@@ -482,6 +484,7 @@ int main(int argc, char **argv)
 		case 'v':
 			verbose++;
 			break;
+		case 'h':
 		default:
 			printf("usage: %s [-C card_name] [-P port_num]"
 			       " [-t timeout] [-r retries] [-v[v]]\n", argv[0]);
