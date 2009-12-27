@@ -133,9 +133,60 @@ static struct request_queue {
 
 static struct request_queue *request_last = &request_queue;
 
+static unsigned tr_table_size;
+static struct request_queue **tr_table;
+
+static void add_to_tr_table(struct request_queue *q, uint64_t trid)
+{
+	unsigned n = trid >> 16;
+	if (n >= tr_table_size) {
+		unsigned new_size = tr_table_size ? tr_table_size * 2 : 4096;
+		if (n > new_size)
+			new_size = n + 1;
+		tr_table = realloc(tr_table, new_size * sizeof(tr_table[0]));
+		if (!tr_table) {
+			ERROR("cannot realloc request table\n");
+			tr_table_size = 0;
+			return;
+		}
+		memset(tr_table + tr_table_size, 0,
+		       (new_size - tr_table_size) * sizeof(tr_table[0]));
+		tr_table_size = new_size;
+	}
+
+	tr_table[n] = q;
+}
+
+static void clean_from_tr_table(uint64_t trid)
+{
+	unsigned n = (trid >> 16) & 0xffff;
+	if (n >= tr_table_size) {
+		ERROR("invalid request table index %u\n", n);
+		return;
+	}
+	free(tr_table[n]);
+	tr_table[n] = NULL;
+}
+
+static void free_unresponded()
+{
+	struct request_queue *q;
+	unsigned i;
+
+	for (i = 0 ; i < tr_table_size; i++) {
+		if (!(q = tr_table[i]))
+			continue;
+		fprintf(stderr, "Unresponded transaction %016" PRIx64 ": %s "
+			"attr_id %x, attr_mod %x\n", q->trid,
+			print_path(q->path, q->path_cnt), q->attr_id,
+			q->attr_mod);
+		free(q);
+	}
+}
+
 static void run_request_queue(int fd, int agent)
 {
-	struct request_queue *prev, *q = request_queue.next;
+	struct request_queue *q = request_queue.next;
 
 	while (q) {
 		if (outstanding > max_outstanding)
@@ -143,9 +194,7 @@ static void run_request_queue(int fd, int agent)
 		if (send_request(fd, agent, q->trid, q->path, q->path_cnt,
 				 q->attr_id, q->attr_mod) < 0)
 			break;
-		prev = q;
 		q = q->next;
-		free(prev);
 		outstanding++;
 		total_mads++;
 	}
@@ -169,6 +218,8 @@ static int queue_request(uint64_t trid, uint8_t * path, size_t path_cnt,
 
 	request_last->next = q;
 	request_last = q;
+
+	add_to_tr_table(q, trid);
 
 	return 0;
 }
@@ -417,6 +468,8 @@ static int recv_smp_resp(int fd, int agent, uint8_t * umad, uint8_t path[])
 		return -1;
 	}
 
+	clean_from_tr_table(trid);
+
 	node_id = trid & 0xffff;
 
 	VERBOSE("recv %016" PRIx64 ": attr %x, mod %x from %s\n", trid, attr_id,
@@ -457,6 +510,8 @@ static int discover(int fd, int agent)
 	while (outstanding)
 		if (recv_smp_resp(fd, agent, umad, path))
 			ret = 1;
+
+	free_unresponded();
 
 	return ret;
 }
