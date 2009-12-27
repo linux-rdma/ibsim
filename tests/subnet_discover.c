@@ -30,6 +30,8 @@ struct node {
 	uint64_t guid;
 	unsigned num_ports;
 	unsigned is_switch;
+	size_t path_size;
+	uint8_t path[64];
 	uint8_t node_info[IB_SMP_DATA_SIZE];
 	uint8_t node_desc[IB_SMP_DATA_SIZE];
 	uint8_t switch_info[IB_SMP_DATA_SIZE];
@@ -44,6 +46,9 @@ static unsigned max_outstanding = 8;
 static unsigned timeout = 100;
 static unsigned retries = 3;
 static unsigned verbose = 0;
+
+static unsigned total_mads = 0;
+static unsigned max_hops = 0;
 
 #define ERROR(fmt, ...) fprintf(stderr, "ERR: " fmt, ##__VA_ARGS__)
 #define VERBOSE(fmt, ...) if (verbose) fprintf(stderr, fmt, ##__VA_ARGS__)
@@ -142,6 +147,7 @@ static void run_request_queue(int fd, int agent)
 		q = q->next;
 		free(prev);
 		outstanding++;
+		total_mads++;
 	}
 	request_queue.next = q;
 	if (!q)
@@ -201,10 +207,10 @@ static int recv_response(int fd, int agent, uint8_t * umad, size_t length)
 	if (ret < 0 || umad_status(umad)) {
 		ERROR("umad_recv failed: umad status %x: %s\n",
 		      umad_status(umad), strerror(errno));
-		return -1;
+		return len > umad_size() ? 1 : -1;
 	}
 
-	return ret;
+	return 0;
 }
 
 static int query_node_info(int fd, int agent, unsigned node_id,
@@ -235,7 +241,7 @@ static int query_port_info(int fd, int agent, unsigned node_id,
 			  IB_ATTR_PORT_INFO, port_num);
 }
 
-static int add_node(uint8_t * node_info)
+static int add_node(uint8_t * node_info, uint8_t path[], size_t path_size)
 {
 	struct node *node;
 	unsigned i, num_ports = mad_get_field(node_info, 0, IB_NODE_NPORTS_F);
@@ -250,6 +256,8 @@ static int add_node(uint8_t * node_info)
 	node->guid = mad_get_field64(node_info, 0, IB_NODE_GUID_F);
 	node->is_switch = ((mad_get_field(node_info, 0, IB_NODE_TYPE_F)) ==
 			   IB_NODE_SWITCH);
+	memcpy(node->path, path, path_size + 1);
+	node->path_size = path_size;
 	memcpy(node->node_info, node_info, sizeof(node->node_info));
 	for (i = 0; i <= num_ports; i++)
 		node->ports[i].node = node;
@@ -291,6 +299,8 @@ static int process_port_info(void *umad, unsigned node_id, int fd, int agent,
 	    ((node->is_switch && port_num != local_port) ||
 	     (node_id == 0 && port_num == local_port)) &&
 	    path_cnt++ < MAX_HOPS) {
+		if (path_cnt > max_hops)
+			max_hops = path_cnt;
 		path[path_cnt] = port_num;
 		return query_node_info(fd, agent, node_id, path, path_cnt);
 	}
@@ -341,7 +351,7 @@ static int process_node(void *umad, unsigned remote_id, int fd, int agent,
 	dbg_dump_nodeinfo(node_info);
 
 	if ((id = find_node(node_info)) < 0) {
-		id = add_node(node_info);
+		id = add_node(node_info, path, path_cnt);
 		if (id < 0)
 			return -1;
 		node_is_new = 1;
@@ -398,7 +408,9 @@ static int recv_smp_resp(int fd, int agent, uint8_t * umad, uint8_t path[])
 	outstanding--;
 	run_request_queue(fd, agent);
 
-	if (ret < 0 || status) {
+	if (ret < 0)
+		return ret;
+	else if (ret || status) {
 		ERROR("error response 0x%016" PRIx64 ": attr_id %x"
 		      ", attr_mod %x from %s with status %x\n", trid,
 		      attr_id, attr_mod, print_path(path, path_cnt), status);
@@ -477,7 +489,7 @@ static int umad_discover(char *card_name, unsigned int port_num)
 
 	ret = discover(fd, agent);
 	if (ret)
-		ERROR("Failed to discover.\n");
+		fprintf(stderr, "\nThere are problems during discovery.\n");
 
 	umad_unregister(fd, agent);
 	umad_close_port(fd);
@@ -493,12 +505,15 @@ static void print_subnet()
 	struct port *local, *remote;
 	unsigned i, j;
 
+	printf("\n# The subnet discovered using %u mads, reaching %d hops\n\n",
+	       total_mads, max_hops);
+
 	for (i = 0; i < node_count; i++) {
 		node = node_array[i];
-		printf("%s %u \"%s-%016" PRIx64 "\" \t# %s\n",
+		printf("%s %u \"%s-%016" PRIx64 "\" \t# %s %s\n",
 		       node->is_switch ? "Switch" : "Ca", node->num_ports,
 		       node->is_switch ? "S" : "H", node->guid,
-		       node->node_desc);
+		       print_path(node->path, node->path_size), node->node_desc);
 		for (j = 1; j <= node->num_ports; j++) {
 			local = &node->ports[j];
 			remote = local->remote;
