@@ -189,7 +189,7 @@ static void run_request_queue(int fd, int agent)
 	struct request_queue *q = request_queue.next;
 
 	while (q) {
-		if (outstanding > max_outstanding)
+		if (outstanding >= max_outstanding)
 			break;
 		if (send_request(fd, agent, q->trid, q->path, q->path_cnt,
 				 q->attr_id, q->attr_mod) < 0)
