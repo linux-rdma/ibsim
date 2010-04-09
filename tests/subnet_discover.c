@@ -52,7 +52,9 @@ static unsigned max_hops = 0;
 
 #define ERROR(fmt, ...) fprintf(stderr, "ERR: " fmt, ##__VA_ARGS__)
 #define VERBOSE(fmt, ...) if (verbose) fprintf(stderr, fmt, ##__VA_ARGS__)
-#define NOISE(fmt, ...) if (verbose > 1) fprintf(stderr, fmt, ##__VA_ARGS__)
+#define VERBOSE1(fmt, ...) if (verbose > 1) fprintf(stderr, fmt, ##__VA_ARGS__)
+#define VERBOSE2(fmt, ...) if (verbose > 2) fprintf(stderr, fmt, ##__VA_ARGS__)
+#define NOISE(fmt, ...) VERBOSE2(fmt, ##__VA_ARGS__)
 
 static const char *print_path(uint8_t path[], size_t path_cnt)
 {
@@ -116,8 +118,8 @@ static int send_request(int fd, int agent, uint64_t trid, uint8_t * path,
 		return -1;
 	}
 
-	VERBOSE("send %016" PRIx64 ": attr %x, mod %x to %s\n", trid, attr_id,
-		attr_mod, print_path(path, path_cnt));
+	VERBOSE1("send %016" PRIx64 ": attr %x, mod %x to %s\n", trid, attr_id,
+		 attr_mod, print_path(path, path_cnt));
 
 	return ret;
 }
@@ -239,8 +241,8 @@ static int send_query(int fd, int agent, unsigned node_id, uint8_t path[],
 		return -1;
 	}
 
-	VERBOSE("queue %016" PRIx64 ": attr %x, mod %x to %s\n", trid, attr_id,
-		attr_mod, print_path(path, path_cnt));
+	VERBOSE1("queue %016" PRIx64 ": attr %x, mod %x to %s\n", trid, attr_id,
+		 attr_mod, print_path(path, path_cnt));
 
 	run_request_queue(fd, agent);
 
@@ -384,8 +386,8 @@ static void connect_ports(unsigned node1_id, unsigned port1_num,
 {
 	struct port *port1 = &node_array[node1_id]->ports[port1_num];
 	struct port *port2 = &node_array[node2_id]->ports[port2_num];
-	VERBOSE("connecting %u:%u <--> %u:%u\n",
-		node1_id, port1_num, node2_id, port2_num);
+	VERBOSE1("connecting %u:%u <--> %u:%u\n",
+		 node1_id, port1_num, node2_id, port2_num);
 	port1->remote = port2;
 	port2->remote = port1;
 }
@@ -409,6 +411,11 @@ static int process_node(void *umad, unsigned remote_id, int fd, int agent,
 	}
 
 	node = node_array[id];
+
+	VERBOSE("%-5s %-6s with guid 0x%" PRIx64 " discovered at %s\n",
+		node_is_new ? "new" : "known",
+		node->is_switch ? "Switch" : "Ca", node->guid,
+		print_path(path, path_cnt));
 
 	node->ports[port_num].guid =
 	    mad_get_field64(node_info, 0, IB_NODE_PORT_GUID_F);
@@ -472,8 +479,8 @@ static int recv_smp_resp(int fd, int agent, uint8_t * umad, uint8_t path[])
 
 	node_id = trid & 0xffff;
 
-	VERBOSE("recv %016" PRIx64 ": attr %x, mod %x from %s\n", trid, attr_id,
-		attr_mod, print_path(path, path_cnt));
+	VERBOSE1("recv %016" PRIx64 ": attr %x, mod %x from %s\n", trid,
+		 attr_id, attr_mod, print_path(path, path_cnt));
 
 	switch (attr_id) {
 	case IB_ATTR_NODE_INFO:
