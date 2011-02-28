@@ -20,7 +20,7 @@ ifdef IB_DEV_DIR
  LIBS:= \
   $(foreach l, mad umad, $(IB_DEV_DIR)/libib$(l)/.libs/libib$(l).so)
 else
- INCS:= -I$(dir $(libpath))/include
+ INCS:= -I$(dir $(libpath))include
  LIBS:= -L$(libpath) -libmad -libumad
 endif
 
