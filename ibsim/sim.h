@@ -65,9 +65,13 @@
 #define LINKSPEEDEXT_EDR    2
 #define LINKSPEEDEXT_FDR_EDR 3
 
+#define MLNXLINKSPEED_NONE	0
+#define MLNXLINKSPEED_FDR10	1
+
 #define	DEFAULT_LINKWIDTH	LINKWIDTH_4x
 #define DEFAULT_LINKSPEED	LINKSPEED_SDR
 #define DEFAULT_LINKSPEEDEXT	LINKSPEEDEXT_NONE
+#define DEFAULT_MLNXLINKSPEED MLNXLINKSPEED_NONE
 
 #define NODEPREFIX	20
 #define NODEIDLEN	65
@@ -294,6 +298,8 @@ struct Port {
 	int linkspeedena;
 	int linkspeedext;
 	int linkspeedextena;
+	int mlnx_linkspeed;
+	int mlnx_linkspeedena;
 	int state;
 	int physstate;
 	int lmc;

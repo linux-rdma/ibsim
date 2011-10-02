@@ -64,7 +64,7 @@
 #define LINKSPEED_STR_QDR "QDR"
 #define LINKSPEED_STR_FDR "FDR"
 #define LINKSPEED_STR_EDR "EDR"
-
+#define LINKSPEED_STR_FDR10 "FDR10"
 
 int inclines[MAX_INCLUDE];
 char *incfiles[MAX_INCLUDE];
@@ -207,6 +207,7 @@ static uint64_t netsysimgguid;
 static int netwidth = DEFAULT_LINKWIDTH;
 static int netspeed = DEFAULT_LINKSPEED;
 static int netspeedext = DEFAULT_LINKSPEEDEXT;
+static int mlnx_netspeed = DEFAULT_LINKSPEEDEXT;
 
 const char *node_type_name(unsigned type)
 {
@@ -497,9 +498,14 @@ static int parse_port_link_width_and_speed(Port * port, char *line)
 	} else if (!strncmp(speed, LINKSPEED_STR_FDR, strlen(speed))) {
 		port->linkspeedextena = LINKSPEEDEXT_FDR;
 		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
+		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
 	} else if (!strncmp(speed, LINKSPEED_STR_EDR, strlen(speed))) {
 		port->linkspeedextena = LINKSPEEDEXT_FDR_EDR;
 		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
+		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
+	} else if (!strncmp(speed, LINKSPEED_STR_FDR10, strlen(speed))){
+		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
+		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
 	} else {
 		IBWARN("cannot parse speed / invalid speed");
 	}
@@ -612,6 +618,8 @@ static void init_ports(Node * node, int type, int maxports)
 		port->linkspeed = LINKSPEED_SDR;
 		port->linkspeedextena = netspeedext;
 		port->linkspeedext = DEFAULT_LINKSPEEDEXT;
+		port->mlnx_linkspeedena = mlnx_netspeed;
+		port->mlnx_linkspeed = DEFAULT_MLNXLINKSPEED;
 
 		size = (type == SWITCH_NODE && i) ? sw_pkey_size : ca_pkey_size;
 		if (size) {
@@ -1229,6 +1237,22 @@ static int get_active_linkspeedext(Port * lport, Port * rport)
 	return 0;
 }
 
+static int get_active_mlnx_linkspeed(Port * lport, Port * rport)
+{
+	int speed = lport->mlnx_linkspeedena & rport->mlnx_linkspeedena;
+
+	if (speed & MLNXLINKSPEED_FDR10)
+		return MLNXLINKSPEED_FDR10;
+	if (speed == MLNXLINKSPEED_NONE)
+		return MLNXLINKSPEED_NONE; // same as 0
+
+	IBPANIC("mismatched enabled mlnx speedext between %" PRIx64 " P#%d S=%d and %"
+		PRIx64 " P#%d S=%d", lport->portguid, lport->portnum,
+		lport->mlnx_linkspeedena, rport->portguid, rport->portnum,
+		rport->mlnx_linkspeedena);
+	return 0;
+}
+
 void update_portinfo(Port * p)
 {
 	uint8_t *pi = p->portinfo;
@@ -1260,6 +1284,13 @@ void update_portinfo(Port * p)
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ENABLED_F, 0);
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_SUPPORTED_F, 0);
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ACTIVE_F, 0);
+
+		/* FDR10 support */
+		if (p->mlnx_linkspeed) {
+			mad_set_field(p->extportinfo, 0, IB_MLNX_EXT_PORT_LINK_SPEED_ENABLED_F, p->mlnx_linkspeedena);
+			mad_set_field(p->extportinfo, 0, IB_MLNX_EXT_PORT_LINK_SPEED_SUPPORTED_F, p->mlnx_linkspeedena);
+			mad_set_field(p->extportinfo, 0, IB_MLNX_EXT_PORT_LINK_SPEED_ACTIVE_F, p->mlnx_linkspeed);
+		}
 	}
 }
 
@@ -1299,10 +1330,10 @@ int link_ports(Port * lport, Port * rport)
 	    get_active_linkwidth(lport, rport);
 	lport->linkspeed = rport->linkspeed =
 	    get_active_linkspeed(lport, rport);
-#if 1
+	lport->mlnx_linkspeed = rport->mlnx_linkspeed =
+	    get_active_mlnx_linkspeed(lport, rport);
 	lport->linkspeedext = rport->linkspeedext =
 	    get_active_linkspeedext(lport, rport);
-#endif
 
 	if (lnode->type == SWITCH_NODE) {
 		endport = node_get_port(lnode, 0);

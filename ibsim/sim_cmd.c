@@ -82,11 +82,16 @@ static const char *portlinkspeedext[] = {
 	"0", " 14G", " 25G",
 };
 
+static const char *portlinkmlnxspeed[] = {
+	"0", " FDR10",
+};
+
 #define PORTSTATE(i) (((i) < 1 || (i) > 4) ? "?" : portstates[(i)])
 #define PHYSSTATE(i) (((i) < 1 || (i) > 6) ? "?" : physstates[(i)])
 #define PORTLINKWIDTH(i) (((i) < 1 || (i) > 8) ? "?" : portlinkwidth[(i)])
 #define PORTLINKSPEED(i) (((i) < 1 || (i) > 4) ? "?" : portlinkspeed[(i)])
 #define PORTLINKSPEEDEXT(i) (((i) < 0 || (i) > 2) ? "?" : portlinkspeedext[(i)])
+#define PORTMLNXLINKSPEED(i) (((i) < 0 || (i) > 1) ? "?" : portlinkmlnxspeed[(i)])
 
 static int do_link(FILE * f, char *line)
 {
@@ -549,10 +554,14 @@ static void dump_port(FILE * f, Port * port, int type)
 			port->portguid, port->portnum,
 			port->remotenode ? port->remotenode->
 			nodeid : "Sma Port", port->remoteport);
-	if (!port->linkspeedext)
-		link_speed_str = PORTLINKSPEED(port->linkspeed);
-	else
+
+	if (port->linkspeedext)
 		link_speed_str = PORTLINKSPEEDEXT(port->linkspeedext);
+	else if (port->mlnx_linkspeed)
+		link_speed_str = PORTMLNXLINKSPEED(port->mlnx_linkspeed);
+	else
+		link_speed_str = PORTLINKSPEED(port->linkspeed);
+
 	if (type == SWITCH_NODE && port->portnum)
 		fprintf(f, "\t %s %s %s/%s%s\n",
 			PORTLINKWIDTH(port->linkwidth),
