@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2004-2008 Voltaire, Inc. All rights reserved.
+ * Copyright (c) 2011 Mellanox Technologies LTD. All rights reserved.
  *
  * This file is part of ibsim.
  *
@@ -35,6 +36,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <regex.h>
 #include <ctype.h>
 #include <time.h>
 #include <pthread.h>
@@ -54,7 +56,16 @@
 #define PDEBUG	if (parsedebug) IBWARN
 #define DEBUG	if (simverb || ibdebug) IBWARN
 
+
 #define MAX_INCLUDE 9
+
+#define LINKSPEED_STR_SDR "SDR"
+#define LINKSPEED_STR_DDR "DDR"
+#define LINKSPEED_STR_QDR "QDR"
+#define LINKSPEED_STR_FDR "FDR"
+#define LINKSPEED_STR_EDR "EDR"
+
+
 int inclines[MAX_INCLUDE];
 char *incfiles[MAX_INCLUDE];
 int inclevel;
@@ -67,7 +78,7 @@ Port *default_port;
 static const uint8_t smaport[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0xFE, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x48,
+	0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x40, 0x48,
 	0x00, 0x00, 0x0F, 0xF9, 0x00, 0x03, 0x03, 0x01,
 	0x14, 0x52, 0x00, 0x11, 0x10, 0x40, 0x00, 0x08,
 	0x08, 0x03, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00,
@@ -83,7 +94,7 @@ static const uint8_t swport[] = {
 	0x12, 0x52, 0x00, 0x11, 0x40, 0x40, 0x00, 0x08,
 	0x08, 0x04, 0xFF, 0x10, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  0x01 /* 0x11 */, 0x01,
 };
 
 static const uint8_t swport_down[] = {
@@ -94,29 +105,29 @@ static const uint8_t swport_down[] = {
 	0x11, 0x22, 0x00, 0x11, 0x40, 0x40, 0x00, 0x08,
 	0x08, 0x04, 0xE9, 0x40, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 /* 0x11 */, 0x01,
 };
 
 static const uint8_t hcaport[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0xFE, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x02, 0x00, 0x01, 0x00, 0x50, 0x00, 0x48,
+	0x00, 0x02, 0x00, 0x01, 0x00, 0x50, 0x40, 0x48,
 	0x00, 0x00, 0x0F, 0xF9, 0x01, 0x03, 0x03, 0x02,
 	0x12, 0x52, 0x00, 0x11, 0x40, 0x40, 0x00, 0x08,
 	0x08, 0x04, 0xFF, 0x10, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x20, 0x1F, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 /* 0x11 */, 0x01,
 };
 
 static const uint8_t hcaport_down[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	0xFE, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x02, 0x00, 0x01, 0x00, 0x10, 0x00, 0x48,
+	0x00, 0x02, 0x00, 0x01, 0x00, 0x10, 0x40, 0x48,
 	0x00, 0x00, 0x0F, 0xF9, 0x01, 0x03, 0x03, 0x01,
 	0x11, 0x22, 0x00, 0x11, 0x40, 0x40, 0x00, 0x08,
 	0x08, 0x04, 0xE9, 0x10, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x20, 0x1F, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 /* 0x11 */, 0x01,
 };
 
 static const uint8_t switchinfo[] = {
@@ -195,6 +206,7 @@ static int netdevid;
 static uint64_t netsysimgguid;
 static int netwidth = DEFAULT_LINKWIDTH;
 static int netspeed = DEFAULT_LINKSPEED;
+static int netspeedext = DEFAULT_LINKSPEEDEXT;
 
 const char *node_type_name(unsigned type)
 {
@@ -414,6 +426,16 @@ static int is_linkspeed_valid(int speed)
 	return 1;
 }
 
+static int is_linkspeedext_valid(int speed)
+{
+	/* extended speed is none, FDR, EDR, or both */
+	if (speed < 0 || speed > 3) {
+		IBWARN("bad extended speed %d = should be between 0 to 3", speed);
+		return 0;
+	}
+	return 1;
+}
+
 static int parse_switch_esp0(char *line)
 {
 	if (strstr(line, "enhanced port 0"))
@@ -435,6 +457,92 @@ static int parse_port_lid_and_lmc(Port * port, char *line)
 	if ((s = strstr(line, "lmc "))) {
 		s += 4;
 		port->lmc = strtoul(s, NULL, 0);
+	}
+
+	return 0;
+}
+
+static int parse_port_link_width_and_speed(Port * port, char *line)
+{
+	int rlid = 0;
+	int width = 0;
+	char speed[10];
+	speed[0] = '\0';
+
+	if (3 != sscanf(line, "lid %d %dx%9s", &rlid, &width, speed)) {
+		IBWARN("failed parsing port connection type");
+		return 0;
+	}
+
+	/* update port width */
+	if (width == 12)
+		port->linkwidthena = LINKWIDTH_1x_4x_12x;
+	else if (width == 8)
+		port->linkwidthena = LINKWIDTH_8x;
+	else if (width == 4)
+		port->linkwidthena = LINKWIDTH_1x_4x;
+	else if (width == 1)
+		port->linkwidthena = LINKWIDTH_1x;
+	else {
+		IBWARN("cannot parse width / invalid width");
+	}
+
+	/* parse connection rate */
+	if (!strncmp(speed, LINKSPEED_STR_SDR, strlen(speed))) {
+		port->linkspeedena = LINKSPEED_SDR;
+	} else if (!strncmp(speed, LINKSPEED_STR_DDR, strlen(speed))) {
+		port->linkspeedena = LINKSPEED_SDR | LINKSPEED_DDR;
+	} else if (!strncmp(speed, LINKSPEED_STR_QDR, strlen(speed))) {
+		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
+	} else if (!strncmp(speed, LINKSPEED_STR_FDR, strlen(speed))) {
+		port->linkspeedextena = LINKSPEEDEXT_FDR;
+		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
+	} else if (!strncmp(speed, LINKSPEED_STR_EDR, strlen(speed))) {
+		port->linkspeedextena = LINKSPEEDEXT_FDR_EDR;
+		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
+	} else {
+		IBWARN("cannot parse speed / invalid speed");
+	}
+
+	return 0;
+}
+
+static int parse_port_connection_data(Port * port, int type, char *line)
+{
+	int rc;
+	char *line_connection_type = line;
+	regex_t regex;
+	regmatch_t regmatch[1];
+
+	if (line == NULL) {
+		IBWARN("cannot parse empty line");
+		return -1;
+	}
+
+	regcomp(&regex,"lid[^\"]*$", 0);
+	rc = regexec(&regex, line, 1, regmatch, 0);
+
+	if (rc) {
+		IBWARN("cannot parse remote lid and connection type");
+		return 0;
+	}
+
+	line_connection_type = line + regmatch[0].rm_so;
+
+	if (type == SWITCH_NODE) {
+		/* expecting line with the following format:
+		 * [1]	"H-000123456789ABCD"[2](123456789ABCE) 		# "description" lid 1 4xQDR ...
+		 */
+		if (parse_port_link_width_and_speed(port, line_connection_type))
+			return -1;
+	}
+	if (type == HCA_NODE) {
+		/* expecting line with the following format:
+		 * [1](123456789ABCDE) 	"S-000123456789ABCDF"[2]		# lid 2 lmc 0 "description" lid 1 4xQDR ...
+		 */
+		if (parse_port_lid_and_lmc(port, line) ||
+		    parse_port_link_width_and_speed(port, line_connection_type))
+			return -1;
 	}
 
 	return 0;
@@ -462,6 +570,15 @@ static int parse_port_opt(Port * port, char *opt, char *val)
 		port->linkspeedena = v;
 		DEBUG("port %p linkspeed enabled set to %d", port,
 		      port->linkspeedena);
+		break;
+	case 'e':
+		v = strtoul(val, 0, 0);
+		if (!is_linkspeedext_valid(v))
+			return -1;
+
+		port->linkspeedextena = v;
+		DEBUG("port %p linkspeedext enabled set to %d", port,
+		      port->linkspeedextena);
 		break;
 	default:
 		break;
@@ -493,6 +610,8 @@ static void init_ports(Node * node, int type, int maxports)
 		port->linkwidth = LINKWIDTH_4x;
 		port->linkspeedena = netspeed;
 		port->linkspeed = LINKSPEED_SDR;
+		port->linkspeedextena = netspeedext;
+		port->linkspeedext = DEFAULT_LINKSPEEDEXT;
 
 		size = (type == SWITCH_NODE && i) ? sw_pkey_size : ca_pkey_size;
 		if (size) {
@@ -681,8 +800,9 @@ static int parse_port(char *line, Node * node, int type, int maxports)
 			return -1;
 		}
 	}
-	if (type != SWITCH_NODE && line && parse_port_lid_and_lmc(port, line) < 0) {
-		IBWARN("cannot parse lid, lmc");
+	if ((type == HCA_NODE || type == SWITCH_NODE) &&
+	    line && parse_port_connection_data(port, type, line) < 0) {
+		IBWARN("cannot parse port data");
 		return -1;
 	}
 	return 1;
@@ -896,6 +1016,26 @@ static int parse_speed(int fd, char *line)
 	return 1;
 }
 
+static int parse_speedext(int fd, char *line)
+{
+	char *s;
+	int speed;
+
+	if (!(s = strchr(line, '='))) {
+		IBWARN("bad assignment: missing '=' sign");
+		return -1;
+	}
+
+	speed = strtol(s + 1, 0, 0);
+	if (!is_linkspeedext_valid(speed)) {
+		IBPANIC("invalid enabled link speed extended %d", speed);
+		return -1;
+	}
+
+	netspeedext = speed;
+	return 1;
+}
+
 static int parse_netprefix(int fd, char *line)
 {
 	char *s;
@@ -982,6 +1122,8 @@ static int parse_netconf(int fd, FILE * out)
 			r = parse_width(fd, line);
 		else if (!strncmp(line, "speed", 5))
 			r = parse_speed(fd, line);
+		else if (!strncmp(line, "extspeed", 8))
+			r = parse_speedext(fd, line);
 		else if (!strncmp(line, "module", 6))
 			r = parse_netprefix(fd, line);
 		else if (!strncmp(line, "include", 7))
@@ -1069,6 +1211,24 @@ static int get_active_linkspeed(Port * lport, Port * rport)
 	return 0;
 }
 
+static int get_active_linkspeedext(Port * lport, Port * rport)
+{
+	int speed = lport->linkspeedextena & rport->linkspeedextena;
+
+	if (speed & LINKSPEEDEXT_EDR)
+		return LINKSPEEDEXT_EDR;
+	if (speed & LINKSPEEDEXT_FDR)
+		return LINKSPEEDEXT_FDR;
+	if (speed == LINKSPEEDEXT_NONE)
+		return LINKSPEEDEXT_NONE;	// same as 0
+
+	IBPANIC("mismatched enabled speedext between %" PRIx64 " P#%d S=%d and %"
+		PRIx64 " P#%d S=%d", lport->portguid, lport->portnum,
+		lport->linkspeedextena, rport->portguid, rport->portnum,
+		rport->linkspeedextena);
+	return 0;
+}
+
 void update_portinfo(Port * p)
 {
 	uint8_t *pi = p->portinfo;
@@ -1083,12 +1243,24 @@ void update_portinfo(Port * p)
 		      LINKWIDTH_1x_4x_12x);
 	mad_set_field(pi, 0, IB_PORT_LINK_WIDTH_ACTIVE_F, p->linkwidth);
 	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_ENABLED_F, p->linkspeedena);
-	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_SUPPORTED_F, LINKSPEED_SDR_DDR);
-	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_ACTIVE_F, p->linkspeed);
+	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_SUPPORTED_F, p->linkspeedena);
+
 	mad_set_field(pi, 0, IB_PORT_LMC_F, p->lmc);
 	mad_set_field(pi, 0, IB_PORT_HOQ_LIFE_F, p->hoqlife);
 	mad_set_field(pi, 0, IB_PORT_PHYS_STATE_F, p->physstate);
 	mad_set_field(pi, 0, IB_PORT_STATE_F, p->state);
+
+	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_ACTIVE_F, p->linkspeed);
+
+	if (p->linkspeedext) {
+		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ENABLED_F, p->linkspeedextena);
+		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_SUPPORTED_F, p->linkspeedextena);
+		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ACTIVE_F, p->linkspeedext);
+	} else {
+		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ENABLED_F, 0);
+		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_SUPPORTED_F, 0);
+		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ACTIVE_F, 0);
+	}
 }
 
 static void set_portinfo(Port * p, const uint8_t portinfo[])
@@ -1127,6 +1299,10 @@ int link_ports(Port * lport, Port * rport)
 	    get_active_linkwidth(lport, rport);
 	lport->linkspeed = rport->linkspeed =
 	    get_active_linkspeed(lport, rport);
+#if 1
+	lport->linkspeedext = rport->linkspeedext =
+	    get_active_linkspeedext(lport, rport);
+#endif
 
 	if (lnode->type == SWITCH_NODE) {
 		endport = node_get_port(lnode, 0);

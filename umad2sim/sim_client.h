@@ -43,6 +43,7 @@ struct sim_client {
 	struct sim_vendor vendor;
 	uint8_t nodeinfo[64];
 	uint8_t portinfo[64];
+	uint8_t extportinfo[64];
 	uint16_t pkeys[SIM_CTL_MAX_DATA/sizeof(uint16_t)];
 };
 

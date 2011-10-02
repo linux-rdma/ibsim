@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2004-2008 Voltaire, Inc. All rights reserved.
+ * Copyright (c) 2011 Mellanox Technologies LTD. All rights reserved.
  *
  * This file is part of ibsim.
  *
@@ -59,8 +60,14 @@
 #define LINKSPEED_QDR       4
 #define LINKSPEED_SDR_DDR   3
 
+#define LINKSPEEDEXT_NONE   0
+#define LINKSPEEDEXT_FDR    1
+#define LINKSPEEDEXT_EDR    2
+#define LINKSPEEDEXT_FDR_EDR 3
+
 #define	DEFAULT_LINKWIDTH	LINKWIDTH_4x
 #define DEFAULT_LINKSPEED	LINKSPEED_SDR
+#define DEFAULT_LINKSPEEDEXT	LINKSPEEDEXT_NONE
 
 #define NODEPREFIX	20
 #define NODEIDLEN	65
@@ -89,6 +96,7 @@ enum PORTINFO_CAPMASK {
 	CAPMASK_ISSM = (1<<1),
 	CAPMASK_ISNOTICE = (1<<2),
 	CAPMASK_ISTRAP = (1<<3),
+	CAPMASK_ISEXTENDEDSPEEDS = (1<<14),
 	CAPMASK_ISCAPMASKTRAP = (1<<22),
 };
 
@@ -202,6 +210,7 @@ struct Portinfo {
 	int localport;
 	int linkwidthen;
 	int linkspeeden;
+	int linkspeedexten;
 };
 
 struct Portcounters {
@@ -283,11 +292,14 @@ struct Port {
 	int linkwidthena;
 	int linkspeed;
 	int linkspeedena;
+	int linkspeedext;
+	int linkspeedextena;
 	int state;
 	int physstate;
 	int lmc;
 	int hoqlife;
 	uint8_t portinfo[64];
+	uint8_t extportinfo[64];
 	uint8_t op_vls;
 
 	char remotenodeid[NODEIDLEN];

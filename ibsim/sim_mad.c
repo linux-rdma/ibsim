@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2004-2008 Voltaire, Inc. All rights reserved.
  * Copyright (c) 2009 HNR Consulting. All rights reserved.
+ * Copyright (c) 2011 Mellanox Technologies LTD. All rights reserved.
  *
  * This file is part of ibsim.
  *
@@ -42,6 +43,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #include <ibsim.h>
 #include "sim.h"
@@ -62,43 +64,97 @@ static Smpfn do_nodeinfo, do_nodedesc, do_switchinfo, do_portinfo,
     do_rcv_error_details, do_xmit_discard_details, do_op_rcv_counters,
     do_flow_ctl_counters, do_vl_op_packets, do_vl_op_data,
     do_vl_xmit_flow_ctl_update_errors, do_vl_xmit_wait_counters, do_pkeytbl,
-    do_sl2vl, do_vlarb, do_guidinfo, do_cpi;
+    do_sl2vl, do_vlarb, do_guidinfo, do_cpi, do_extportinfo;
 
 static EncodeTrapfn encode_trap128;
 static EncodeTrapfn encode_trap144;
 
-static Smpfn *attrs[IB_PERFORMANCE_CLASS + 1][0xff] = {
-	[IB_SMI_CLASS] {[IB_ATTR_NODE_DESC] do_nodedesc,
-			[IB_ATTR_NODE_INFO] do_nodeinfo,
-			[IB_ATTR_SWITCH_INFO] do_switchinfo,
-			[IB_ATTR_PORT_INFO] do_portinfo,
-			[IB_ATTR_LINEARFORWTBL] do_linearforwtbl,
-			[IB_ATTR_MULTICASTFORWTBL] do_multicastforwtbl,
-			[IB_ATTR_PKEY_TBL] do_pkeytbl,
-			[IB_ATTR_SLVL_TABLE] do_sl2vl,
-			[IB_ATTR_VL_ARBITRATION] do_vlarb,
-			[IB_ATTR_GUID_INFO] do_guidinfo,
-			[IB_ATTR_SMINFO] NULL,
 
-			[IB_ATTR_LAST] 0,
-			},
-	[IB_PERFORMANCE_CLASS] {[CLASS_PORT_INFO] = do_cpi,
-				[IB_GSI_PORT_SAMPLES_CONTROL] = 0,
-				[IB_GSI_PORT_SAMPLES_RESULT] = 0,
-				[IB_GSI_PORT_COUNTERS] = do_portcounters,
-				[IB_GSI_PORT_COUNTERS_EXT] = do_extcounters,
-				[IB_GSI_PORT_RCV_ERROR_DETAILS] = do_rcv_error_details,
-				[IB_GSI_PORT_XMIT_DISCARD_DETAILS] = do_xmit_discard_details,
-				[IB_GSI_PORT_PORT_OP_RCV_COUNTERS] = do_op_rcv_counters,
-				[IB_GSI_PORT_PORT_FLOW_CTL_COUNTERS] = do_flow_ctl_counters,
-				[IB_GSI_PORT_PORT_VL_OP_PACKETS] = do_vl_op_packets,
-				[IB_GSI_PORT_PORT_VL_OP_DATA] = do_vl_op_data,
-				[IB_GSI_PORT_PORT_VL_XMIT_FLOW_CTL_UPDATE_ERRORS] = do_vl_xmit_flow_ctl_update_errors,
-				[IB_GSI_PORT_PORT_VL_XMIT_WAIT_COUNTERS] = do_vl_xmit_wait_counters,
+#define ATTRIBUTES_NUMBER 20
 
-				[IB_GSI_ATTR_LAST] 0,
-				},
+typedef struct {
+	unsigned attr_id;
+	Smpfn * handler;
+} attr_handler;
+
+typedef struct {
+	unsigned class_id;
+	attr_handler handlers[ATTRIBUTES_NUMBER];
+} class_handler;
+
+static class_handler smp_handlers_array[] = {
+	{IB_SMI_CLASS, {
+		{IB_ATTR_NODE_DESC, do_nodedesc},
+		{IB_ATTR_NODE_INFO, do_nodeinfo},
+		{IB_ATTR_SWITCH_INFO, do_switchinfo},
+		{IB_ATTR_PORT_INFO, do_portinfo},
+		{IB_ATTR_LINEARFORWTBL, do_linearforwtbl},
+		{IB_ATTR_MULTICASTFORWTBL, do_multicastforwtbl},
+		{IB_ATTR_PKEY_TBL, do_pkeytbl},
+		{IB_ATTR_SLVL_TABLE, do_sl2vl},
+		{IB_ATTR_VL_ARBITRATION, do_vlarb},
+		{IB_ATTR_GUID_INFO, do_guidinfo},
+		{IB_ATTR_SMINFO, NULL},
+		{IB_ATTR_MLNX_EXT_PORT_INFO, do_extportinfo},
+		{UINT_MAX, NULL}
+		}
+	},
+	{IB_SMI_DIRECT_CLASS, {
+		{IB_ATTR_NODE_DESC, do_nodedesc},
+		{IB_ATTR_NODE_INFO, do_nodeinfo},
+		{IB_ATTR_SWITCH_INFO, do_switchinfo},
+		{IB_ATTR_PORT_INFO, do_portinfo},
+		{IB_ATTR_LINEARFORWTBL, do_linearforwtbl},
+		{IB_ATTR_MULTICASTFORWTBL, do_multicastforwtbl},
+		{IB_ATTR_PKEY_TBL, do_pkeytbl},
+		{IB_ATTR_SLVL_TABLE, do_sl2vl},
+		{IB_ATTR_VL_ARBITRATION, do_vlarb},
+		{IB_ATTR_GUID_INFO, do_guidinfo},
+		{IB_ATTR_SMINFO, NULL},
+		{IB_ATTR_MLNX_EXT_PORT_INFO, do_extportinfo},
+		{UINT_MAX, NULL}
+		}
+	},
+	{IB_PERFORMANCE_CLASS, {
+		{CLASS_PORT_INFO, do_cpi},
+		{IB_GSI_PORT_SAMPLES_CONTROL, NULL},
+		{IB_GSI_PORT_SAMPLES_RESULT, NULL},
+		{IB_GSI_PORT_COUNTERS, do_portcounters},
+		{IB_GSI_PORT_COUNTERS_EXT, do_extcounters},
+		{IB_GSI_PORT_RCV_ERROR_DETAILS, do_rcv_error_details},
+		{IB_GSI_PORT_XMIT_DISCARD_DETAILS, do_xmit_discard_details},
+		{IB_GSI_PORT_PORT_OP_RCV_COUNTERS, do_op_rcv_counters},
+		{IB_GSI_PORT_PORT_FLOW_CTL_COUNTERS, do_flow_ctl_counters},
+		{IB_GSI_PORT_PORT_VL_OP_PACKETS, do_vl_op_packets},
+		{IB_GSI_PORT_PORT_VL_OP_DATA, do_vl_op_data},
+		{IB_GSI_PORT_PORT_VL_XMIT_FLOW_CTL_UPDATE_ERRORS, do_vl_xmit_flow_ctl_update_errors},
+		{IB_GSI_PORT_PORT_VL_XMIT_WAIT_COUNTERS, do_vl_xmit_wait_counters},
+		{UINT_MAX, NULL}
+		}
+	}
+	,
+	{UINT_MAX, {}}
 };
+
+static Smpfn * get_smp_handler(unsigned class_id, unsigned attr_id)
+{
+	int i, j;
+
+	for (i = 0; smp_handlers_array[i].class_id != UINT_MAX; i++ ) {
+
+		if (smp_handlers_array[i].class_id != class_id)
+			continue;
+
+		for (j = 0; smp_handlers_array[i].handlers[j].attr_id != UINT_MAX; j++) {
+			if (smp_handlers_array[i].handlers[j].attr_id != attr_id)
+				continue;
+
+			return smp_handlers_array[i].handlers[j].handler;
+		}
+
+	}
+	return NULL;
+}
 
 static EncodeTrapfn *encodetrap[] = {
 	[TRAP_128] encode_trap128,
@@ -429,6 +485,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 	Port *p, *rp;
 	int r, newlid, newstate = 0;
 
+	portnum &= 0x7fffffff;
 	if (portnum > node->numports)
 		return ERR_BAD_PARAM;
 
@@ -451,7 +508,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 		}
 		p->lid = newlid;
 		p->smlid = mad_get_field(data, 0, IB_PORT_SMLID_F);
-//              p->linkwidth = mad_get_field(data, 0, IB_PORT_LINK_WIDTH_ENABLED_F); // ignored
+              //p->linkwidth = mad_get_field(data, 0, IB_PORT_LINK_WIDTH_ENABLED_F); // ignored
 		p->lmc = mad_get_field(data, 0, IB_PORT_LMC_F);
 		p->hoqlife = mad_get_field(data, 0, IB_PORT_HOQ_LIFE_F);
 		if ((r = mad_get_field(data, 0, IB_PORT_PHYS_STATE_F)))
@@ -504,6 +561,29 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 	return 0;
 }
 
+static int
+do_extportinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
+{
+	Node *node = port->node;
+	Port *p;
+
+	if (portnum > node->numports)
+		return ERR_BAD_PARAM;
+
+	if (portnum == 0 && node->type != SWITCH_NODE)  //according to ibspec 14.2.5.6
+		portnum = port->portnum;
+
+	p = node_get_port(node, portnum);
+	DEBUG("in node %" PRIx64 " port %" PRIx64 ": port %" PRIx64 " (%d(%d))",
+	      node->nodeguid, port->portguid, p->portguid, p->portnum, portnum);
+
+	if (op == IB_MAD_METHOD_SET) {
+		memcpy(p->extportinfo, data, IB_SMP_DATA_SIZE);
+	} else
+		memcpy(data, p->extportinfo, IB_SMP_DATA_SIZE);
+
+	return 0;
+}
 static int do_linearforwtbl(Port * port, unsigned op, uint32_t mod,
 			    uint8_t * data)
 {
@@ -1621,21 +1701,8 @@ static Smpfn *get_handle_fn(ib_rpc_t rpc, int response)
 	if (response)
 		return 0;
 
-	if (rpc.mgtclass == IB_SMI_CLASS || rpc.mgtclass == IB_SMI_DIRECT_CLASS) {
-		if (rpc.attr.id >= IB_ATTR_LAST
-		    || !(fn = attrs[rpc.mgtclass & 0xf][rpc.attr.id]))
-			return 0;	// attribute/method not supported ???
-		return fn;
-	}
-
-	if (rpc.mgtclass == IB_PERFORMANCE_CLASS) {
-		if (rpc.attr.id >= IB_GSI_ATTR_LAST
-		    || !(fn = attrs[rpc.mgtclass & 0xf][rpc.attr.id]))
-			return 0;	// attribute/method not supported ???
-		return fn;
-	}
-
-	return 0;		// No MGTCLASS matched.
+	fn = get_smp_handler(rpc.mgtclass & 0xf , rpc.attr.id);
+	return fn;
 }
 
 int process_packet(Client * cl, void *p, int size, Client ** dcl)

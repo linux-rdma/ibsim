@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2004-2008 Voltaire, Inc. All rights reserved.
+ * Copyright (c) 2010 Mellanox Technologies LTD. All rights reserved.
  *
  * This file is part of ibsim.
  *
@@ -77,10 +78,15 @@ static const char *portlinkspeed[] = {
 	"-", " 2.5G", " 5.0G", "-", "10.0G",
 };
 
+static const char *portlinkspeedext[] = {
+	"0", " 14G", " 25G",
+};
+
 #define PORTSTATE(i) (((i) < 1 || (i) > 4) ? "?" : portstates[(i)])
 #define PHYSSTATE(i) (((i) < 1 || (i) > 6) ? "?" : physstates[(i)])
 #define PORTLINKWIDTH(i) (((i) < 1 || (i) > 8) ? "?" : portlinkwidth[(i)])
 #define PORTLINKSPEED(i) (((i) < 1 || (i) > 4) ? "?" : portlinkspeed[(i)])
+#define PORTLINKSPEEDEXT(i) (((i) < 0 || (i) > 2) ? "?" : portlinkspeedext[(i)])
 
 static int do_link(FILE * f, char *line)
 {
@@ -531,6 +537,7 @@ static void dump_comment(Port * port, char *comment)
 static void dump_port(FILE * f, Port * port, int type)
 {
 	char comment[100] = "";
+	static const char *link_speed_str;
 
 	dump_comment(port, comment);
 
@@ -542,17 +549,21 @@ static void dump_port(FILE * f, Port * port, int type)
 			port->portguid, port->portnum,
 			port->remotenode ? port->remotenode->
 			nodeid : "Sma Port", port->remoteport);
+	if (!port->linkspeedext)
+		link_speed_str = PORTLINKSPEED(port->linkspeed);
+	else
+		link_speed_str = PORTLINKSPEEDEXT(port->linkspeedext);
 	if (type == SWITCH_NODE && port->portnum)
 		fprintf(f, "\t %s %s %s/%s%s\n",
 			PORTLINKWIDTH(port->linkwidth),
-			PORTLINKSPEED(port->linkspeed),
+			link_speed_str,
 			PORTSTATE(port->state), PHYSSTATE(port->physstate),
 			comment);
 	else
 		fprintf(f, "\t lid %u lmc %d smlid %u %s %s %s/%s%s\n",
 			port->lid, port->lmc, port->smlid,
 			PORTLINKWIDTH(port->linkwidth),
-			PORTLINKSPEED(port->linkspeed),
+			link_speed_str,
 			PORTSTATE(port->state), PHYSSTATE(port->physstate),
 			comment);
 }

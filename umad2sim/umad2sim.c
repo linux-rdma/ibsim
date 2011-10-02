@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2006-2008 Voltaire, Inc. All rights reserved.
+ * Copyright (c) 2011 Mellanox Technologies LTD. All rights reserved.
  *
  * This file is part of ibsim.
  *
@@ -64,6 +65,9 @@
 #define ERROR(fmt...) fprintf(stderr, "ERR: " fmt)
 
 #define arrsize(a) (sizeof(a)/sizeof(a[0]))
+
+
+#define IB_PORT_EXT_SPEED_SUPPORTED_MASK (1<<14)
 
 struct ib_user_mad_reg_req {
 	uint32_t id;
@@ -301,8 +305,13 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 	file_printf(path, SYS_PORT_PHY_STATE, "%d: %s\n", val, str);
 
 	/* /sys/class/infiniband/mthca0/ports/1/rate */
+	val = mad_get_field(portinfo, 0, IB_PORT_CAPMASK_F);
+	if (val & IB_PORT_EXT_SPEED_SUPPORTED_MASK)
+		speed = mad_get_field(portinfo, 0,
+				      IB_PORT_LINK_SPEED_EXT_ACTIVE_F);
+	else
+		speed = 0;
 	val = mad_get_field(portinfo, 0, IB_PORT_LINK_WIDTH_ACTIVE_F);
-	speed = mad_get_field(portinfo, 0, IB_PORT_LINK_SPEED_ACTIVE_F);
 	if (val == 1)
 		val = 1;
 	else if (val == 2)
@@ -313,15 +322,27 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 		val = 12;
 	else
 		val = 0;
-	if (speed == 2)
-		str = " DDR";
-	else if (speed == 4)
-		str = " QDR";
-	else
-		str = "";
-	file_printf(path, SYS_PORT_RATE, "%d%s Gb/sec (%dX%s)\n",
-		    (val * speed * 25) / 10,
-		    (val * speed * 25) % 10 ? ".5" : "", val, str);
+	if (!speed) {
+		speed = mad_get_field(portinfo, 0, IB_PORT_LINK_SPEED_ACTIVE_F);
+		if (speed == 2)
+			str = " DDR";
+		else if (speed == 4)
+			str = " QDR";
+		else
+			str = "";
+		file_printf(path, SYS_PORT_RATE, "%d%s Gb/sec (%dX%s)\n",
+			    (val * speed * 25) / 10,
+			    (val * speed * 25) % 10 ? ".5" : "", val, str);
+	} else {
+		if (speed == 1)
+			str = " FDR";
+		else if (speed == 2)
+			str = " EDR";
+		else
+			str = "";
+		file_printf(path, SYS_PORT_RATE, "%d Gb/sec (%dX%s)\n",
+			    (speed == 1) ? 14 * val : 26 * val, val, str);
+	}
 
 	/* /sys/class/infiniband/mthca0/ports/1/cap_mask */
 	val = mad_get_field(portinfo, 0, IB_PORT_CAPMASK_F);
