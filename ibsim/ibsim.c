@@ -704,7 +704,7 @@ void usage(char *prog_name)
 {
 	fprintf(stderr,
 		"Usage: %s [-f outfile -d(ebug) -p(arse_debug) -s(tart) -v(erbose) "
-		"-I(gnore_duplicate) -N nodes -S switchs -P ports -L linearcap"
+		"-I(gnore_duplicate) -N nodes -S switches -P ports -L linearcap"
 		" -M mcastcap -r(emote_mode) -l(isten_to_port) <port>] <netfile>\n",
 		prog_name);
 	fprintf(stderr, "%s %s\n", prog_name, IBSIM_VERSION);
