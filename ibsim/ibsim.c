@@ -546,6 +546,8 @@ int sim_cmd_file(FILE * f, char *s)
 	}
 
 	while (fgets(line, sizeof(line) - 1, cmd_file) != NULL) {
+		if((p = strchr(line, '\n')) != NULL)
+			*p = '\0';
 		do_cmd(line, f);
 	}
 
@@ -588,11 +590,14 @@ static int sim_run_console(int fd)
 {
 	char line[128];
 	int ret = 0;
+	char *p = NULL;
 
 	ret = readline(fd, line, sizeof(line) - 1);
 	if (ret <= 0)
 		return ret;
 
+	if((p = strchr(line, '\n')) != NULL)
+		*p = '\0';
 	do_cmd(line, simout);
 	fprintf(simout, "sim%s> ", netstarted ? "" : " (inactive)");
 	fflush(simout);
