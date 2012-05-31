@@ -799,7 +799,7 @@ static int dump_help(FILE * f)
 	fprintf(f, "sim> Commands:\n");
 	fprintf(f, "\t!<filename> - run commands from the file\n");
 	fprintf(f, "\tStart network\n");
-	fprintf(f, "\tDump [nodeid] (def all network)\n");
+	fprintf(f, "\tDump [\"nodeid\"] : dump node information in network\n");
 	fprintf(f, "\tRoute <from-lid> <to-lid>\n");
 	fprintf(f, "\tLink \"nodeid\"[port] \"remoteid\"[port]\n");
 	fprintf(f, "\tReLink \"nodeid\" : restore previously unconnected link(s) of the node\n");
