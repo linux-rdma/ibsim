@@ -818,7 +818,7 @@ static int dump_help(FILE * f)
 		"\t\t\t\tNodeDescription : 16\n"
 		"\t\t\t\tNodeInfo        : 17\n"
 		"\t\t\t\tSwitchInfo      : 18\n"
-		"\t\t\t\tPortInfo        : 19\n"
+		"\t\t\t\tPortInfo        : 21\n"
 		);
 	fprintf(f,
 		"\tBaselid \"nodeid\"[port] <lid> [lmc] : change port's lid (lmc)\n");
