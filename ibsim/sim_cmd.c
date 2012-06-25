@@ -288,7 +288,7 @@ static int do_seterror(FILE * f, char *line)
 	char *s = line;
 	char *nodeid = 0, name[NAMELEN], *sp, *orig = 0;
 	int portnum = -1;	// def - all ports
-	int numports, set = 0, rate = 0;
+	int startport, numports, set = 0, rate = 0;
 	uint16_t attr = 0;
 
 	if (strsep(&s, "\""))
@@ -309,8 +309,12 @@ static int do_seterror(FILE * f, char *line)
 	}
 
 	if (sp) {
+		if (node->type == SWITCH_NODE)
+			startport = 0;
+		else
+			startport = 1;
 		portnum = strtoul(sp, 0, 0);
-		if (portnum < 1 || portnum > node->numports) {
+		if (portnum < startport || portnum > node->numports) {
 			fprintf(f, "# bad port number %d at nodeid \"%s\"\n",
 				portnum, nodeid);
 			return -1;
