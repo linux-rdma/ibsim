@@ -911,7 +911,9 @@ static int do_perf_counter_set(FILE *f, char *line)
 		return -1;
 	}
 
-	strsep(&s, " ");
+	if (s && *s)
+		while (isspace(*s))
+			s++;
 	attr = strsep(&s, ".");
 	if(s == NULL)
 		goto format_error;
