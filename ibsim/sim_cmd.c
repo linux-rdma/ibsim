@@ -1086,6 +1086,7 @@ static int do_perf_counter_set(FILE *f, char *line)
 		pc->vl_xmit_wait_counters.PortVLXmitWait[vl] =
 			check_limit(&value, GS_PERF_VL_XMIT_WAIT_COUNTERS_LIMIT);
 	} else {
+		fprintf(f, "# attribute %s not found\n", attr);
 		return -1;
 	}
 	fprintf(f, "%s.%s has been set to %"PRIu64"\n", attr, field, value);
