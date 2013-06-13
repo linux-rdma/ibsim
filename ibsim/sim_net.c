@@ -679,7 +679,6 @@ static int parse_port(char *line, Node * node, int type, int maxports)
 			IBWARN("bad port option");
 			return -1;
 		}
-		line = s + 1;
 	}
 	if (type != SWITCH_NODE && line && parse_port_lid_and_lmc(port, line) < 0) {
 		IBWARN("cannot parse lid, lmc");
