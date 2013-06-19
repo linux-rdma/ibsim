@@ -235,6 +235,7 @@ static int reply_MAD(void *buf, ib_rpc_t * rpc, ib_dr_path_t * path,
 
 static int do_cpi(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 {
+	Node *node = port->node;
 	int status = 0;
 
 	if (op != IB_MAD_METHOD_GET)
@@ -242,7 +243,10 @@ static int do_cpi(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 	memset(data, 0, IB_SMP_DATA_SIZE);
 	mad_set_field(data, 0, IB_CPI_BASEVER_F, 1);
 	mad_set_field(data, 0, IB_CPI_CLASSVER_F, 1);
-	mad_set_field(data, 0, IB_CPI_CAPMASK_F, 0x300);
+	if (node->type != SWITCH_NODE)
+		mad_set_field(data, 0, IB_CPI_CAPMASK_F, 0x200);
+	else
+		mad_set_field(data, 0, IB_CPI_CAPMASK_F, 0x300);
 	mad_set_field(data, 0, IB_CPI_RESP_TIME_VALUE_F, 0x12);
 	return status;
 }
