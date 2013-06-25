@@ -173,12 +173,16 @@ static int sim_attach(int fd, union name_t *name, size_t size)
 	return 0;
 }
 
-static int sim_connect(struct sim_client *sc, int id, int qp, char *nodeid)
+static int sim_connect(struct sim_client *sc, int id, int qp, char *nodeid,
+		       char *issm)
 {
 	struct sim_client_info info = { 0 };
 
 	info.id = id;
-	info.issm = 0;
+	if (issm)
+		info.issm = 1;
+	else
+		info.issm = 0;
 	info.qp = qp;
 
 	if (nodeid)
@@ -200,7 +204,7 @@ static int sim_disconnect(struct sim_client *sc)
 	return sim_ctl(sc, SIM_CTL_DISCONNECT, 0, 0);
 }
 
-static int sim_init(struct sim_client *sc, char *nodeid)
+static int sim_init(struct sim_client *sc, char *nodeid, char *issm)
 {
 	union name_t name;
 	socklen_t size;
@@ -254,7 +258,7 @@ static int sim_init(struct sim_client *sc, char *nodeid)
 		IBPANIC("can't read data from bound socket");
 	port = ntohs(name.name_i.sin_port);
 
-	sc->clientid = sim_connect(sc, remote_mode ? port : pid, 0, nodeid);
+	sc->clientid = sim_connect(sc, remote_mode ? port : pid, 0, nodeid, issm);
 	if (sc->clientid < 0)
 		IBPANIC("connect failed");
 
@@ -284,9 +288,11 @@ int sim_client_set_sm(struct sim_client *sc, unsigned issm)
 int sim_client_init(struct sim_client *sc)
 {
 	char *nodeid;
+	char *issm;
 
 	nodeid = getenv("SIM_HOST");
-	if (sim_init(sc, nodeid) < 0)
+	issm = getenv("SIM_SET_ISSM");
+	if (sim_init(sc, nodeid, issm) < 0)
 		return -1;
 	if (sim_ctl(sc, SIM_CTL_GET_VENDOR, &sc->vendor,
 		    sizeof(sc->vendor)) < 0)
@@ -301,7 +307,7 @@ int sim_client_init(struct sim_client *sc)
 		goto _exit;
 	if (sim_ctl(sc, SIM_CTL_GET_PKEYS, sc->pkeys, sizeof(sc->pkeys)) < 0)
 		goto _exit;
-	if (getenv("SIM_SET_ISSM"))
+	if (issm)
 		sim_client_set_sm(sc, 1);
 	return 0;
   _exit:
