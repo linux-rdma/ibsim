@@ -245,6 +245,7 @@ static Switch *new_switch(Node * nd, int set_esp0)
 	sw->node = nd;
 	sw->linearcap = maxlinearcap;	// assume identical val for all switches
 	sw->multicastcap = maxmcastcap;	// assume identical val for all switches
+	sw->numportmask = (nd->numports + MCASTMASKSIZE) / MCASTMASKSIZE;
 	memcpy(sw->switchinfo, switchinfo, sizeof(sw->switchinfo));
 	mad_set_field(sw->switchinfo, 0, IB_SW_LINEAR_FDB_CAP_F, sw->linearcap);
 	mad_set_field(sw->switchinfo, 0, IB_SW_MCAST_FDB_CAP_F,
@@ -253,13 +254,13 @@ static Switch *new_switch(Node * nd, int set_esp0)
 		mad_set_field(sw->switchinfo, 0, IB_SW_ENHANCED_PORT0_F,
 			      set_esp0 > 0);
 	sw->fdb = malloc(maxlinearcap*sizeof(sw->fdb[0]));
-	sw->mfdb = malloc(maxmcastcap*NUMBEROFPORTMASK*sizeof(uint16_t));
+	sw->mfdb = malloc(maxmcastcap * sw->numportmask * sizeof(uint16_t));
 	if (!sw->fdb || !sw->mfdb) {
 		IBPANIC("new_switch: no mem: %m");
 		return NULL;
 	}
 	memset(sw->fdb, 0xff, maxlinearcap*sizeof(sw->fdb[0]));
-	memset(sw->mfdb, 0, maxmcastcap*NUMBEROFPORTMASK*sizeof(uint16_t));
+	memset(sw->mfdb, 0, maxmcastcap * sw->numportmask * sizeof(uint16_t));
 
 	return sw;
 }

@@ -45,9 +45,7 @@
 #define MAXLINEARCAP	(30*1024)
 #define MAXMCASTCAP	1024
 #define LASTBLOCK32	(MAXMCASTCAP/32-1)
-// NUMBEROFPORTMASK means that 32port switches could only be build
-#define	NUMBEROFPORTMASK 2
-#define LASTPORTMASK	(NUMBEROFPORTMASK-1)
+#define MCASTMASKSIZE    16
 // linkwidth == 4X - must be one width only 1,2 or 8
 #define LINKWIDTH_1x        1
 #define LINKWIDTH_4x        2
@@ -318,6 +316,7 @@ struct Switch {
 	int linearFDBtop;
 	int portchange;
 	int lifetime;
+	int numportmask;
 	uint8_t switchinfo[64];
 	Node *node;
 	uint8_t *fdb;

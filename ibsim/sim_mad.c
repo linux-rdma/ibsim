@@ -532,18 +532,17 @@ static int do_multicastforwtbl(Port * port, unsigned op, uint32_t mod,
 	int blockposition;
 
 	Switch *sw = port->node->sw;
-
 	if (!sw)		// not a Switch?
 		return ERR_ATTR_UNSUPPORTED;
 
 	VERB("requested : Block32 %d PortMask %d", numBlock32, numPortMsk);
-	if (numBlock32 > LASTBLOCK32 || numPortMsk > LASTPORTMASK) {
+	if (numBlock32 > LASTBLOCK32 || numPortMsk >= sw->numportmask) {
 		int8_t zeroblock[64] = { 0 };
 		mad_set_array(data, 0, IB_MULTICAST_FORW_TBL_F, zeroblock);
 		return 0;
 	}
 
-	blockposition = (numBlock32 * NUMBEROFPORTMASK + numPortMsk) * 64;
+	blockposition = (numBlock32 * sw->numportmask + numPortMsk) * 64;
 	if (op == IB_MAD_METHOD_SET)
 		mad_get_array(data, 0, IB_MULTICAST_FORW_TBL_F,
 			      sw->mfdb + blockposition);
