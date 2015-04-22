@@ -934,6 +934,11 @@ static int do_perf_counter_set(FILE *f, char *line)
 		field_trim--;
 	*(field_trim + 1) = 0;
 
+#ifndef ULLONG_MAX
+/* Maximum value an `unsigned long long int' can hold. (Minimum is 0.) */
+#   define ULLONG_MAX   18446744073709551615ULL
+#endif
+
 	errno = 0;
 	value = strtoull(s, &val_error, 0);
 	if((value == 0 || value == ULLONG_MAX) && errno != 0) {
