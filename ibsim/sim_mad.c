@@ -635,8 +635,8 @@ static int pc_updated(Port ** srcport, Port * destport)
 		srcpc->flow_xmt_bytes =
 		    addval(srcpc->flow_xmt_bytes, madsize_div_4,
 			   GS_PERF_XMT_BYTES_LIMIT);
-		ADDVAL64(destpc->ext_xmit_data, madsize_div_4);
-		ADDVAL64(destpc->ext_xmit_pkts, 1);
+		ADDVAL64(srcpc->ext_xmit_data, madsize_div_4);
+		ADDVAL64(srcpc->ext_xmit_pkts, 1);
 
 		if (destport->errrate &&
 		    !destport->errattr &&
