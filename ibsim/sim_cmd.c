@@ -873,7 +873,7 @@ static int parse_vl_num(char *attr, char *field, int *vl)
 
 static int do_perf_counter_set(FILE *f, char *line)
 {
-	char *s = line, *orig, *sp, *nodeid, *attr, *field, *field_trim, *val_error;
+	char *s = line, *orig, *sp, *nodeid, *attr, *field, *field_trim, *end_ptr;
 	Node *node;
 	int portnum, vl;
 	uint64_t value;
@@ -911,9 +911,11 @@ static int do_perf_counter_set(FILE *f, char *line)
 		return -1;
 	}
 
-	if (s && *s)
-		while (isspace(*s))
-			s++;
+	while (*s != '\0' && !isspace(*s))
+		s++;
+	while (*s != '\0'  && isspace(*s))
+		s++;
+
 	attr = strsep(&s, ".");
 	if(s == NULL)
 		goto format_error;
@@ -940,16 +942,15 @@ static int do_perf_counter_set(FILE *f, char *line)
 #endif
 
 	errno = 0;
-	value = strtoull(s, &val_error, 0);
+	value = strtoull(s, &end_ptr, 0);
 	if((value == 0 || value == ULLONG_MAX) && errno != 0) {
-		fprintf(f, "# value is not valid integer\n");
+		fprintf(f, "# value '%s' is out of range [%d,%llu]\n", s, 0, ULLONG_MAX);
 		return -1;
 	}
-	if(*val_error) {
-		fprintf(f, "# value %s is not valid integer\n", s);
+	if(end_ptr == s  || end_ptr == NULL || *end_ptr !='\0') {
+		fprintf(f, "# value '%s' is not valid integer\n", s);
 		return -1;
 	}
-
 	pc = &(p->portcounters);
 
 	if(!strcasecmp(attr, "PortCounters")) {
@@ -1094,7 +1095,7 @@ static int do_perf_counter_set(FILE *f, char *line)
 		fprintf(f, "# attribute %s not found\n", attr);
 		return -1;
 	}
-	fprintf(f, "%s.%s has been set to %"PRIu64"\n", attr, field, value);
+	fprintf(f, "%s[%d] %s.%s has been set to %"PRIu64"\n", node->nodeid, p->portnum, attr, field, value);
 	return 0;
 field_not_found:
 	fprintf(f, "# field %s cannot be found in attribute %s\n", field, attr);
