@@ -897,13 +897,21 @@ static int do_perf_counter_set(FILE *f, char *line)
 		return -1;
 	}
 
-	if (sp) {
-		portnum = strtoul(sp, 0, 0);
-		if (portnum < 1 || portnum > node->numports) {
-			fprintf(f, "# bad port number %d at nodeid \"%s\"\n",
-				portnum, nodeid);
-			return -1;
-		}
+	if (sp == NULL) {
+		fprintf(f, "# port number not found in command\n");
+		return -1;
+	}
+
+	portnum = strtoul(sp, &end_ptr, 0);
+	if (end_ptr == sp) {
+		fprintf(f, "# port number not found in command\n");
+		return -1;
+	}
+
+	if (portnum < 1 || portnum > node->numports) {
+		fprintf(f, "# bad port number %d at nodeid \"%s\"\n",
+			portnum, nodeid);
+		return -1;
 	}
 
 	if (!(p = node_get_port(node, portnum))) {
