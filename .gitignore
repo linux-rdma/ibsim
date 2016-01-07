@@ -1,0 +1,9 @@
+# Backup files
+*~
+
+# Generated files
+*.o
+*.so
+*.build_profile
+ibsim/ibsim
+
