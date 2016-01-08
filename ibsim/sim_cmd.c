@@ -908,12 +908,6 @@ static int do_perf_counter_set(FILE *f, char *line)
 		return -1;
 	}
 
-	if (portnum < 1 || portnum > node->numports) {
-		fprintf(f, "# bad port number %d at nodeid \"%s\"\n",
-			portnum, nodeid);
-		return -1;
-	}
-
 	if (!(p = node_get_port(node, portnum))) {
 		fprintf(f, "# port %d not found from node %s\n", portnum, nodeid);
 		return -1;
@@ -959,6 +953,21 @@ static int do_perf_counter_set(FILE *f, char *line)
 		fprintf(f, "# value '%s' is not valid integer\n", s);
 		return -1;
 	}
+
+	if (portnum < 0 || portnum > node->numports
+	    || (node->type != SWITCH_NODE && portnum == 0)) {
+		fprintf(f, "# bad port number %d at nodeid \"%s\"\n",
+		        portnum, nodeid);
+		return -1;
+	}
+
+	if (node->type == SWITCH_NODE
+	    && portnum == 0
+	    && !mad_get_field(node->sw->switchinfo, 0, IB_SW_ENHANCED_PORT0_F)) {
+		fprintf(f, "# Can't set performance counters of base switch port 0\n");
+		return -1;
+	}
+
 	pc = &(p->portcounters);
 
 	if(!strcasecmp(attr, "PortCounters")) {
