@@ -55,7 +55,7 @@
 #include <ibsim.h>
 #include "sim.h"
 
-#define IBSIM_VERSION "0.6"
+#define IBSIM_VERSION "0.7"
 
 #undef DEBUG
 #define PDEBUG	if (parsedebug) IBWARN
