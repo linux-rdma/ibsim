@@ -64,6 +64,7 @@
 #define LINKSPEED_STR_QDR "QDR"
 #define LINKSPEED_STR_FDR "FDR"
 #define LINKSPEED_STR_EDR "EDR"
+#define LINKSPEED_STR_HDR "HDR"
 #define LINKSPEED_STR_FDR10 "FDR10"
 
 int inclines[MAX_INCLUDE];
@@ -83,7 +84,7 @@ static const uint8_t smaport[] = {
 	0x14, 0x52, 0x00, 0x11, 0x10, 0x40, 0x00, 0x08,
 	0x08, 0x03, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x01, 0x1F, 0x08, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00,
 };
 
 static const uint8_t swport[] = {
@@ -116,7 +117,7 @@ static const uint8_t hcaport[] = {
 	0x12, 0x52, 0x00, 0x11, 0x40, 0x40, 0x00, 0x08,
 	0x08, 0x04, 0xFF, 0x10, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x20, 0x1F, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x01 /* 0x11 */, 0x01,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x01 /* 0x11 */, 0x01,
 };
 
 static const uint8_t hcaport_down[] = {
@@ -127,7 +128,7 @@ static const uint8_t hcaport_down[] = {
 	0x11, 0x22, 0x00, 0x11, 0x40, 0x40, 0x00, 0x08,
 	0x08, 0x04, 0xE9, 0x10, 0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00, 0x20, 0x1F, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x01 /* 0x11 */, 0x01,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x01 /* 0x11 */, 0x01,
 };
 
 static const uint8_t switchinfo[] = {
@@ -429,9 +430,9 @@ static int is_linkspeed_valid(int speed)
 
 static int is_linkspeedext_valid(int speed)
 {
-	/* extended speed is none, FDR, EDR, or both */
-	if (speed < 0 || speed > 3) {
-		IBWARN("bad extended speed %d = should be between 0 to 3", speed);
+	/* extended speed is none, FDR, EDR, HDR, or some combination */
+	if (speed < 0 || speed > 7) {
+		IBWARN("bad extended speed %d = should be between 0 to 7", speed);
 		return 0;
 	}
 	return 1;
@@ -503,6 +504,11 @@ static int parse_port_link_width_and_speed(Port * port, char *line)
 		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
 	} else if (!strncmp(speed, LINKSPEED_STR_EDR, strlen(speed))) {
 		port->linkspeedextena = LINKSPEEDEXT_FDR_EDR;
+		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
+		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
+	} else if (!strncmp(speed, LINKSPEED_STR_HDR, strlen(speed))) {
+
+		port->linkspeedextena = LINKSPEEDEXT_HDR_EDR_FDR;
 		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
 		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
 	} else if (!strncmp(speed, LINKSPEED_STR_FDR10, strlen(speed))){
@@ -1227,6 +1233,8 @@ static int get_active_linkspeedext(Port * lport, Port * rport)
 {
 	int speed = lport->linkspeedextena & rport->linkspeedextena;
 
+	if (speed & LINKSPEEDEXT_HDR)
+		return LINKSPEEDEXT_HDR;
 	if (speed & LINKSPEEDEXT_EDR)
 		return LINKSPEEDEXT_EDR;
 	if (speed & LINKSPEEDEXT_FDR)

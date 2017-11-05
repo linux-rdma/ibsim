@@ -338,6 +338,8 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 			str = " FDR";
 		else if (speed == 2)
 			str = " EDR";
+		else if (speed == 4)
+			str = " HDR";
 		else
 			str = "";
 		file_printf(path, SYS_PORT_RATE, "%d Gb/sec (%dX%s)\n",
