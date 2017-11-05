@@ -47,13 +47,15 @@
 #define MAXMCASTCAP	1024
 #define LASTBLOCK32	(MAXMCASTCAP/32-1)
 #define MCASTMASKSIZE    16
-// linkwidth == 4X - must be one width only 1,2 or 8
+// linkwidth == 4X - must be one width only 1,2,8 or 16
 #define LINKWIDTH_1x        1
 #define LINKWIDTH_4x        2
 #define LINKWIDTH_8x        4
 #define LINKWIDTH_12x       8
+#define LINKWIDTH_2x        16
 #define LINKWIDTH_1x_4x     3
 #define LINKWIDTH_1x_4x_12x 11
+#define LINKWIDTH_1x_2x_4x_12x 27
 
 #define LINKSPEED_SDR       1
 #define LINKSPEED_DDR       2
@@ -101,7 +103,13 @@ enum PORTINFO_CAPMASK {
 	CAPMASK_ISNOTICE = (1<<2),
 	CAPMASK_ISTRAP = (1<<3),
 	CAPMASK_ISEXTENDEDSPEEDS = (1<<14),
+	CAPMASK_ISCAPMASK2 = (1<<15),
 	CAPMASK_ISCAPMASKTRAP = (1<<22),
+};
+
+/* some PortInfo capmask2 fields */
+enum PORTINFO_CAPMASK2 {
+	CAPMASK2_ISLINKWIDTH2X = (1<<4),
 };
 
 enum GS_PERF_COUNTER_SELECT_MASK {

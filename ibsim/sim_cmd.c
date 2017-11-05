@@ -72,6 +72,7 @@ static const char *physstates[] = {
 
 static const char *portlinkwidth[] = {
 	"-", " 1x", " 4x", "-", " 8x", "-", "-", "-", "12x",
+	"-", "-", "-", "-", "-", "-", "-", " 2x",
 };
 
 static const char *portlinkspeed[] = {
@@ -88,7 +89,7 @@ static const char *portlinkmlnxspeed[] = {
 
 #define PORTSTATE(i) (((i) < 1 || (i) > 4) ? "?" : portstates[(i)])
 #define PHYSSTATE(i) (((i) < 1 || (i) > 6) ? "?" : physstates[(i)])
-#define PORTLINKWIDTH(i) (((i) < 1 || (i) > 8) ? "?" : portlinkwidth[(i)])
+#define PORTLINKWIDTH(i) (((i) < 1 || (i) > 16) ? "?" : portlinkwidth[(i)])
 #define PORTLINKSPEED(i) (((i) < 1 || (i) > 4) ? "?" : portlinkspeed[(i)])
 #define PORTLINKSPEEDEXT(i) (((i) < 0 || (i) > 2) ? "?" : portlinkspeedext[(i)])
 #define PORTMLNXLINKSPEED(i) (((i) < 0 || (i) > 1) ? "?" : portlinkmlnxspeed[(i)])
