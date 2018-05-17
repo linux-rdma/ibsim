@@ -483,7 +483,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 {
 	Node *node = port->node;
 	Port *p, *rp;
-	int r, newlid, newstate = 0;
+	int r, newlid;
 
 	portnum &= 0x7fffffff;
 	if (portnum > node->numports)
@@ -517,7 +517,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 		if (r > 0 && p->remotenode &&
 		    (rp = node_get_port(p->remotenode, p->remoteport))) {
 			if (r == 1) {	/* DOWN */
-				newstate = p->state = 2;	/* set to INIT */
+				p->state = 2;	/* set to INIT */
 				/*
 				 * If the state is changed to initialize (from down or not)
 				 * we should force remote state to same state.
@@ -531,7 +531,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 			} else if (r > 2) {
 				if (abs(rp->state - r) <= 1
 				    && abs(p->state - r) == 1)
-					newstate = p->state = r;	/* set to new state */
+					p->state = r;	/* set to new state */
 				else
 					return ERR_BAD_PARAM;
 			}
