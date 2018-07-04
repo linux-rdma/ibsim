@@ -300,9 +300,10 @@ static int do_cpi(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 	mad_set_field(data, 0, IB_CPI_BASEVER_F, 1);
 	mad_set_field(data, 0, IB_CPI_CLASSVER_F, 1);
 	if (node->type != SWITCH_NODE)
-		mad_set_field(data, 0, IB_CPI_CAPMASK_F, 0x200);
+		mad_set_field(data, 0, IB_CPI_CAPMASK_F, IB_PM_EXT_WIDTH_SUPPORTED|IB_PM_PC_XMIT_WAIT_SUP);
 	else
-		mad_set_field(data, 0, IB_CPI_CAPMASK_F, 0x300);
+		mad_set_field(data, 0, IB_CPI_CAPMASK_F, IB_PM_ALL_PORT_SELECT|IB_PM_EXT_WIDTH_SUPPORTED|IB_PM_PC_XMIT_WAIT_SUP);
+
 	mad_set_field(data, 0, IB_CPI_RESP_TIME_VALUE_F, 0x12);
 	return status;
 }
