@@ -483,8 +483,9 @@ static int
 do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 {
 	Node *node = port->node;
-	Port *p, *rp;
+	Port *p, *rp = NULL;
 	int r, newlid;
+	int speed, espeed, width;
 
 	portnum &= 0x7fffffff;
 	if (portnum > node->numports)
@@ -540,7 +541,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 			return ERR_BAD_PARAM;	/* trying to change the state of DOWN port */
 
 		if (p->state == 4) {
-			if (p->lid > 0 && p->lid < maxlinearcap
+			if (node->type != SWITCH_NODE && p->lid > 0 && p->lid < maxlinearcap
 			    && lids[p->lid] != p && lids[p->lid])
 				IBWARN
 				    ("Port %s:%d overwrite lid table entry for lid %u (was %s:%d)",
@@ -553,8 +554,218 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 		if (val > mad_get_field(data, 0, IB_PORT_VL_CAP_F))
 			return ERR_BAD_PARAM;
 		p->op_vls = val;
+
+		if(!rp && p->remotenode)
+			rp = node_get_port(p->remotenode, p->remoteport);
+		else
+			goto update_port;
+
+		speed = mad_get_field(data, 0, IB_PORT_LINK_SPEED_ENABLED_F);
+		switch(speed) {
+			case LINKSPEED_SDR:
+				p->linkspeed = LINKSPEED_SDR;
+				rp->linkspeed = LINKSPEED_SDR;
+				break;
+			case LINKSPEED_SDR_DDR:
+				p->linkspeed = LINKSPEED_DDR;
+				rp->linkspeed = LINKSPEED_DDR;
+				break;
+			case LINKSPEED_SDR_QDR:
+				p->linkspeed = LINKSPEED_QDR;
+				rp->linkspeed = LINKSPEED_QDR;
+				break;
+			case LINKSPEED_SDR_DDR_QDR:
+				p->linkspeed = LINKSPEED_QDR;
+				rp->linkspeed = LINKSPEED_QDR;
+				break;
+			default:
+				speed = 0;
+		}
+
+		if(speed && speed != p->linkspeedena)
+			p->linkspeedena = speed;
+		else
+			speed = 0;
+
+		espeed = mad_get_field(data, 0, IB_PORT_LINK_SPEED_EXT_ENABLED_F);
+		switch(espeed) {
+			case LINKSPEEDEXT_FDR:
+				p->linkspeedext = LINKSPEEDEXT_FDR;
+				rp->linkspeedext = LINKSPEEDEXT_FDR;
+				break;
+			case LINKSPEEDEXT_EDR:
+				p->linkspeedext = LINKSPEEDEXT_EDR;
+				rp->linkspeedext = LINKSPEEDEXT_EDR;
+				break;
+			case LINKSPEEDEXT_FDR_EDR:
+				p->linkspeedext = LINKSPEEDEXT_EDR;
+				rp->linkspeedext = LINKSPEEDEXT_EDR;
+				break;
+			case LINKSPEEDEXT_HDR:
+				p->linkspeedext = LINKSPEEDEXT_HDR;
+				rp->linkspeedext = LINKSPEEDEXT_HDR;
+				break;
+			case LINKSPEEDEXT_HDR_FDR:
+				p->linkspeedext = LINKSPEEDEXT_HDR;
+				rp->linkspeedext = LINKSPEEDEXT_HDR;
+				break;
+			case LINKSPEEDEXT_HDR_EDR:
+				p->linkspeedext = LINKSPEEDEXT_HDR;
+				rp->linkspeedext = LINKSPEEDEXT_HDR;
+				break;
+			case LINKSPEEDEXT_HDR_EDR_FDR:
+				p->linkspeedext = LINKSPEEDEXT_HDR;
+				rp->linkspeedext = LINKSPEEDEXT_HDR;
+				break;
+			default:
+				espeed = 0;
+		}
+
+		if(espeed && espeed != p->linkspeedextena)
+			p->linkspeedextena = espeed;
+		else
+			espeed = 0;
+
+		width = mad_get_field(data, 0, IB_PORT_LINK_WIDTH_ENABLED_F);
+		switch(width) {
+			case LINKWIDTH_1x:
+				p->linkwidth = LINKWIDTH_1x;
+				rp->linkwidth = LINKWIDTH_1x;
+				break;
+			case LINKWIDTH_4x:
+				p->linkwidth = LINKWIDTH_4x;
+				rp->linkwidth = LINKWIDTH_4x;
+				break;
+			case LINKWIDTH_1x_4x:
+				p->linkwidth = LINKWIDTH_4x;
+				rp->linkwidth = LINKWIDTH_4x;
+				break;
+			case LINKWIDTH_8x:
+				p->linkwidth = LINKWIDTH_8x;
+				rp->linkwidth = LINKWIDTH_8x;
+				break;
+			case LINKWIDTH_1x_8x:
+				p->linkwidth = LINKWIDTH_8x;
+				rp->linkwidth = LINKWIDTH_8x;
+				break;
+			case LINKWIDTH_4x_8x:
+				p->linkwidth = LINKWIDTH_8x;
+				rp->linkwidth = LINKWIDTH_8x;
+				break;
+			case LINKWIDTH_1x_4x_8x:
+				p->linkwidth = LINKWIDTH_8x;
+				rp->linkwidth = LINKWIDTH_8x;
+				break;
+			case LINKWIDTH_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_1x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_4x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_1x_4x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_8x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_1x_8x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_4x_8x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_1x_4x_8x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_2x:
+				p->linkwidth = LINKWIDTH_2x;
+				rp->linkwidth = LINKWIDTH_2x;
+				break;
+			case LINKWIDTH_1x_2x:
+				p->linkwidth = LINKWIDTH_2x;
+				rp->linkwidth = LINKWIDTH_2x;
+				break;
+			case LINKWIDTH_2x_4x:
+				p->linkwidth = LINKWIDTH_4x;
+				rp->linkwidth = LINKWIDTH_4x;
+				break;
+			case LINKWIDTH_1x_2x_4x:
+				p->linkwidth = LINKWIDTH_4x;
+				rp->linkwidth = LINKWIDTH_4x;
+				break;
+			case LINKWIDTH_2x_8x:
+				p->linkwidth = LINKWIDTH_8x;
+				rp->linkwidth = LINKWIDTH_8x;
+				break;
+			case LINKWIDTH_1x_2x_8x:
+				p->linkwidth = LINKWIDTH_8x;
+				rp->linkwidth = LINKWIDTH_8x;
+				break;
+			case LINKWIDTH_2x_4x_8x:
+				p->linkwidth = LINKWIDTH_8x;
+				rp->linkwidth = LINKWIDTH_8x;
+				break;
+			case LINKWIDTH_1x_2x_4x_8x:
+				p->linkwidth = LINKWIDTH_8x;
+				rp->linkwidth = LINKWIDTH_8x;
+				break;
+			case LINKWIDTH_2x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_1x_2x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_2x_4x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_1x_2x_4x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_2x_8x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_1x_2x_8x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_2x_4x_8x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			case LINKWIDTH_1x_2x_4x_8x_12x:
+				p->linkwidth = LINKWIDTH_12x;
+				rp->linkwidth = LINKWIDTH_12x;
+				break;
+			default:
+				width = 0;
+		}
+
+		if(width && width != p->linkwidthena)
+			p->linkwidthena = width;
+		else
+			width = 0;
+
+		if(speed || espeed || width)
+			send_trap(port, TRAP_144);
 	}
 
+update_port:
 	update_portinfo(p);
 	memcpy(data, p->portinfo, IB_SMP_DATA_SIZE);
 	mad_set_field(data, 0, IB_PORT_LOCAL_PORT_F, port->portnum);

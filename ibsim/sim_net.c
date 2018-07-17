@@ -1275,22 +1275,20 @@ void update_portinfo(Port * p)
 	mad_set_field(pi, 0, IB_PORT_SMLID_F, p->smlid);
 	mad_set_field(pi, 0, IB_PORT_OPER_VLS_F, p->op_vls);
 	mad_set_field(pi, 0, IB_PORT_LINK_WIDTH_ENABLED_F, p->linkwidthena);
-	mad_set_field(pi, 0, IB_PORT_LINK_WIDTH_SUPPORTED_F,
-		      LINKWIDTH_1x_2x_4x_12x);
+	mad_set_field(pi, 0, IB_PORT_LINK_WIDTH_SUPPORTED_F, LINKWIDTH_1x_2x_4x_8x_12x);
 	mad_set_field(pi, 0, IB_PORT_LINK_WIDTH_ACTIVE_F, p->linkwidth);
 	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_ENABLED_F, p->linkspeedena);
-	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_SUPPORTED_F, p->linkspeedena);
+	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_SUPPORTED_F, LINKSPEED_SDR_DDR_QDR);
+	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_ACTIVE_F, p->linkspeed);
 
 	mad_set_field(pi, 0, IB_PORT_LMC_F, p->lmc);
 	mad_set_field(pi, 0, IB_PORT_HOQ_LIFE_F, p->hoqlife);
 	mad_set_field(pi, 0, IB_PORT_PHYS_STATE_F, p->physstate);
 	mad_set_field(pi, 0, IB_PORT_STATE_F, p->state);
 
-	mad_set_field(pi, 0, IB_PORT_LINK_SPEED_ACTIVE_F, p->linkspeed);
-
 	if (p->linkspeedext) {
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ENABLED_F, p->linkspeedextena);
-		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_SUPPORTED_F, p->linkspeedextena);
+		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_SUPPORTED_F, LINKSPEEDEXT_HDR_EDR_FDR);
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ACTIVE_F, p->linkspeedext);
 	} else {
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ENABLED_F, 0);
