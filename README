@@ -1,5 +1,5 @@
-Voltaire Infiniband Fabric Simulator - ibsim
-============================================
+Infiniband Fabric Simulator - ibsim
+===================================
 
 Basic Description and main features.
 -----------------------------------
@@ -100,4 +100,4 @@ Feedback.
 ---------
 
 Please send your feedback and patches to the maintainer:
-Sasha Khapyorsky <sashak@voltaire.com>
+Hal Rosenstock <hal@mellanox.com>
