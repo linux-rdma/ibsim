@@ -571,9 +571,6 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 			rp->linkspeed = LINKSPEED_DDR;
 			break;
 		case LINKSPEED_SDR_QDR:
-			p->linkspeed = LINKSPEED_QDR;
-			rp->linkspeed = LINKSPEED_QDR;
-			break;
 		case LINKSPEED_SDR_DDR_QDR:
 			p->linkspeed = LINKSPEED_QDR;
 			rp->linkspeed = LINKSPEED_QDR;
@@ -594,25 +591,13 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 			rp->linkspeedext = LINKSPEEDEXT_FDR;
 			break;
 		case LINKSPEEDEXT_EDR:
-			p->linkspeedext = LINKSPEEDEXT_EDR;
-			rp->linkspeedext = LINKSPEEDEXT_EDR;
-			break;
 		case LINKSPEEDEXT_FDR_EDR:
 			p->linkspeedext = LINKSPEEDEXT_EDR;
 			rp->linkspeedext = LINKSPEEDEXT_EDR;
 			break;
 		case LINKSPEEDEXT_HDR:
-			p->linkspeedext = LINKSPEEDEXT_HDR;
-			rp->linkspeedext = LINKSPEEDEXT_HDR;
-			break;
 		case LINKSPEEDEXT_HDR_FDR:
-			p->linkspeedext = LINKSPEEDEXT_HDR;
-			rp->linkspeedext = LINKSPEEDEXT_HDR;
-			break;
 		case LINKSPEEDEXT_HDR_EDR:
-			p->linkspeedext = LINKSPEEDEXT_HDR;
-			rp->linkspeedext = LINKSPEEDEXT_HDR;
-			break;
 		case LINKSPEEDEXT_HDR_EDR_FDR:
 			p->linkspeedext = LINKSPEEDEXT_HDR;
 			rp->linkspeedext = LINKSPEEDEXT_HDR;
