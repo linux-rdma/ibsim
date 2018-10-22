@@ -633,124 +633,46 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 			rp->linkwidth = LINKWIDTH_1x;
 			break;
 		case LINKWIDTH_4x:
-			p->linkwidth = LINKWIDTH_4x;
-			rp->linkwidth = LINKWIDTH_4x;
-			break;
 		case LINKWIDTH_1x_4x:
-			p->linkwidth = LINKWIDTH_4x;
-			rp->linkwidth = LINKWIDTH_4x;
-			break;
-		case LINKWIDTH_8x:
-			p->linkwidth = LINKWIDTH_8x;
-			rp->linkwidth = LINKWIDTH_8x;
-			break;
-		case LINKWIDTH_1x_8x:
-			p->linkwidth = LINKWIDTH_8x;
-			rp->linkwidth = LINKWIDTH_8x;
-			break;
-		case LINKWIDTH_4x_8x:
-			p->linkwidth = LINKWIDTH_8x;
-			rp->linkwidth = LINKWIDTH_8x;
-			break;
-		case LINKWIDTH_1x_4x_8x:
-			p->linkwidth = LINKWIDTH_8x;
-			rp->linkwidth = LINKWIDTH_8x;
-			break;
-		case LINKWIDTH_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
-		case LINKWIDTH_1x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
-		case LINKWIDTH_4x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
-		case LINKWIDTH_1x_4x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
-		case LINKWIDTH_8x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
-		case LINKWIDTH_1x_8x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
-		case LINKWIDTH_4x_8x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
-		case LINKWIDTH_1x_4x_8x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
-		case LINKWIDTH_2x:
-			p->linkwidth = LINKWIDTH_2x;
-			rp->linkwidth = LINKWIDTH_2x;
-			break;
-		case LINKWIDTH_1x_2x:
-			p->linkwidth = LINKWIDTH_2x;
-			rp->linkwidth = LINKWIDTH_2x;
-			break;
 		case LINKWIDTH_2x_4x:
-			p->linkwidth = LINKWIDTH_4x;
-			rp->linkwidth = LINKWIDTH_4x;
-			break;
 		case LINKWIDTH_1x_2x_4x:
 			p->linkwidth = LINKWIDTH_4x;
 			rp->linkwidth = LINKWIDTH_4x;
 			break;
+		case LINKWIDTH_8x:
+		case LINKWIDTH_1x_8x:
+		case LINKWIDTH_4x_8x:
+		case LINKWIDTH_1x_4x_8x:
 		case LINKWIDTH_2x_8x:
-			p->linkwidth = LINKWIDTH_8x;
-			rp->linkwidth = LINKWIDTH_8x;
-			break;
 		case LINKWIDTH_1x_2x_8x:
-			p->linkwidth = LINKWIDTH_8x;
-			rp->linkwidth = LINKWIDTH_8x;
-			break;
 		case LINKWIDTH_2x_4x_8x:
-			p->linkwidth = LINKWIDTH_8x;
-			rp->linkwidth = LINKWIDTH_8x;
-			break;
 		case LINKWIDTH_1x_2x_4x_8x:
 			p->linkwidth = LINKWIDTH_8x;
 			rp->linkwidth = LINKWIDTH_8x;
 			break;
+		case LINKWIDTH_12x:
+		case LINKWIDTH_1x_12x:
+		case LINKWIDTH_4x_12x:
+		case LINKWIDTH_1x_4x_12x:
+		case LINKWIDTH_8x_12x:
+		case LINKWIDTH_1x_8x_12x:
+		case LINKWIDTH_4x_8x_12x:
+		case LINKWIDTH_1x_4x_8x_12x:
 		case LINKWIDTH_2x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
 		case LINKWIDTH_1x_2x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
 		case LINKWIDTH_2x_4x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
 		case LINKWIDTH_1x_2x_4x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
 		case LINKWIDTH_2x_8x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
 		case LINKWIDTH_1x_2x_8x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
 		case LINKWIDTH_2x_4x_8x_12x:
-			p->linkwidth = LINKWIDTH_12x;
-			rp->linkwidth = LINKWIDTH_12x;
-			break;
 		case LINKWIDTH_1x_2x_4x_8x_12x:
 			p->linkwidth = LINKWIDTH_12x;
 			rp->linkwidth = LINKWIDTH_12x;
+			break;
+		case LINKWIDTH_2x:
+		case LINKWIDTH_1x_2x:
+			p->linkwidth = LINKWIDTH_2x;
+			rp->linkwidth = LINKWIDTH_2x;
 			break;
 		default:
 			width = 0;
