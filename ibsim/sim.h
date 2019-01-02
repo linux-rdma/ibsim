@@ -440,8 +440,6 @@ int readline(int fd, char *buf, int sz);
 
 // sim_cmd.c
 int do_cmd(char *buf, FILE *f);
-int sim_cmd_file(FILE * file, char *line);
-void *sim_cmd_thread(void *file);
 
 // sim_mad.c
 int process_packet(Client * cl, void *p, int size, Client ** dcl);
