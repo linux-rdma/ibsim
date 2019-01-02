@@ -711,7 +711,7 @@ static int do_linearforwtbl(Port * port, unsigned op, uint32_t mod,
 	if (!sw)		// not a Switch?
 		return ERR_ATTR_UNSUPPORTED;
 
-	if (mod < 0 || mod > 767)
+	if (mod > 767)
 		return ERR_BAD_PARAM;
 
 	if (op == IB_MAD_METHOD_SET)
