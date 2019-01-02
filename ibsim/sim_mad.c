@@ -157,10 +157,10 @@ static Smpfn * get_smp_handler(unsigned class_id, unsigned attr_id)
 }
 
 static EncodeTrapfn *encodetrap[] = {
-	[TRAP_128] encode_trap128,
-	[TRAP_144] encode_trap144,
+	[TRAP_128] = encode_trap128,
+	[TRAP_144] = encode_trap144,
 
-	[TRAP_NUM_LAST] 0,
+	[TRAP_NUM_LAST] = 0,
 };
 
 extern Node *nodes;
