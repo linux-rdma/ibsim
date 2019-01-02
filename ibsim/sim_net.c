@@ -533,6 +533,7 @@ static int parse_port_connection_data(Port * port, int type, char *line)
 
 	if (rc) {
 		IBWARN("cannot parse remote lid and connection type");
+		regfree(&regex);
 		return 0;
 	}
 
@@ -542,18 +543,23 @@ static int parse_port_connection_data(Port * port, int type, char *line)
 		/* expecting line with the following format:
 		 * [1]	"H-000123456789ABCD"[2](123456789ABCE) 		# "description" lid 1 4xQDR ...
 		 */
-		if (parse_port_link_width_and_speed(port, line_connection_type))
+		if (parse_port_link_width_and_speed(port, line_connection_type)) {
+			regfree(&regex);
 			return -1;
+		}
 	}
 	if (type == HCA_NODE) {
 		/* expecting line with the following format:
 		 * [1](123456789ABCDE) 	"S-000123456789ABCDF"[2]		# lid 2 lmc 0 "description" lid 1 4xQDR ...
 		 */
 		if (parse_port_lid_and_lmc(port, line) ||
-		    parse_port_link_width_and_speed(port, line_connection_type))
+		    parse_port_link_width_and_speed(port, line_connection_type)) {
+			regfree(&regex);
 			return -1;
+		}
 	}
 
+	regfree(&regex);
 	return 0;
 }
 
