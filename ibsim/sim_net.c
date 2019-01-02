@@ -646,9 +646,9 @@ static void init_ports(Node * node, int type, int maxports)
 			memcpy(port->sl2vl + 8 * j, default_sl2vl, 8);
 
 		memcpy(port->vlarb_high, default_vlarb_high,
-		       sizeof(port->vlarb_high));
+		       sizeof(default_vlarb_high));
 		memcpy(port->vlarb_low, default_vlarb_low,
-		       sizeof(port->vlarb_low));
+		       sizeof(default_vlarb_low));
 	}
 }
 
