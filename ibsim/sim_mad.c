@@ -404,7 +404,7 @@ static int do_sl2vl(Port * port, unsigned op, uint32_t mod, uint8_t * data)
 		n = (mod >> 8) & 0xff;
 		port = node_get_port(port->node, n);
 		n = mod & 0xff;
-		if (!port && !node_get_port(port->node, n))
+		if (!port || !node_get_port(port->node, n))
 			return ERR_BAD_PARAM;
 	} else
 		n = 0;
