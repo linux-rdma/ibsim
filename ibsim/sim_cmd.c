@@ -1188,69 +1188,76 @@ static int sim_cmd_file(FILE * f, char *s)
 
 int netstarted;
 
+static int match_command(char * line, char *cmd, unsigned int cmd_len)
+{
+	if (cmd_len != strlen(cmd))
+		return 0;
+	return !(strncasecmp(line, cmd, strlen(cmd)));
+}
+
 int do_cmd(char *buf, FILE *f)
 {
 	unsigned int cmd_len = 0;
 	char *line;
 	int r = 0;
+	unsigned int max_cmd_len, i;
 
 	for (line = buf; *line && isspace(*line); line++) ;
 
-	while (!isspace(line[cmd_len]))
-		cmd_len++;
+	max_cmd_len = strlen(line);
+	for (i = 0; i < max_cmd_len; i++) {
+		if (!isspace(line[cmd_len]))
+			cmd_len++;
+		else
+			break;
+	}
 
 	if (*line == '#')
 		fprintf(f, "%s", line);
 	else if (*line == '!')
 		r = sim_cmd_file(f, line);
-	else if (!strncasecmp(line, "Dump", cmd_len))
+	else if (match_command(line, "Dump", cmd_len))
 		r = dump_net(f, line);
-	else if (!strncasecmp(line, "Route", cmd_len))
+	else if (match_command(line, "Route", cmd_len))
 		r = dump_route(f, line);
-	else if (!strncasecmp(line, "Link", cmd_len))
+	else if (match_command(line, "Link", cmd_len))
 		r = do_link(f, line);
-	else if (!strncasecmp(line, "Unlink", cmd_len))
+	else if (match_command(line, "Unlink", cmd_len))
 		r = do_unlink(f, line, 0);
-	else if (!strncasecmp(line, "Clear", cmd_len))
+	else if (match_command(line, "Clear", cmd_len))
 		r = do_unlink(f, line, 1);
-	else if (!strncasecmp(line, "Guid", cmd_len))
+	else if (match_command(line, "Guid", cmd_len))
 		r = do_set_guid(f, line);
-	else if (!strncasecmp(line, "Error", cmd_len))
+	else if (match_command(line, "Error", cmd_len))
 		r = do_seterror(f, line);
-	else if (!strncasecmp(line, "Baselid", cmd_len))
+	else if (match_command(line, "Baselid", cmd_len))
 		r = do_change_baselid(f, line);
-	else if (!strncasecmp(line, "Start", cmd_len)) {
+	else if (match_command(line, "Start", cmd_len)) {
 		if (!netstarted) {
 			DEBUG("starting...");
 			netstarted = 1;
 			return 0;
 		}
 	}
-	else if (!strncasecmp(line, "Verbose", cmd_len))
+	else if (match_command(line, "Verbose", cmd_len))
 		r = change_verbose(f, line);
-	else if (!strncasecmp(line, "Wait", cmd_len))
+	else if (match_command(line, "Wait", cmd_len))
 		r = do_wait(f, line);
-	else if (!strncasecmp(line, "Attached", cmd_len))
+	else if (match_command(line, "Attached", cmd_len))
 		r = list_connections(f);
-	else if (!strncasecmp(line, "X", cmd_len))
+	else if (match_command(line, "X", cmd_len))
 		r = do_disconnect_client(f, strtol(line + 2, 0, 0));
-	else if (!strncasecmp(line, "Help", cmd_len)
-		 || !strncasecmp(line, "?", cmd_len))
+	else if (match_command(line, "Help", cmd_len)
+		 || match_command(line, "?", cmd_len))
 		r = dump_help(f);
-	else if (!strncasecmp(line, "Quit", cmd_len)) {
+	else if (match_command(line, "Quit", cmd_len)) {
 		fprintf(f, "Exiting network simulator.\n");
 		free_core();
 		exit(0);
 	}
-	/* commands specified above support legacy single
-	 * character options.  For example, 'g' or 'G' for "Guid"
-	 * and 'l' or 'L' for "Link".
-	 *
-	 * please specify new command support below this comment.
-	 */
-	else if (!strncasecmp(line, "ReLink", cmd_len))
+	else if (match_command(line, "ReLink", cmd_len))
 		r = do_relink(f, line);
-	else if (!strncasecmp(line, "PerformanceSet", cmd_len))
+	else if (match_command(line, "PerformanceSet", cmd_len))
 		r = do_perf_counter_set(f, line);
 	else if (*line != '\n' && *line != '\0')
 		fprintf(f, "command \'%s\' unknown - skipped\n", line);
