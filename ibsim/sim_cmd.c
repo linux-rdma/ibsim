@@ -537,7 +537,7 @@ static void dump_comment(Port * port, char *comment)
 	if (port->errrate)
 		n += sprintf(comment, "\t# err_rate %d", port->errrate);
 	if (port->errattr)
-		n += sprintf(comment+n, "\t# err_attr %d", port->errattr);
+		sprintf(comment+n, "\t# err_attr %d", port->errattr);
 }
 
 static void dump_port(FILE * f, Port * port, int type)
