@@ -251,7 +251,7 @@ static Switch *new_switch(Node * nd, int set_esp0)
 
 	if (netswitches >= maxnetswitches) {
 		IBPANIC("no more switches (max %d)", maxnetswitches);
-		return 0;
+		return NULL;
 	}
 
 	sw = switches + netswitches++;
@@ -304,22 +304,22 @@ static Node *new_node(int type, char *nodename, char *nodedesc, int nodeports)
 	Node *nd;
 
 	if (build_nodeid(nodeid, sizeof(nodeid), nodename) < 0)
-		return 0;
+		return NULL;
 
 	if (find_node(nodeid)) {
 		IBWARN("node id %s already exists", nodeid);
-		return 0;
+		return NULL;
 	}
 
 	if (netnodes >= maxnetnodes) {
 		IBPANIC("no more nodes (max %d)", maxnetnodes);
-		return 0;
+		return NULL;
 	}
 
 	if (find_node_by_guid(guids[type])) {
 		IBWARN("node %s guid %" PRIx64 " already exists",
 		       node_type_name(type), guids[type]);
-		return 0;
+		return NULL;
 	}
 
 	nd = nodes + netnodes++;
@@ -354,7 +354,7 @@ static Node *new_node(int type, char *nodename, char *nodedesc, int nodeports)
 	if ((nd->portsbase = new_ports(nd, nodeports, firstport)) < 0) {
 		IBWARN("can't alloc %d ports for node %s", nodeports,
 		       nd->nodeid);
-		return 0;
+		return NULL;
 	}
 
 	netvendid = 0;
@@ -376,7 +376,7 @@ static char *parse_node_id(char *buf, char **rest_buf)
 
 	if (!(s = strchr(buf, '"')) || !(e = strchr(s + 1, '"'))) {
 		IBWARN("can't find valid id in <%s>", buf);
-		return 0;
+		return NULL;
 	}
 	*e = 0;
 	if (rest_buf)
@@ -678,7 +678,7 @@ char *map_alias(char *alias)
 		if (aliases[i][len] == '#')
 			return aliases[i] + len + 1;
 	}
-	return 0;
+	return NULL;
 }
 
 char *expand_name(char *base, char *name, char **portstr)
@@ -686,7 +686,7 @@ char *expand_name(char *base, char *name, char **portstr)
 	char *s;
 
 	if (!base)
-		return 0;
+		return NULL;
 
 	if (!strchr(base, '@')) {
 		if (netprefix[0] != 0 && !strchr(base, '#'))
@@ -703,7 +703,7 @@ char *expand_name(char *base, char *name, char **portstr)
 	PDEBUG("alias %s", name);
 
 	if (!(s = map_alias(name)))
-		return 0;
+		return NULL;
 
 	strncpy(name, s, NODEIDLEN - 1);
 
@@ -1481,13 +1481,13 @@ Node *find_node(char *desc)
 	Node *nd, *e;
 
 	if (!desc)
-		return 0;
+		return NULL;
 
 	for (nd = nodes, e = nodes + netnodes; nd < e; nd++)
 		if (!strcmp(desc, nd->nodeid))
 			return nd;
 
-	return 0;
+	return NULL;
 }
 
 Node *find_node_by_desc(char *desc)
@@ -1495,13 +1495,13 @@ Node *find_node_by_desc(char *desc)
 	Node *nd, *e;
 
 	if (!desc)
-		return 0;
+		return NULL;
 
 	for (nd = nodes, e = nodes + netnodes; nd < e; nd++)
 		if (!strcmp(desc, nd->nodedesc))
 			return nd;
 
-	return 0;
+	return NULL;
 }
 
 Node *find_node_by_guid(uint64_t guid)
@@ -1509,13 +1509,13 @@ Node *find_node_by_guid(uint64_t guid)
 	Node *nd, *e;
 
 	if (ignoreduplicate)
-		return 0;
+		return NULL;
 
 	for (nd = nodes, e = nodes + netnodes; nd < e; nd++)
 		if (nd->nodeguid == guid)
 			return nd;
 
-	return 0;
+	return NULL;
 }
 
 Port *node_get_port(Node * node, int portnum)

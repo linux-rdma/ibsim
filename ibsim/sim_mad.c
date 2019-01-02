@@ -1639,7 +1639,7 @@ static Port *lid_route_MAD(Port * port, int lid)
 
 	if (lid == 0) {
 		IBWARN("invalid lid 0");
-		return 0;
+		return NULL;
 	}
 
 	if (is_port_lid(port, lid))
@@ -1649,11 +1649,11 @@ static Port *lid_route_MAD(Port * port, int lid)
 		pc_add_error_xmitdiscards(port);
 		IBWARN("failed: disconnected node 0x%" PRIx64 " or port 0x%"
 		       PRIx64 "?", node->nodeguid, port->portguid);
-		return 0;
+		return NULL;
 	}
 
 	if (!pc_updated(&tport, port))	// if Client connected via HCA ...
-		return 0;
+		return NULL;
 
 	for (hop = 0; !is_port_lid(port, lid) && hop < MAXHOPS; hop++) {
 		portnum = switch_lookup(node, lid);
@@ -1662,7 +1662,7 @@ static Port *lid_route_MAD(Port * port, int lid)
 			pc_add_error_rcvswitchrelay(port);
 			DEBUG("illegal lid %u (outport %d node %s ports %d)",
 			      lid, portnum, node->nodeid, node->numports);
-			return 0;
+			return NULL;
 		}
 
 		DEBUG("node %" PRIx64 " outport %d", node->nodeguid, portnum);
@@ -1676,7 +1676,7 @@ static Port *lid_route_MAD(Port * port, int lid)
 
 		if (!link_valid(port)) {
 			pc_add_error_xmitdiscards(port);
-			return 0;
+			return NULL;
 		}
 
 		tport = port;	// prepare to pass PKT to next port
@@ -1687,7 +1687,7 @@ static Port *lid_route_MAD(Port * port, int lid)
 		if (port_get_remote(port, &node, &port) < 0) {
 			pc_add_error_xmitdiscards(tport);
 			IBWARN("no remote");
-			return 0;
+			return NULL;
 		}
 
 		if (!node || !port)	// double check ?...
@@ -1695,11 +1695,11 @@ static Port *lid_route_MAD(Port * port, int lid)
 
 		if (!link_valid(port)) {
 			pc_add_error_xmitdiscards(tport);
-			return 0;
+			return NULL;
 		}
 
 		if (!pc_updated(&tport, port))	//try to transmit PKT
-			return 0;
+			return NULL;
 	}
 
 	DEBUG("routed to node %s port 0x%" PRIx64 " portnum %d (%p)",
@@ -1818,7 +1818,7 @@ static Smpfn *get_handle_fn(ib_rpc_t rpc, int response)
 	Smpfn *fn;
 
 	if (response)
-		return 0;
+		return NULL;
 
 	fn = get_smp_handler(rpc.mgtclass & 0xf , rpc.attr.id);
 	return fn;

@@ -633,7 +633,7 @@ static Port *find_port(int lid)
 	}
 	if (port && (port->lid + (1 << port->lmc)) > lid)
 		return port;
-	return 0;
+	return NULL;
 }
 
 static int do_change_baselid(FILE * f, char *line)

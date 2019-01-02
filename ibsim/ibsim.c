@@ -664,7 +664,7 @@ Client *find_client(Port * port, int response, int qp, uint64_t trid)
 			return cl;
 	}
 	DEBUG("no client found");
-	return 0;
+	return NULL;
 }
 
 void usage(char *prog_name)
