@@ -494,7 +494,7 @@ static int do_set_guid(FILE * f, char *line)
 	while (isspace(*s))
 		s++;
 
-	if (!s)
+	if (!*s)
 		return 0;
 
 	new_guid = strtoull(s, &end, 0);
