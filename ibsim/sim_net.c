@@ -738,7 +738,7 @@ static int new_alias(char *alias, Node * node, int portnum)
 
 static int parse_port(char *line, Node * node, int type, int maxports)
 {
-	char remotenodeid[NODEIDLEN], *sp;
+	char remotenodeid[NODEIDLEN], *sp = NULL;
 	int portnum, isalias = 0;
 	Port *port;
 	char *s;
