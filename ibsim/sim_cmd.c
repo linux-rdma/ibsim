@@ -894,7 +894,7 @@ static int parse_vl_num(char *attr, char *field, int *vl)
 
 static int do_perf_counter_set(FILE *f, char *line)
 {
-	char *s = line, *orig, *sp, *nodeid, *attr, *field, *field_trim, *end_ptr;
+	char *s = line, *orig = NULL, *sp, *nodeid, *attr, *field, *field_trim, *end_ptr;
 	Node *node;
 	int portnum, vl;
 	uint64_t value;
