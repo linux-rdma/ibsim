@@ -1983,7 +1983,7 @@ int send_trap(Port * port, unsigned trapnum)
 	}
 
 	encode_trapfn = encodetrap[trapnum];
-	memset(req.mad, 0, sizeof(req.mad));
+	memset(&req, 0, sizeof(req));
 	encode_trap_header(req.mad);
 	if (encode_trapfn(port, data) < 0)
 		return -1;
@@ -1995,9 +1995,6 @@ int send_trap(Port * port, unsigned trapnum)
 
 	req.dlid = htons(port->smlid);
 	req.slid = htons(lid);
-	req.sqp = 0;
-	req.dqp = 0;
-	req.status = 0;
 	req.length = htonll(sizeof(req.mad));
 
 	// find SM client
