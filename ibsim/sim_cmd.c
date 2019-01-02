@@ -1149,11 +1149,16 @@ static int sim_cmd_file(FILE * f, char *s)
 	FILE *cmd_file;
 	char *p;
 
+	if (!s) {
+		fprintf(f, "do_cmd_from_file: no file name - skip\n");
+		return -1;
+	}
+
 	s++;
 	while (isspace(*s))
 		s++;
 
-	if (!s || !*s) {
+	if (!*s) {
 		fprintf(f, "do_cmd_from_file: no file name - skip\n");
 		return -1;
 	}
