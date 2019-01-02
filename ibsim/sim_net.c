@@ -279,11 +279,6 @@ static Switch *new_switch(Node * nd, int set_esp0)
 	return sw;
 }
 
-static int new_hca(Node * nd)
-{
-	return 0;
-}
-
 static int build_nodeid(char *nodeid, size_t len, char *base)
 {
 	if (strchr(base, '#') || strchr(base, '@')) {
@@ -868,9 +863,6 @@ static int parse_endnode(int fd, char *line, int type)
 	nodedesc = parse_node_desc(line, &line);
 
 	if (!(nd = new_node(type, nodeid, nodedesc, ports)))
-		return 0;
-
-	if (new_hca(nd) < 0)
 		return 0;
 
 	r = parse_ports(fd, nd, type, ports);
