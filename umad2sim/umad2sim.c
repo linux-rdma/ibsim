@@ -166,8 +166,8 @@ static int file_printf(char *path, char *name, const char *fmt, ...)
 	int ret;
 
 	convert_sysfs_path(file_name, sizeof(file_name), path);
-	strncat(file_name, "/", sizeof(file_name) - 1);
-	strncat(file_name, name, sizeof(file_name) - 1);
+	strncat(file_name, "/", sizeof(file_name) - strlen(file_name) - 1);
+	strncat(file_name, name, sizeof(file_name) - strlen(file_name) - 1);
 	unlink(file_name);
 	f = fopen(file_name, "w");
 	if (!f) {
@@ -240,7 +240,7 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 		    (uint16_t) ((guid >> 0) & 0xffff));
 
 	/* /sys/class/infiniband/mthca0/ports/ */
-	strncat(path, "/ports", sizeof(path) - 1);
+	strncat(path, "/ports", sizeof(path) - strlen(path) - 1);
 	make_path(path);
 
 	portinfo = sc->portinfo;
@@ -352,7 +352,7 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 
 	/* /sys/class/infiniband/mthca0/ports/1/gids/0 */
 	str = path + strlen(path);
-	strncat(path, "/gids", sizeof(path) - 1);
+	strncat(path, "/gids", sizeof(path) - strlen(path) - 1);
 	make_path(path);
 	*str = '\0';
 	gid = mad_get_field64(portinfo, 0, IB_PORT_GID_PREFIX_F);
@@ -371,7 +371,7 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
 
 	/* /sys/class/infiniband/mthca0/ports/1/pkeys/0 */
 	str = path + strlen(path);
-	strncat(path, "/pkeys", sizeof(path) - 1);
+	strncat(path, "/pkeys", sizeof(path) - strlen(path) - 1);
 	make_path(path);
 	for (i = 0; i < sizeof(sc->pkeys)/sizeof(sc->pkeys[0]); i++) {
 		char name[8];
