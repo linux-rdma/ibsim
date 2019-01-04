@@ -751,7 +751,7 @@ static int dump_route(FILE * f, char *line)
 			break;	// found
 		outport = portnum;
 		if (node->type == SWITCH_NODE) {
-			if ((outport = node->sw->fdb[to]) < 0
+			if ((outport = node->sw->fdb[to]) == 0xff
 			    || to > node->sw->linearFDBtop)
 				goto badtbl;
 			port = ports + node->portsbase + outport;
