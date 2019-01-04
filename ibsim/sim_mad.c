@@ -1579,7 +1579,7 @@ static int switch_lookup(Node * node, int lid)
 	if (!node->sw)
 		return -1;
 
-	if (lid > node->sw->linearFDBtop || (outport = node->sw->fdb[lid]) < 0) {
+	if (lid > node->sw->linearFDBtop || (outport = node->sw->fdb[lid]) == 0xff) {
 		IBWARN("sw guid %" PRIx64 ": bad lid %u", node->nodeguid, lid);
 		return -1;
 	}
