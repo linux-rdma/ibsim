@@ -137,7 +137,7 @@ static void convert_sysfs_path(char *new_path, unsigned size,
 	snprintf(new_path, size, "%s/%s", umad2sim_sysfs_prefix, old_path);
 }
 
-static int make_path(char *path)
+static void make_path(char *path)
 {
 	char dir[1024];
 	char *p;
@@ -148,14 +148,13 @@ static int make_path(char *path)
 		p = strchr(p, '/');
 		if (p)
 			*p = '\0';
-		mkdir(dir, 0755);
+		if (mkdir(dir, 0755) && errno != EEXIST)
+			IBPANIC("Failed to make directory <%s>", dir);
 		if (p) {
 			*p = '/';
 			p++;
 		}
 	} while (p && p[0]);
-
-	return 0;
 }
 
 static int file_printf(char *path, char *name, const char *fmt, ...)
