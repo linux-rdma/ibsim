@@ -554,6 +554,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 		if (val > mad_get_field(data, 0, IB_PORT_VL_CAP_F))
 			return ERR_BAD_PARAM;
 		p->op_vls = val;
+		p->subnet_prefix = mad_get_field64(data, 0, IB_PORT_GID_PREFIX_F);
 
 		if (!rp && p->remotenode)
 			rp = node_get_port(p->remotenode, p->remoteport);

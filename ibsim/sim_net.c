@@ -1265,6 +1265,7 @@ void update_portinfo(Port * p)
 
 	mad_set_field(pi, 0, IB_PORT_LOCAL_PORT_F,
 		      p->node->type == SWITCH_NODE ? 0 : p->portnum);
+	mad_set_field64(pi, 0, IB_PORT_GID_PREFIX_F, p->subnet_prefix);
 	mad_set_field(pi, 0, IB_PORT_LID_F, p->lid);
 	mad_set_field(pi, 0, IB_PORT_SMLID_F, p->smlid);
 	mad_set_field(pi, 0, IB_PORT_OPER_VLS_F, p->op_vls);
