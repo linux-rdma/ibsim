@@ -338,6 +338,7 @@ struct Portcounters {
 };
 
 struct Port {
+	uint64_t subnet_prefix;
 	uint64_t portguid;
 	int portnum;
 	int lid;
