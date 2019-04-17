@@ -71,7 +71,6 @@ int inclines[MAX_INCLUDE];
 char *incfiles[MAX_INCLUDE];
 int inclevel;
 
-int parsedebug;
 int simverb;
 
 Port *default_port;

@@ -51,14 +51,6 @@
 #define PDEBUG	if (parsedebug) IBWARN
 #define DEBUG	if (simverb > 1 || ibdebug) IBWARN
 
-extern void free_core(void);
-
-extern Node *nodes;
-extern Switch *switches;
-extern Port *ports;
-extern Port **lids;
-extern int netnodes, netports, netswitches;
-
 #define NAMELEN	NODEIDLEN
 
 static const char *portstates[] = {

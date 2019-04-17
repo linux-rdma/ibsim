@@ -437,6 +437,8 @@ char *expand_name(char *base, char *name, char **portstr);
 int read_netconf(char *name, FILE * out);
 int set_default_port(char *nodeid);
 int readline(int fd, char *buf, int sz);
+int alloc_core(void);
+void free_core(void);
 
 // sim_cmd.c
 int do_cmd(char *buf, FILE *f);
@@ -448,5 +450,17 @@ int send_trap(Port * port, unsigned trapnum);
 extern Port *default_port;
 extern int simverb;
 extern int netstarted;
-
+extern int maxnetnodes;
+extern int maxnetswitches;
+extern int maxnetports;
+extern int maxlinearcap;
+extern int maxmcastcap;
+extern int maxnetaliases;
+extern int ignoreduplicate;
+extern Node *nodes;
+extern Switch *switches;
+extern Port *ports;
+extern Port **lids;
+extern int netnodes, netports, netswitches;
+extern int parsedebug;
 #endif				/* __SIM_H__ */

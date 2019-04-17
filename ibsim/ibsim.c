@@ -62,14 +62,6 @@
 #define DEBUG	if (simverb > 1 || ibdebug) IBWARN
 #define VERB	if (simverb || ibdebug) IBWARN
 
-extern int maxnetnodes;
-extern int maxnetswitches;
-extern int maxnetports;
-extern int maxlinearcap;
-extern int maxmcastcap;
-extern int maxnetaliases;
-extern int ignoreduplicate;
-
 int ibdebug;
 int parsedebug;
 int simverb;
@@ -681,8 +673,6 @@ void usage(char *prog_name)
 
 int main(int argc, char **argv)
 {
-	extern int alloc_core(void);
-	extern void free_core(void);
 	char *outfname = NULL, *netfile;
 	FILE *infile, *outfile;
 	int status;
