@@ -98,9 +98,9 @@ static int do_link(FILE * f, char *line)
 {
 	Port *lport, *rport;
 	Node *lnode, *rnode;
-	char *orig = 0;
-	char *lnodeid = 0;
-	char *rnodeid = 0;
+	char *orig = NULL;
+	char *lnodeid = NULL;
+	char *rnodeid = NULL;
 	char *s = line, name[NAMELEN], *sp;
 	int lportnum = -1, rportnum = -1;
 
@@ -174,8 +174,8 @@ static int do_relink(FILE * f, char *line)
 {
 	Port *lport, *rport, *e;
 	Node *lnode;
-	char *orig = 0;
-	char *lnodeid = 0;
+	char *orig = NULL;
+	char *lnodeid = NULL;
 	char *s = line, name[NAMELEN], *sp;
 	int lportnum = -1;
 	int numports, relinked = 0;
@@ -261,7 +261,7 @@ static void unlink_port(Node * lnode, Port * lport, Node * rnode, int rportnum)
 	rport->previous_remotenode = rport->remotenode;
 	rport->previous_remoteport = rport->remoteport;
 
-	lport->remotenode = rport->remotenode = 0;
+	lport->remotenode = rport->remotenode = NULL;
 	lport->remoteport = rport->remoteport = 0;
 	lport->remotenodeid[0] = rport->remotenodeid[0] = 0;
 	lport->state = rport->state = 1;	// Down
@@ -300,7 +300,7 @@ static int do_seterror(FILE * f, char *line)
 	Port *port, *e;
 	Node *node;
 	char *s = line;
-	char *nodeid = 0, name[NAMELEN], *sp, *orig = 0;
+	char *nodeid = NULL, name[NAMELEN], *sp, *orig = NULL;
 	int portnum = -1;	// def - all ports
 	int startport, numports, set = 0, rate = 0;
 	uint16_t attr = 0;
@@ -327,7 +327,7 @@ static int do_seterror(FILE * f, char *line)
 			startport = 0;
 		else
 			startport = 1;
-		portnum = strtoul(sp, 0, 0);
+		portnum = strtoul(sp, NULL, 0);
 		if (portnum < startport || portnum > node->numports) {
 			fprintf(f, "# bad port number %d at nodeid \"%s\"\n",
 				portnum, nodeid);
@@ -340,7 +340,7 @@ static int do_seterror(FILE * f, char *line)
 		return -1;
 	}
 
-	rate = strtoul(s, 0, 0);
+	rate = strtoul(s, NULL, 0);
 
 	if (rate > 100) {
 		fprintf(f, "# error rate must be in [0..100] range (%d)\n",
@@ -352,7 +352,7 @@ static int do_seterror(FILE * f, char *line)
 
 	strsep(&s, " \t");
 	if (s) {
-		attr = strtoul(s, 0, 0);
+		attr = strtoul(s, NULL, 0);
 		DEBUG("error attr is %u", attr);
 	}
 
@@ -385,7 +385,7 @@ static int do_unlink(FILE * f, char *line, int clear)
 	Port *port, *e;
 	Node *node;
 	char *s = line;
-	char *nodeid = 0, name[NAMELEN], *sp, *orig = 0;
+	char *nodeid = NULL, name[NAMELEN], *sp, *orig = NULL;
 	int portnum = -1;	// def - all ports
 	int numports, unlinked = 0;
 
@@ -407,7 +407,7 @@ static int do_unlink(FILE * f, char *line, int clear)
 	}
 
 	if (sp) {
-		portnum = strtoul(sp, 0, 0);
+		portnum = strtoul(sp, NULL, 0);
 		if (portnum < 1 || portnum > node->numports) {
 			fprintf(f, "# can't unlink port %d at nodeid \"%s\"\n",
 				portnum, nodeid);
@@ -458,7 +458,7 @@ static int do_set_guid(FILE * f, char *line)
 	Node *node;
 	Port *port = NULL;
 	char *s = line, *end;
-	char *nodeid = 0, *sp, *orig = 0;
+	char *nodeid = NULL, *sp, *orig = NULL;
 	int portnum = -1;
 
 	if (strsep(&s, "\""))
@@ -480,7 +480,7 @@ static int do_set_guid(FILE * f, char *line)
 
 
 	if (sp) {
-		portnum = strtoul(sp, 0, 0);
+		portnum = strtoul(sp, NULL, 0);
 		if ((node->type != SWITCH_NODE && portnum < 1)
 		    || portnum > node->numports) {
 			fprintf(f, "# can't parse port %d at nodeid \"%s\"\n",
@@ -584,10 +584,10 @@ static int dump_net(FILE * f, char *line)
 	int nports, i;
 	char *s = line;
 	char name[NAMELEN], *sp;
-	char *nodeid = 0;
+	char *nodeid = NULL;
 	int nnodes = 0;
 
-	time_t t = time(0);
+	time_t t = time(NULL);
 
 	if (strsep(&s, "\""))
 		nodeid = expand_name(strsep(&s, "\""), name, &sp);
@@ -624,7 +624,7 @@ static int dump_net(FILE * f, char *line)
 
 static Port *find_port(int lid)
 {
-	Port *port = 0;
+	Port *port = NULL;
 	int i, l;
 
 	for (l = lid, i = 256; i-- && l > 0; l--) {
@@ -641,7 +641,7 @@ static int do_change_baselid(FILE * f, char *line)
 	Port *port;
 	Node *node;
 	char *s = line;
-	char *nodeid = 0, name[NAMELEN], *sp, *orig = 0;
+	char *nodeid = NULL, name[NAMELEN], *sp, *orig = NULL;
 	int portnum = -1;	// def - all ports
 	int lid = 0, lmc = -1;
 
@@ -703,7 +703,7 @@ static int do_change_baselid(FILE * f, char *line)
 			sp++;
 
 	if (sp && *sp)
-		lmc = strtoul(sp, 0, 0);
+		lmc = strtoul(sp, NULL, 0);
 
 	port_change_lid(port, lid, lmc);
 	return 1;
@@ -723,8 +723,8 @@ static int dump_route(FILE * f, char *line)
 		fprintf(f, "bad params. Usage: route from-lid lid\n");
 		return -1;
 	}
-	from = strtoul(p1, 0, 0);
-	to = strtoul(p2, 0, 0);
+	from = strtoul(p1, NULL, 0);
+	to = strtoul(p2, NULL, 0);
 
 	if (!from || !to) {
 		fprintf(f, "bad lid value. Usage: route from-lid to-lid\n");
@@ -802,7 +802,7 @@ static int change_verbose(FILE * f, char *line)
 	char *s = line;
 
 	if (strsep(&s, "\t ") && s)
-		simverb = strtoul(s, 0, 0);
+		simverb = strtoul(s, NULL, 0);
 	fprintf(f, "simulator verbose level is %d\n", simverb);
 	return 0;
 }
@@ -813,7 +813,7 @@ static int do_wait(FILE * f, char *line)
 	long sec = 0;
 
 	if (strsep(&s, "\t ") && s)
-		sec = strtoul(s, 0, 0);
+		sec = strtoul(s, NULL, 0);
 	if (sec <= 0)
 		return -fprintf(f, "wait: bad param %ld\n", sec);
 	else
@@ -1246,7 +1246,7 @@ int do_cmd(char *buf, FILE *f)
 	else if (match_command(line, "Attached", cmd_len))
 		r = list_connections(f);
 	else if (match_command(line, "X", cmd_len))
-		r = do_disconnect_client(f, strtol(line + 2, 0, 0));
+		r = do_disconnect_client(f, strtol(line + 2, NULL, 0));
 	else if (match_command(line, "Help", cmd_len)
 		 || match_command(line, "?", cmd_len))
 		r = dump_help(f);

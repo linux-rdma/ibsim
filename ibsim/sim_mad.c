@@ -160,7 +160,7 @@ static EncodeTrapfn *encodetrap[] = {
 	[TRAP_128] = encode_trap128,
 	[TRAP_144] = encode_trap144,
 
-	[TRAP_NUM_LAST] = 0,
+	[TRAP_NUM_LAST] = NULL,
 };
 
 extern Node *nodes;
@@ -506,7 +506,7 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 		if (newlid != p->lid) {
 			if (p->lid > 0 && p->lid < maxlinearcap
 			    && lids[p->lid] == p)
-				lids[p->lid] = 0;
+				lids[p->lid] = NULL;
 		}
 		p->lid = newlid;
 		p->smlid = mad_get_field(data, 0, IB_PORT_SMLID_F);
@@ -1852,7 +1852,7 @@ int process_packet(Client * cl, void *p, int size, Client ** dcl)
 
 	if (rpc.method == 0x7) {
 		IBWARN("lid %u got trap repress - dropping", ntohs(r->dlid));
-		*dcl = 0;
+		*dcl = NULL;
 		return 0;
 	}
 

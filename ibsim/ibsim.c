@@ -590,7 +590,7 @@ static int sim_run(int con_fd)
 			if (clients[i].pid)
 				FD_SET(clients[i].fd, &rfds);
 
-		if (select(maxfd + 1, &rfds, NULL, NULL, 0) < 0)
+		if (select(maxfd + 1, &rfds, NULL, NULL, NULL) < 0)
 			break;	// timeout or error
 
 		if (FD_ISSET(simctl, &rfds))
@@ -683,28 +683,28 @@ int main(int argc, char **argv)
 {
 	extern int alloc_core(void);
 	extern void free_core(void);
-	char *outfname = 0, *netfile;
+	char *outfname = NULL, *netfile;
 	FILE *infile, *outfile;
 	int status;
 
 	static char const str_opts[] = "rf:dpvIsN:S:P:L:M:l:Vhu";
 	static const struct option long_opts[] = {
-		{"remote", 0, 0, 'r'},
-		{"file", 1, 0, 'f'},
-		{"Nodes", 1, 0, 'N'},
-		{"Switches", 1, 0, 'S'},
-		{"Ports", 1, 0, 'P'},
-		{"Linearcap", 1, 0, 'L'},
-		{"Mcastcap", 1, 0, 'M'},
-	        {"listen", 1, 0, 'l'},
-		{"Ignoredups", 0, 0, 'I'},
-		{"start", 0, 0, 's'},
-		{"debug", 0, 0, 'd'},
-		{"parsedebug", 0, 0, 'p'},
-		{"verbose", 0, 0, 'v'},
-		{"Version", 0, 0, 'V'},
-		{"help", 0, 0, 'h'},
-		{"usage", 0, 0, 'u'},
+		{"remote", 0, NULL, 'r'},
+		{"file", 1, NULL, 'f'},
+		{"Nodes", 1, NULL, 'N'},
+		{"Switches", 1, NULL, 'S'},
+		{"Ports", 1, NULL, 'P'},
+		{"Linearcap", 1, NULL, 'L'},
+		{"Mcastcap", 1, NULL, 'M'},
+		{"listen", 1, NULL, 'l'},
+		{"Ignoredups", 0, NULL, 'I'},
+		{"start", 0, NULL, 's'},
+		{"debug", 0, NULL, 'd'},
+		{"parsedebug", 0, NULL, 'p'},
+		{"verbose", 0, NULL, 'v'},
+		{"Version", 0, NULL, 'V'},
+		{"help", 0, NULL, 'h'},
+		{"usage", 0, NULL, 'u'},
 		{}
 	};
 
@@ -735,22 +735,22 @@ int main(int argc, char **argv)
 			ignoreduplicate = 1;
 			break;
 		case 'N':
-			maxnetnodes = strtoul(optarg, 0, 0);
+			maxnetnodes = strtoul(optarg, NULL, 0);
 			break;
 		case 'S':
-			maxnetswitches = strtoul(optarg, 0, 0);
+			maxnetswitches = strtoul(optarg, NULL, 0);
 			break;
 		case 'P':
-			maxnetports = strtoul(optarg, 0, 0);
+			maxnetports = strtoul(optarg, NULL, 0);
 			break;
 		case 'L':
-			maxlinearcap = strtoul(optarg, 0, 0);
+			maxlinearcap = strtoul(optarg, NULL, 0);
 			break;
 		case 'M':
-			maxmcastcap = strtoul(optarg, 0, 0);
+			maxmcastcap = strtoul(optarg, NULL, 0);
 			break;
 	        case 'l':
-			listen_to_port = strtoul(optarg, 0, 0);
+			listen_to_port = strtoul(optarg, NULL, 0);
 			break;
 		case 'V':
 		default:
@@ -762,7 +762,7 @@ int main(int argc, char **argv)
 
 	infile = stdin;
 	outfile = stdout;
-	if (outfname && (outfile = fopen(outfname, "w")) == 0)
+	if (outfname && (outfile = fopen(outfname, "w")) == NULL)
 		IBPANIC("can't open out file %s for write", outfname);
 
 	if (optind >= argc)

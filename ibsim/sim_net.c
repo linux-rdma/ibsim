@@ -362,12 +362,12 @@ static int parse_node_ports(char *buf)
 {
 	while (*buf && !isdigit(*buf))
 		buf++;
-	return strtoul(buf, 0, 0);
+	return strtoul(buf, NULL, 0);
 }
 
 static char *parse_node_id(char *buf, char **rest_buf)
 {
-	char *s, *e = 0;
+	char *s, *e = NULL;
 
 	if (!(s = strchr(buf, '"')) || !(e = strchr(s + 1, '"'))) {
 		IBWARN("can't find valid id in <%s>", buf);
@@ -565,7 +565,7 @@ static int parse_port_opt(Port * port, char *opt, char *val)
 
 	switch (*opt) {
 	case 'w':
-		v = strtoul(val, 0, 0);
+		v = strtoul(val, NULL, 0);
 		if (!is_linkwidth_valid(v))
 			return -1;
 
@@ -574,7 +574,7 @@ static int parse_port_opt(Port * port, char *opt, char *val)
 		      port->linkwidthena);
 		break;
 	case 's':
-		v = strtoul(val, 0, 0);
+		v = strtoul(val, NULL, 0);
 		if (!is_linkspeed_valid(v))
 			return -1;
 
@@ -583,7 +583,7 @@ static int parse_port_opt(Port * port, char *opt, char *val)
 		      port->linkspeedena);
 		break;
 	case 'e':
-		v = strtoul(val, 0, 0);
+		v = strtoul(val, NULL, 0);
 		if (!is_linkspeedext_valid(v))
 			return -1;
 
@@ -692,7 +692,7 @@ char *expand_name(char *base, char *name, char **portstr)
 			strncpy(name, base, NODEIDLEN - 1);
 		if (portstr)
 			*portstr = NULL;
-		PDEBUG("name %s port %s", name, portstr ? *portstr : 0);
+		PDEBUG("name %s port %s", name, portstr ? *portstr : NULL);
 		return name;
 	}
 
@@ -708,7 +708,7 @@ char *expand_name(char *base, char *name, char **portstr)
 		*portstr = name;
 		strsep(portstr, "[");
 	}
-	PDEBUG("name %s port %s", name, portstr ? *portstr : 0);
+	PDEBUG("name %s port %s", name, portstr ? *portstr : NULL);
 	return name;
 }
 
@@ -931,7 +931,7 @@ static int parse_guidbase(int fd, char *line, int type)
 	if (*s == '+')
 		relative = 1;
 
-	guidbase = strtoull(s + 1, 0, 0);
+	guidbase = strtoull(s + 1, NULL, 0);
 
 	if (!relative) {
 		absguids[type] = guidbase;
@@ -953,7 +953,7 @@ static int parse_vendid(int fd, char *line)
 		return -1;
 	}
 
-	netvendid = strtol(s + 1, 0, 0);
+	netvendid = strtol(s + 1, NULL, 0);
 
 	return 1;
 }
@@ -967,7 +967,7 @@ static int parse_devid(int fd, char *line)
 		return -1;
 	}
 
-	netdevid = strtol(s + 1, 0, 0);
+	netdevid = strtol(s + 1, NULL, 0);
 
 	return 1;
 }
@@ -981,7 +981,7 @@ static uint64_t parse_sysimgguid(int fd, char *line)
 		return -1;
 	}
 
-	netsysimgguid = strtoull(s + 1, 0, 0);
+	netsysimgguid = strtoull(s + 1, NULL, 0);
 
 	return 1;
 }
@@ -996,7 +996,7 @@ static int parse_width(int fd, char *line)
 		return -1;
 	}
 
-	width = strtol(s + 1, 0, 0);
+	width = strtol(s + 1, NULL, 0);
 	if (!is_linkwidth_valid(width)) {
 		IBPANIC("invalid enabled link width %d", width);
 		return -1;
@@ -1016,7 +1016,7 @@ static int parse_speed(int fd, char *line)
 		return -1;
 	}
 
-	speed = strtol(s + 1, 0, 0);
+	speed = strtol(s + 1, NULL, 0);
 	if (!is_linkspeed_valid(speed)) {
 		IBPANIC("invalid enabled link speed %d", speed);
 		return -1;
@@ -1036,7 +1036,7 @@ static int parse_speedext(int fd, char *line)
 		return -1;
 	}
 
-	speed = strtol(s + 1, 0, 0);
+	speed = strtol(s + 1, NULL, 0);
 	if (!is_linkspeedext_valid(speed)) {
 		IBPANIC("invalid enabled link speed extended %d", speed);
 		return -1;
@@ -1092,7 +1092,7 @@ static int set_var(char *line, int *var)
 		return -1;
 	}
 
-	*var = strtol(s + 1, 0, 0);
+	*var = strtol(s + 1, NULL, 0);
 	return 1;
 }
 

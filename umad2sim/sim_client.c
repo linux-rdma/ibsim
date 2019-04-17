@@ -201,7 +201,7 @@ static int sim_connect(struct sim_client *sc, int id, int qp, char *nodeid,
 
 static int sim_disconnect(struct sim_client *sc)
 {
-	return sim_ctl(sc, SIM_CTL_DISCONNECT, 0, 0);
+	return sim_ctl(sc, SIM_CTL_DISCONNECT, NULL, 0);
 }
 
 static int sim_init(struct sim_client *sc, char *nodeid, char *issm)
