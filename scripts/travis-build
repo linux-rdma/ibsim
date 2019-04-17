@@ -1,0 +1,26 @@
+#!/bin/bash
+
+PATH=/home/`whoami`/.local/bin:$PATH
+DIR=$(readlink -f .)
+# Stop on error
+set -e
+# Echo all commands to Travis log
+set -x
+# Cleanup first
+make clean
+
+
+CC=clang CFLAGS=-Werror make
+make clean
+
+# Run sparse on the subdirectories which are sparse clean
+CC=cgcc CFLAGS="-Werror" make > /dev/null 2>&1 | grep -v '^/usr/include' | tee out
+make clean
+# sparse does not fail gcc on messages
+if [ -s out ]; then
+   false
+fi
+
+# Test out gcc-8
+CC=gcc-8 CFLAGS="-Werror" make
+make clean
