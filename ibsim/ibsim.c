@@ -659,7 +659,7 @@ Client *find_client(Port * port, int response, int qp, uint64_t trid)
 	return NULL;
 }
 
-void usage(char *prog_name)
+static void usage(char *prog_name)
 {
 	fprintf(stderr,
 		"Usage: %s [-f outfile -d(ebug) -p(arse_debug) -s(tart) -v(erbose) "

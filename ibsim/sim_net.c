@@ -67,9 +67,9 @@
 #define LINKSPEED_STR_HDR "HDR"
 #define LINKSPEED_STR_FDR10 "FDR10"
 
-int inclines[MAX_INCLUDE];
-char *incfiles[MAX_INCLUDE];
-int inclevel;
+static int inclines[MAX_INCLUDE];
+static char *incfiles[MAX_INCLUDE];
+static int inclevel;
 
 int simverb;
 
@@ -194,9 +194,10 @@ Node *nodes;
 Switch *switches;
 Port *ports;
 Port **lids;
-char (*aliases)[NODEIDLEN + NODEPREFIX + 1];	// aliases map format: "%s@%s"
+static char (*aliases)[NODEIDLEN + NODEPREFIX + 1];	// aliases map format: "%s@%s"
 
-int netnodes, netswitches, netports, netaliases;
+int netnodes, netswitches, netports;
+static int netaliases;
 
 static uint64_t absguids[NODE_TYPES] = { ~0, 0x100000, 0x200000 };
 static uint64_t guids[NODE_TYPES] = { ~0, 0x100000, 0x200000 };
@@ -663,7 +664,7 @@ static int build_alias(char *alias, char *base, int check)
 	return 0;
 }
 
-char *map_alias(char *alias)
+static char *map_alias(char *alias)
 {
 	int i;
 	int len = strlen(alias);

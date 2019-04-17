@@ -798,7 +798,7 @@ static inline uint32_t addval(uint32_t val, uint32_t delta, uint32_t max)
 #define ADDVAL64(val, add) { uint64_t new = val + add; \
 		val = new < val ? 0xffffffffffffffffULL : new ; }
 
-void pc_add_error_xmitdiscards(Port * port)
+static void pc_add_error_xmitdiscards(Port * port)
 {
 	Portcounters *pc = &(port->portcounters);
 
@@ -806,7 +806,7 @@ void pc_add_error_xmitdiscards(Port * port)
 	    addval(pc->xmitdiscards, 1, GS_PERF_XMT_DISCARDS_LIMIT);
 }
 
-void pc_add_error_rcvswitchrelay(Port * port)
+static void pc_add_error_rcvswitchrelay(Port * port)
 {
 	Portcounters *pc = &(port->portcounters);
 
@@ -814,7 +814,7 @@ void pc_add_error_rcvswitchrelay(Port * port)
 	    addval(pc->errs_rcvswitchrelay, 1, GS_PERF_ERR_SWITCH_REL_LIMIT);
 }
 
-void pc_add_error_errs_rcv(Port * port)
+static void pc_add_error_errs_rcv(Port * port)
 {
 	Portcounters *pc = &(port->portcounters);
 
