@@ -35,7 +35,6 @@
 
 #define _GNU_SOURCE
 
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/poll.h>
 #include <sys/ioctl.h>
@@ -49,7 +48,6 @@
 #include <string.h>
 #include <dirent.h>
 #include <dlfcn.h>
-#include <netinet/in.h>
 
 #include <infiniband/umad.h>
 #include <infiniband/mad.h>
@@ -442,7 +440,7 @@ static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count)
 	umad->status = ntohl(req.status);
 	umad->timeout_ms = 0;
 	umad->retries = 0;
-	umad->length = umad_size() + ntohll(req.length);
+	umad->length = umad_size() + be64toh(req.length);
 
 	umad->addr.qpn = req.sqp;
 	umad->addr.qkey = 0;	// agent->qkey;
@@ -506,7 +504,7 @@ static ssize_t umad2sim_write(struct umad2sim_dev *dev,
 		cnt = sizeof(req.mad);
 	memcpy(req.mad, umad_get_mad(umad), cnt);
 
-	req.length = htonll(cnt);
+	req.length = htobe64(cnt);
 
 	if (!mad_get_field(req.mad, 0, IB_MAD_RESPONSE_F)) {
 		uint64_t trid = mad_get_field64(req.mad, 0, IB_MAD_TRID_F);
