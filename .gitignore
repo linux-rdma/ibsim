@@ -6,4 +6,6 @@
 *.so
 *.build_profile
 ibsim/ibsim
-
+tests/mcast_storm
+tests/query_many
+tests/subnet_discover
