@@ -1,0 +1,25 @@
+#!/bin/bash
+
+PATH=/home/`whoami`/.local/bin:$PATH
+DIR=$(readlink -f .)
+# Stop on error
+set -e
+# Echo all commands to Travis log
+set -x
+
+./ibsim/ibsim -s net-examples/net --no-console &
+IBSIM_PID=$!
+# Give some time for the network to start
+sleep 2
+
+TMPDIR=$(mktemp -d)
+LD_PRELOAD=$DIR/umad2sim/libumad2sim.so OSM_TMP_DIR=$TMPDIR OSM_CACHE_DIR=$TMPDIR opensm -f osm.log &
+OSM_PID=$!
+# Give time for the SM to start
+sleep 2
+
+LD_PRELOAD=$DIR/umad2sim/libumad2sim.so   $DIR/tests/subnet_discover
+LD_PRELOAD=$DIR/umad2sim/libumad2sim.so   $DIR/tests/mcast_storm rereg joins leave
+
+# Kill all pending processes
+kill -9 $OSM_PID $IBSIM_PID
