@@ -67,11 +67,11 @@ static const char *print_path(uint8_t path[], size_t path_cnt)
 	return buf;
 }
 
+static char dbg_buf[8192];
 #define DBG_DUMP_FUNC(name) static void dbg_dump_##name(void *data) \
 { \
-	char buf[2048]; \
-	mad_dump_##name(buf, sizeof(buf), data, IB_SMP_DATA_SIZE); \
-	NOISE("### "#name":\n%s\n", buf); \
+	mad_dump_##name(dbg_buf, sizeof(dbg_buf), data, IB_SMP_DATA_SIZE); \
+	NOISE("### "#name":\n%s\n", dbg_buf); \
 }
 
 DBG_DUMP_FUNC(nodeinfo);
