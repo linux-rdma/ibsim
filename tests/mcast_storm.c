@@ -23,7 +23,7 @@
 #ifdef NOISY_DEBUG
 #define dbg(fmt, arg...) fprintf(stderr, "DBG: " fmt, ##arg )
 #else
-#define dbg(fmt, arg...)
+#define dbg(fmt, arg...) (void)0
 #endif
 
 #define TMO 100
