@@ -170,7 +170,7 @@ static void clean_from_tr_table(uint64_t trid)
 	tr_table[n] = NULL;
 }
 
-static void free_unresponded()
+static void free_unresponded(void)
 {
 	struct request_queue *q;
 	unsigned i;
@@ -561,7 +561,7 @@ static int umad_discover(char *card_name, unsigned int port_num)
 	return ret;
 }
 
-static void print_subnet()
+static void print_subnet(void)
 {
 	struct node *node;
 	struct port *local, *remote;
