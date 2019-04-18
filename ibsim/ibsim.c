@@ -73,6 +73,7 @@ static FILE *simout;
 static int listen_to_port = IBSIM_DEFAULT_SERVER_PORT;
 static int remote_mode = 0;
 static char* socket_basename;
+static int console = 1;
 
 static size_t make_name(union name_t *name, uint32_t addr, unsigned short port,
 			const char *fmt, ...)
@@ -535,7 +536,8 @@ static int sim_init_console(FILE *out)
 	fprintf(simout, "MaxNetPorts    = %d\n", maxnetports);
 	fprintf(simout, "MaxLinearCap   = %d\n", maxlinearcap);
 	fprintf(simout, "MaxMcastCap    = %d\n", maxmcastcap);
-	fprintf(simout, "sim%s> ", netstarted ? "" : " (inactive)");
+	if (console)
+		fprintf(simout, "sim%s> ", netstarted ? "" : " (inactive)");
 	fflush(simout);
 	return 0;
 }
@@ -577,7 +579,8 @@ static int sim_run(int con_fd)
 	for (;;) {
 		FD_ZERO(&rfds);
 		FD_SET(simctl, &rfds);
-		FD_SET(con_fd, &rfds);
+		if (console)
+			FD_SET(con_fd, &rfds);
 		for (i = 0; i < IBSIM_MAX_CLIENTS; i++)
 			if (clients[i].pid)
 				FD_SET(clients[i].fd, &rfds);
@@ -664,7 +667,7 @@ static void usage(char *prog_name)
 	fprintf(stderr,
 		"Usage: %s [-f outfile -d(ebug) -p(arse_debug) -s(tart) -v(erbose) "
 		"-I(gnore_duplicate) -N nodes -S switches -P ports -L linearcap"
-		" -M mcastcap -r(emote_mode) -l(isten_to_port) <port>] <netfile>\n",
+		" -M mcastcap -r(emote_mode) -l(isten_to_port) <port> -n(o-console)] <netfile>\n",
 		prog_name);
 	fprintf(stderr, "%s %s\n", prog_name, IBSIM_VERSION);
 
@@ -677,7 +680,7 @@ int main(int argc, char **argv)
 	FILE *infile, *outfile;
 	int status;
 
-	static char const str_opts[] = "rf:dpvIsN:S:P:L:M:l:Vhu";
+	static char const str_opts[] = "rf:dpvIsN:S:P:L:M:l:Vhun";
 	static const struct option long_opts[] = {
 		{"remote", 0, NULL, 'r'},
 		{"file", 1, NULL, 'f'},
@@ -693,6 +696,7 @@ int main(int argc, char **argv)
 		{"parsedebug", 0, NULL, 'p'},
 		{"verbose", 0, NULL, 'v'},
 		{"Version", 0, NULL, 'V'},
+		{"no-console", 0, NULL, 'n'},
 		{"help", 0, NULL, 'h'},
 		{"usage", 0, NULL, 'u'},
 		{}
@@ -742,6 +746,9 @@ int main(int argc, char **argv)
 	        case 'l':
 			listen_to_port = strtoul(optarg, NULL, 0);
 			break;
+		case 'n':
+			console = 0;
+			break;
 		case 'V':
 		default:
 			usage(argv[0]);
@@ -755,6 +762,9 @@ int main(int argc, char **argv)
 	if (outfname && (outfile = fopen(outfname, "w")) == NULL)
 		IBPANIC("can't open out file %s for write", outfname);
 
+	if (!console && !netstarted)
+		IBPANIC("Cannot disable console without starting "
+				"the network from the command line");
 	if (optind >= argc)
 		usage(argv[0]);
 
