@@ -23,4 +23,3 @@ fi
 
 # Test out gcc-8
 CC=gcc-8 CFLAGS="-Werror" make
-make clean
