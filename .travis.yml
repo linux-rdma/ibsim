@@ -12,7 +12,9 @@ addons:
     - wget
     - libibumad-dev
     - libibmad-dev
+    - opensm
 script:
   - scripts/travis-checkpatch
   - scripts/travis-build
+  - scripts/travis-runtest
   - ./dist.sh
