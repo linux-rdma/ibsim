@@ -9,8 +9,10 @@ addons:
     - git-core
     - make
     - sparse
+    - wget
     - libibumad-dev
     - libibmad-dev
 script:
+  - scripts/travis-checkpatch
   - scripts/travis-build
   - ./dist.sh
