@@ -299,7 +299,7 @@ static int rereg_recv_all(struct addr_data *a, void *umad, int len,
 	uint8_t *mad;
 	uint64_t trid;
 	unsigned n, method, status;
-	int i;
+	unsigned i;
 
 	info("%s...\n", __func__);
 
@@ -346,7 +346,8 @@ static int rereg_query_all(struct addr_data *a, void *umad, int len,
 {
 	uint8_t *mad;
 	unsigned method, status;
-	int i, ret;
+	unsigned i;
+	int ret;
 
 	info("%s...\n", __func__);
 
@@ -603,7 +604,7 @@ static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 	FILE *f;
 	struct gid_list *list = NULL;
 	unsigned list_size = 0;
-	int i = 0;
+	unsigned i = 0;
 
 	f = fopen(guid_file, "r");
 	if (!f) {
@@ -639,7 +640,8 @@ static int parse_gids_file(const char *guid_file, struct gid_list **gid_list)
 
 static void make_str_opts(char *p, unsigned size, const struct option *o)
 {
-	int i, n = 0;
+	unsigned n;
+	int i;
 
 	for (n = 0; o->name  && n + 2 + o->has_arg < size; o++) {
 		p[n++] = o->val;
