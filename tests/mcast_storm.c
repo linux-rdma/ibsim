@@ -172,7 +172,7 @@ static uint64_t get_guid_ho(ibmad_gid_t gid)
 {
 	uint64_t guid;
 	memcpy(&guid, &gid[8], sizeof(guid));
-	return ntohll(guid);
+	return be64toh(guid);
 }
 
 static int send_req(struct addr_data *a, uint8_t * umad, int len,
@@ -521,8 +521,8 @@ static int run_test(const struct test *t, struct test_data *td,
 
 static void make_gid(ibmad_gid_t gid, uint64_t prefix, uint64_t guid)
 {
-	prefix = ntohll(prefix);
-	guid = ntohll(guid);
+	prefix = be64toh(prefix);
+	guid = be64toh(guid);
 	memcpy(&gid[0], &prefix, 8);
 	memcpy(&gid[8], &guid, 8);
 }
@@ -541,9 +541,9 @@ static int make_gids_list(ibmad_gid_t gid, unsigned n, struct gid_list **gid_lis
 	}
 
 	memcpy(&prefix, &gid[0], 8);
-	prefix = ntohll(prefix);
+	prefix = be64toh(prefix);
 	memcpy(&guid, &gid[8], 8);
-	guid = ntohll(guid);
+	guid = be64toh(guid);
 
 	for (i = 0; i <= n; i++)
 		make_gid(list[i].gid, prefix, guid++);
