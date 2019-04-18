@@ -35,7 +35,8 @@ static unsigned verbose = 0;
 static const char *print_path(uint8_t path[], size_t path_cnt)
 {
 	static char buf[256];
-	int i, n = 0;
+	size_t i;
+	int n = 0;
 	for (i = 0; i <= path_cnt; i++)
 		n += snprintf(buf + n, sizeof(buf) - n, "%u,", path[i]);
 	buf[n] = '\0';

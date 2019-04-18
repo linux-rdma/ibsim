@@ -59,7 +59,8 @@ static unsigned max_hops = 0;
 static const char *print_path(uint8_t path[], size_t path_cnt)
 {
 	static char buf[256];
-	int i, n = 0;
+	unsigned i;
+	int n = 0;
 	for (i = 0; i <= path_cnt; i++)
 		n += snprintf(buf + n, sizeof(buf) - n, "%u,", path[i]);
 	buf[n] = '\0';
@@ -260,7 +261,7 @@ static int recv_response(int fd, int agent, uint8_t * umad, size_t length)
 	if (ret < 0 || umad_status(umad)) {
 		ERROR("umad_recv failed: umad status %x: %s\n",
 		      umad_status(umad), strerror(errno));
-		return len > umad_size() ? 1 : -1;
+		return (unsigned)len > umad_size() ? 1 : -1;
 	}
 
 	return 0;
@@ -399,7 +400,8 @@ static int process_node(void *umad, unsigned remote_id, int fd, int agent,
 	uint8_t *node_info = umad_get_mad(umad) + IB_SMP_DATA_OFFS;
 	unsigned port_num = mad_get_field(node_info, 0, IB_NODE_LOCAL_PORT_F);
 	unsigned node_is_new = 0;
-	int i, id;
+	unsigned i;
+	int id;
 
 	dbg_dump_nodeinfo(node_info);
 
