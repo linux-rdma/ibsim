@@ -246,14 +246,14 @@ static int umad_query(char *card_name, unsigned int port_num)
 int main(int argc, char **argv)
 {
 	const struct option long_opts[] = {
-		{"number", 1, 0, 'n'},
-		{"drpath", 1, 0, 'd'},
-		{"attribute", 1, 0, 'a'},
-		{"modifier", 1, 0, 'm'},
-		{"Card", 1, 0, 'C'},
-		{"Port", 1, 0, 'P'},
-		{"timeout", 1, 0, 't'},
-		{"retries", 1, 0, 'r'},
+		{"number", 1, NULL, 'n'},
+		{"drpath", 1, NULL, 'd'},
+		{"attribute", 1, NULL, 'a'},
+		{"modifier", 1, NULL, 'm'},
+		{"Card", 1, NULL, 'C'},
+		{"Port", 1, NULL, 'P'},
+		{"timeout", 1, NULL, 't'},
+		{"retries", 1, NULL, 'r'},
 		{}
 	};
 	char *card_name = NULL;

@@ -593,13 +593,13 @@ static void print_subnet()
 int main(int argc, char **argv)
 {
 	const struct option long_opts[] = {
-		{"Card", 1, 0, 'C'},
-		{"Port", 1, 0, 'P'},
-		{"maxsmps", 1, 0, 'n'},
-		{"timeout", 1, 0, 't'},
-		{"retries", 1, 0, 'r'},
-		{"verbose", 0, 0, 'v'},
-		{"help", 0, 0, 'h'},
+		{"Card", 1, NULL, 'C'},
+		{"Port", 1, NULL, 'P'},
+		{"maxsmps", 1, NULL, 'n'},
+		{"timeout", 1, NULL, 't'},
+		{"retries", 1, NULL, 'r'},
+		{"verbose", 0, NULL, 'v'},
+		{"help", 0, NULL, 'h'},
 		{}
 	};
 	char *card_name = NULL;
