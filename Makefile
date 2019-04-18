@@ -1,4 +1,4 @@
-subdirs:= ibsim umad2sim
+subdirs:= ibsim umad2sim tests
 
 all clean dep install:
 	$(foreach dir, $(subdirs), make -C $(dir) $@ && ) echo "Done."
