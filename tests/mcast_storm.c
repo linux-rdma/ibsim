@@ -679,32 +679,32 @@ static void usage(char *prog, const struct option *o, const struct test *t)
 int main(int argc, char **argv)
 {
 	const struct option long_opts [] = {
-		{"guidfile", 1, 0, 'g'},
-		{"mgidfile", 1, 0, 'm'},
-		{"GUID", 1, 0, 'G'},
-		{"MGID", 1, 0, 'M'},
-		{"ipv4", 0, 0, 'i'},
-		{"increment", 1, 0, 'I'},
-		{"qkey", 1, 0, 'q'},
-		{"mlid", 1, 0, 'z'},
-		{"mtu", 1, 0, 'y'},
-		{"tclass", 1, 0, 't'},
-		{"pkey", 1, 0, 'p'},
-		{"rate", 1, 0, 'r'},
-		{"sl", 1, 0, 's'},
-		{"flowlabel", 1, 0, 'f'},
-		{"joinstate", 1, 0, 'j'},
-		{"proxy", 0, 0, 'x'},
-		{"version", 0, 0, 'V'},
-		{"verbose", 0, 0, 'v'},
-		{"help", 0, 0, 'h'},
+		{"guidfile", 1, NULL, 'g'},
+		{"mgidfile", 1, NULL, 'm'},
+		{"GUID", 1, NULL, 'G'},
+		{"MGID", 1, NULL, 'M'},
+		{"ipv4", 0, NULL, 'i'},
+		{"increment", 1, NULL, 'I'},
+		{"qkey", 1, NULL, 'q'},
+		{"mlid", 1, NULL, 'z'},
+		{"mtu", 1, NULL, 'y'},
+		{"tclass", 1, NULL, 't'},
+		{"pkey", 1, NULL, 'p'},
+		{"rate", 1, NULL, 'r'},
+		{"sl", 1, NULL, 's'},
+		{"flowlabel", 1, NULL, 'f'},
+		{"joinstate", 1, NULL, 'j'},
+		{"proxy", 0, NULL, 'x'},
+		{"version", 0, NULL, 'V'},
+		{"verbose", 0, NULL, 'v'},
+		{"help", 0, NULL, 'h'},
 		{}
 	};
 	const struct test tests[] = {
 		{"rereg", run_port_rereg_test, "simulates port reregistration"},
 		{"joins", run_mcast_joins_test, "run a lot of join requests"},
 		{"leave", run_mcast_leave_test, "run a lot of leave requests"},
-		{0}
+		{NULL, NULL, NULL}
 	};
 
 	char opt_str[256];
