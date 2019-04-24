@@ -9,12 +9,13 @@ Release: %rel%{?dist}
 License: GPLv2 or BSD
 Group: System Environment/Libraries
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Source: http://www.openfabrics.org/downloads/management/@TARBALL@
-Url: http://openfabrics.org/
+Source: https://github.com/linux-rdma/ibsim/releases/download/@VERSION@/@TARBALL@
+Url: https://github.com/linux-rdma/ibsim
 BuildRequires: libibmad-devel, libibumad-devel, gcc
 
 %description
-ibsim provides simulation of infiniband fabric for using with OFA OpenSM, diagnostic and management tools.
+ibsim provides simulation of infiniband fabric for using with
+OFA OpenSM, diagnostic and management tools.
 
 %prep
 %setup -q
