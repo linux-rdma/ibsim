@@ -37,7 +37,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %{_libdir}/umad2sim/libumad2sim*.so*
 %{_bindir}/ibsim
-%doc README TODO net-examples scripts
-%license COPYING
+%doc README COPYING TODO net-examples scripts
 
 %changelog
