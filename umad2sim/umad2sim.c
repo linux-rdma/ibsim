@@ -109,7 +109,7 @@ static int (*real_scandir) (const char *dir, struct dirent *** namelist,
 
 static char sysfs_infiniband_dir[] = SYS_INFINIBAND;
 static char sysfs_infiniband_mad_dir[] = IB_UMAD_ABI_DIR;
-static char umad_dev_dir[] = UMAD_DEV_DIR;
+static char umad_dev_dir[] = "/dev/infiniband";
 
 static char umad2sim_sysfs_prefix[32];
 

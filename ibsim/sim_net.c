@@ -71,8 +71,6 @@ static int inclines[MAX_INCLUDE];
 static char *incfiles[MAX_INCLUDE];
 static int inclevel;
 
-int simverb;
-
 Port *default_port;
 
 static const uint8_t smaport[] = {
