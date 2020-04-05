@@ -1,0 +1,39 @@
+#!/bin/sh
+
+sim_so=@sim_so@
+shell="bash"
+
+usage() {
+	me=${0##*/}
+	cat <<EOF
+$me: run commands with an ibsim-smulated stack
+
+Will run a command or start a shell with $sim_so
+LD_PRELOAD-ed.
+
+Usage:
+
+  $me <command>    # Run <command> under ibsim
+  $me              # Start a shell similarely
+  $me -h | --help  # Print this message
+
+Note: You still need to run ibsim separately.
+EOF
+}
+
+case "$1" in
+-h | --help) usage; exit 1;;
+esac
+
+if [ "$LD_PRELOAD" = '' ]; then
+	LD_PRELOAD="$sim_so"
+else
+	LD_PRELOAD="$LD_PRELOAD:sim_so"
+fi
+export LD_PRELOAD
+
+if [ "$*" = '' ]; then
+	exec $shell
+else
+	exec "$@"
+fi

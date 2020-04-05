@@ -13,6 +13,8 @@ libpath:= $(strip $(if $(libpath),$(libpath),\
 		$(prefix)/lib64,$(prefix)/lib)))
 binpath:= $(if $(binpath),$(binpath),$(prefix)/bin)
 
+libdir:=$(libpath)/umad2sim
+
 #IB_DEV_DIR:=$(HOME)/src/m
 ifdef IB_DEV_DIR
  INCS:= $(foreach l, mad umad, -I$(IB_DEV_DIR)/libib$(l)/include) \
@@ -40,7 +42,7 @@ all:
 %.so:
 	$(CC) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(progs):
+$(progs): %:
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 dep:
@@ -54,9 +56,9 @@ clean:
 
 install: all
 	install -d $(DESTDIR)$(binpath)
-	install -d $(DESTDIR)$(libpath)/umad2sim
+	install -d $(DESTDIR)$(libdir)
 	$(foreach p, $(progs), install $(p) $(DESTDIR)$(binpath))
-	$(foreach l, $(libs), install $(l) $(DESTDIR)$(libpath)/umad2sim)
+	$(foreach l, $(libs), install $(l) $(DESTDIR)$(libdir)
 
 $(objs): .build_profile
 .build_profile::

@@ -1,0 +1,42 @@
+.\"                                      Hey, EMACS: -*- nroff -*-
+.\" (C) Copyright 2020 Tzafrir Cohen <mellanox@cohens.org.il>
+.\"
+.TH ibsim\-run 1 "2020-04-05"
+
+.SH NAME
+ibsim\-run \- run programs in an ibsim-simulated envronment
+.SH SYNOPSIS
+.B ibsim\-run
+.RI [ <command> ]
+.SH DESCRIPTION
+The package ibsim simulates calls to the umad library (of the Infiniband
+user-space stack).
+
+In order to use it, you should run ibsim(1), that gets a network diagram.
+Programs that have libumad2sim.so loaded, override the calls to libumad
+with calls to the ibsim simulator.
+
+This is a script that runs commands with libumad2sim.so already
+LD_PRELOAD-ed.
+
+.SH OPTIONS
+The script will manipulate the environment and then run the rest of the
+command line in that environment. If no command was given, it will run
+bash.
+
+However the following options are supported:
+
+.TP
+.B \-h, \-\-help
+Show summary of options and exit.
+
+.SH EXAMPLES
+
+  ibsim -s path/to/net-examples/net.2sw2path4hca
+
+And in a separate shell:
+
+  ibsim-run ibdiscover
+
+.SH SEE ALSO
+.BR ibsim(1)
