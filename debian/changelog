@@ -1,0 +1,11 @@
+ibsim (0.9) unstable; urgency=low
+
+  * Switch to Github.
+
+ --  Tzafrir Cohen <mellanox@cohens.org.il>  Sun, 12 Apr 2020 11:14:12 +0300
+
+ibsim (0.6) unstable; urgency=low
+
+  * Initial release
+
+ --  Ilya Nelkenbaum <ilyan@mellanox.com>  Mon, 11 Mar 2013 11:03:54 +0200

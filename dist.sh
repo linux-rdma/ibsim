@@ -12,7 +12,7 @@ rm -rf $distdir
 mkdir $distdir
 
 files=`find . -name '*.[ch]' -o -name Makefile`
-cp -a --parents $files \
+cp -a --parents $files debian \
 	defs.mk README COPYING TODO net-examples scripts tests $distdir
 
 cat ibsim.spec.in \
