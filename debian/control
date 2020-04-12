@@ -1,0 +1,19 @@
+Source: ibsim
+Section: net
+Priority: extra
+Maintainer: Tzafrir Cohen <mellanox@cohens.org.il>
+Build-Depends: debhelper (>= 9), libibumad-dev, libibmad-dev
+Standards-Version: 4.13
+Homepage: https://github.com/linux-rdma/ibsim
+
+Package: ibsim
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: InfiniBand fabric simulator for management
+ ibsim provides simulation of infiniband fabric for using with OFA OpenSM,
+ diagnostic and management tools.
+
+Package: ibsim-doc
+Architecture: all
+Description: documentation for ibsim
+ Documentation for ibsim
