@@ -35,7 +35,7 @@ objs?=$(srcs:.c=.o)
 all:
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c -o $@ $<
 
 %.so:
 	$(CC) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
