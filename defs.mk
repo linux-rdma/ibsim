@@ -42,7 +42,7 @@ all:
 %.so:
 	$(CC) -shared $(LDFLAGS) -o $@ $^ $(LIBS)
 
-$(progs): %:
+$(bins): %:
 	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 dep:
@@ -57,8 +57,8 @@ clean:
 install: all
 	install -d $(DESTDIR)$(binpath)
 	install -d $(DESTDIR)$(libdir)
-	$(foreach p, $(progs), install $(p) $(DESTDIR)$(binpath))
-	$(foreach l, $(libs), install $(l) $(DESTDIR)$(libdir)
+	$(foreach p, $(progs), install $(p) $(DESTDIR)$(binpath);)
+	$(foreach l, $(libs), install $(l) $(DESTDIR)$(libdir);)
 
 $(objs): .build_profile
 .build_profile::

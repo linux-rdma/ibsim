@@ -1,7 +1,7 @@
-progs:= subnet_discover query_many mcast_storm
+bins:= subnet_discover query_many mcast_storm
 
 -include ../defs.mk
 
-all: $(progs)
+all: $(bins)
 
-$(progs): %: %.o
+$(bins): %: %.o
