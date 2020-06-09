@@ -152,6 +152,8 @@ static unsigned umad2sim_initialized;
 static struct umad2sim_dev *devices[32];
 
 static pthread_mutex_t global_devices_mutex;
+static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count,
+			     unsigned *mgmt_class);
 
 static ssize_t fd_data_mqueue_size(struct fd_data_t *fd_data);
 
@@ -456,6 +458,51 @@ static int close_fd(unsigned fd)
 	return 0;
 }
 
+static void *__receiver(void *arg)
+{
+	struct umad2sim_dev *dev = (struct umad2sim_dev *) arg;
+	struct pollfd pfds;
+	struct umad_buf_t *buf;
+	unsigned mgmt_class;
+	unsigned fd;
+	struct fd_data_t *fd_data;
+
+	pfds.fd = dev->sim_client.fd_pktin;
+	pfds.events = POLLIN;
+	pfds.revents = 0;
+
+
+	while (1) {
+		if (real_poll(&pfds, 1, -1) < 0) {
+			ERROR("real_poll failure\n");
+			continue;
+		}
+		/* Do real read and post the message to the queue */
+		buf = alloc_umad_buf(sizeof(struct sim_request));
+
+		if (!buf)
+			continue;
+
+		buf->size = umad2sim_read(dev, buf->umad, buf->size, &mgmt_class);
+		pthread_mutex_lock(&global_devices_mutex);
+		fd = dev->agent_fds[mgmt_class];
+		fd_data = get_fd_data(dev, fd);
+
+		/* find appropriate mqueue and push to it */
+		if ((fd_data == NULL) || fd_data_enqueue(fd_data, buf) < 0) {
+			ERROR("Empty fd_data or fd_data_enqueue failure "
+			      "for FD %d\n",fd);
+			free_umad_buf(buf);
+		} else {
+			/* signal reader */
+			fd_event_signal(&fd_data->fd_event);
+		}
+		pthread_mutex_unlock(&global_devices_mutex);
+
+	}
+	return NULL;
+}
+
 /*
  *  sysfs stuff
  *
@@ -739,11 +786,11 @@ static int dev_sysfs_create(struct umad2sim_dev *dev)
  *
  */
 
-static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count)
+static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count,
+			     unsigned *mgmt_class)
 {
 	struct sim_request req;
 	ib_user_mad_t *umad = (ib_user_mad_t *) buf;
-	unsigned mgmt_class;
 	int cnt;
 
 	DEBUG("umad2sim_read: %zu...\n", count);
@@ -753,29 +800,30 @@ static ssize_t umad2sim_read(struct umad2sim_dev *dev, void *buf, size_t count)
 	if (cnt < sizeof(req)) {
 		ERROR("umad2sim_read: partial request - skip.\n");
 		umad->status = EAGAIN;
+		*mgmt_class = 0;
 		return umad_size();
 	}
 
-	mgmt_class = mad_get_field(req.mad, 0, IB_MAD_MGMTCLASS_F);
+	*mgmt_class = mad_get_field(req.mad, 0, IB_MAD_MGMTCLASS_F);
 
 	DEBUG("umad2sim_read: mad: method=%x, response=%x, mgmtclass=%x, "
 	      "attrid=%x, attrmod=%x\n",
 	      mad_get_field(req.mad, 0, IB_MAD_METHOD_F),
 	      mad_get_field(req.mad, 0, IB_MAD_RESPONSE_F),
-	      mgmt_class,
+	      *mgmt_class,
 	      mad_get_field(req.mad, 0, IB_MAD_ATTRID_F),
 	      mad_get_field(req.mad, 0, IB_MAD_ATTRMOD_F));
 
-	if (mgmt_class >= arrsize(dev->agent_idx)) {
-		ERROR("bad mgmt_class 0x%x\n", mgmt_class);
-		mgmt_class = 0;
+	if (*mgmt_class >= arrsize(dev->agent_idx)) {
+		ERROR("bad mgmt_class 0x%x\n", *mgmt_class);
+		*mgmt_class = 0;
 	}
 
 	if (mad_get_field(req.mad, 0, IB_MAD_RESPONSE_F)) {
 		uint64_t trid = mad_get_field64(req.mad, 0, IB_MAD_TRID_F);
 		umad->agent_id = (trid >> 32) & 0xffff;
 	} else
-		umad->agent_id = dev->agent_idx[mgmt_class];
+		umad->agent_id = dev->agent_idx[*mgmt_class];
 
 	umad->status = ntohl(req.status);
 	umad->timeout_ms = 0;
@@ -863,48 +911,69 @@ static ssize_t umad2sim_write(struct umad2sim_dev *dev,
 	return count;
 }
 
-static int register_agent(struct umad2sim_dev *dev,
+static int register_agent(unsigned fd,
 			  struct ib_user_mad_reg_req *req)
 {
 	unsigned i;
-	DEBUG("register_agent: id = %u, qpn = %u, mgmt_class = %u,"
+	struct umad2sim_dev *dev;
+
+	pthread_mutex_lock(&global_devices_mutex);
+	dev = fd_to_dev(fd);
+
+	if (!dev) {
+		pthread_mutex_unlock(&global_devices_mutex);
+		return -1;
+	}
+	DEBUG("register_agent: fd = %u, qpn = %u, mgmt_class = %u,"
 	      " mgmt_class_version = %u, rmpp_version = %u\n",
-	      req->id, req->qpn, req->mgmt_class, req->mgmt_class_version,
+	      fd, req->qpn, req->mgmt_class, req->mgmt_class_version,
 	      req->rmpp_version);
 	for (i = 0; i < arrsize(dev->agents); i++)
 		if (dev->agents[i].id == (uint32_t)(-1)) {
 			req->id = i;
 			dev->agents[i] = *req;
 			dev->agent_idx[req->mgmt_class] = i;
+			dev->agent_fds[req->mgmt_class] = fd;
 			DEBUG("agent registered: %d\n", i);
+			pthread_mutex_unlock(&global_devices_mutex);
 			return 0;
 		}
+	pthread_mutex_unlock(&global_devices_mutex);
 	errno = ENOMEM;
 	return -1;
 }
 
-static int unregister_agent(struct umad2sim_dev *dev, unsigned id)
+static int unregister_agent(unsigned fd, unsigned id)
 {
 	unsigned mgmt_class;
+	struct umad2sim_dev *dev;
+	pthread_mutex_lock(&global_devices_mutex);
+	if (!(dev = fd_to_dev(fd))) {
+		pthread_mutex_unlock(&global_devices_mutex);
+		return -1;
+	}
 	if (id >= arrsize(dev->agents)) {
+		pthread_mutex_unlock(&global_devices_mutex);
 		errno = EINVAL;
 		return -1;
 	}
 	mgmt_class = dev->agents[id].mgmt_class;
 	dev->agents[id].id = (uint32_t)(-1);
 	dev->agent_idx[mgmt_class] = -1;
+	dev->agent_fds[mgmt_class] = -1;
+	pthread_mutex_unlock(&global_devices_mutex);
 	return 0;
 }
 
-static int umad2sim_ioctl(struct umad2sim_dev *dev, unsigned long request,
+static int umad2sim_ioctl(unsigned fd, unsigned long request,
 			  void *arg)
 {
 	DEBUG("umad2sim_ioctl: %lu, %p...\n", request, arg);
 	switch (request) {
 	case IB_USER_MAD_REGISTER_AGENT:
-		return register_agent(dev, arg);
+		return register_agent(fd, arg);
 	case IB_USER_MAD_UNREGISTER_AGENT:
-		return unregister_agent(dev, *((unsigned *)arg));
+		return unregister_agent(fd, *((unsigned *)arg));
 	case IB_USER_MAD_ENABLE_PKEY:
 		return 0;
 	default:
@@ -931,12 +1000,22 @@ static struct umad2sim_dev *umad2sim_dev_create(unsigned num, const char *name)
 	if (sim_client_init(&dev->sim_client) < 0)
 		goto _error;
 
+	if (pthread_create(&dev->thread_id, NULL,
+			   __receiver, dev) < 0) {
+		sim_client_exit(&dev->sim_client);
+		goto _error;
+	}
+
 	dev->port = mad_get_field(&dev->sim_client.portinfo, 0,
 				  IB_PORT_LOCAL_PORT_F);
 	for (i = 0; i < arrsize(dev->agents); i++)
 		dev->agents[i].id = (uint32_t)(-1);
-	for (i = 0; i < arrsize(dev->agent_idx); i++)
+	for (i = 0; i < arrsize(dev->agent_idx); i++) {
 		dev->agent_idx[i] = (unsigned)(-1);
+		dev->agent_fds[i] = (unsigned)(-1);
+	}
+	for (i = 0; i < FD_PER_DEVICE; i++)
+		dev->fds[i] = NULL;
 
 	dev_sysfs_create(dev);
 
@@ -954,7 +1033,16 @@ static struct umad2sim_dev *umad2sim_dev_create(unsigned num, const char *name)
 
 static void umad2sim_dev_delete(struct umad2sim_dev *dev)
 {
+	int i;
 	sim_client_exit(&dev->sim_client);
+	pthread_cancel(dev->thread_id);
+	pthread_join(dev->thread_id, NULL);
+	for (i=0; i < FD_PER_DEVICE; i++) {
+		if (dev->fds[i] != NULL) {
+			fd_data_release(dev->fds[i]);
+			dev->fds[i] = NULL;
+		}
+	}
 	free(dev);
 }
 
@@ -997,13 +1085,16 @@ static void umad2sim_cleanup(void)
 	char path[1024];
 	unsigned i;
 	DEBUG("umad2sim_cleanup...\n");
+	pthread_mutex_lock(&global_devices_mutex);
 	for (i = 0; i < arrsize(devices); i++)
 		if (devices[i]) {
 			umad2sim_dev_delete(devices[i]);
 			devices[i] = NULL;
 		}
+	pthread_mutex_unlock(&global_devices_mutex);
 	strncpy(path, umad2sim_sysfs_prefix, sizeof(path) - 1);
 	unlink_dir(path, sizeof(path));
+	pthread_mutex_destroy(&global_devices_mutex);
 }
 
 static void umad2sim_init(void)
@@ -1018,6 +1109,7 @@ static void umad2sim_init(void)
 		ERROR("cannot init umad2sim. Exit.\n");
 		exit(-1);
 	}
+	pthread_mutex_init(&global_devices_mutex, NULL);
 	atexit(umad2sim_cleanup);
 	umad2sim_initialized = 1;
 }
@@ -1118,59 +1210,100 @@ int open(const char *path, int flags, ...)
 		return real_open(new_path, flags, mode);
 	}
 
+	pthread_mutex_lock(&global_devices_mutex);
 	for (i = 0; i < arrsize(devices); i++) {
 		if (!(dev = devices[i]))
 			continue;
 		if (!strncmp(path, dev->umad_path, sizeof(dev->umad_path))) {
-			return 1024 + i;
+			int fd_index;
+			fd_index = get_new_fd(dev);
+			pthread_mutex_unlock(&global_devices_mutex);
+			return (fd_index < 0) ? -1
+					      :  1024 + i * FD_PER_DEVICE +
+						 fd_index;
 		}
 		if (!strncmp(path, dev->issm_path, sizeof(dev->issm_path))) {
 			sim_client_set_sm(&dev->sim_client, 1);
+			pthread_mutex_unlock(&global_devices_mutex);
 			return 2048 + i;
 		}
 	}
-
+	pthread_mutex_unlock(&global_devices_mutex);
 	return real_open(path, flags, mode);
 }
 
 int close(int fd)
 {
-	struct umad2sim_dev *dev;
-
 	DEBUG("libs_wrap: close %d...\n", fd);
 	CHECK_INIT();
 
-	if (fd >= 2048) {
-		dev = devices[fd - 2048];
-		sim_client_set_sm(&dev->sim_client, 0);
-		return 0;
-	} else if (fd >= 1024) {
-		return 0;
-	} else
-		return real_close(fd);
+	if (fd >= 1024)
+		return close_fd(fd);
+
+	return real_close(fd);
 }
 
 ssize_t read(int fd, void *buf, size_t count)
 {
+	struct umad2sim_dev *dev;
+	struct fd_data_t *fd_data;
+	struct umad_buf_t *umad_buf;
+	int ret;
+
 	CHECK_INIT();
 
 	if (fd >= 2048)
 		return -1;
-	else if (fd >= 1024)
-		return umad2sim_read(devices[fd - 1024], buf, count);
-	else
+	else if (fd >= 1024) {
+
+		pthread_mutex_lock(&global_devices_mutex);
+		dev = fd_to_dev(fd);
+		fd_data = get_fd_data(dev, fd);
+		if (!fd_data) {
+			pthread_mutex_unlock(&global_devices_mutex);
+			return -1;
+		}
+		umad_buf = fd_data_dequeue(fd_data);
+		pthread_mutex_unlock(&global_devices_mutex);
+		if (!umad_buf) {
+			DEBUG("No data in queue\n");
+			return -EWOULDBLOCK;
+		}
+		if (umad_buf->size > count) {
+			ERROR("received data size %u larger than requested buf size %u\n",
+			     (unsigned int) umad_buf->size, (unsigned int) count);
+			umad_buf->size = count;
+		}
+
+		memcpy(buf, umad_buf->umad, umad_buf->size);
+
+		ret = umad_buf->size;
+		free_umad_buf(umad_buf);
+
+		return ret;
+	} else
 		return real_read(fd, buf, count);
 }
 
 ssize_t write(int fd, const void *buf, size_t count)
 {
+	struct umad2sim_dev *dev;
+	ssize_t res;
+
 	CHECK_INIT();
 
 	if (fd >= 2048)
 		return -1;
-	else if (fd >= 1024)
-		return umad2sim_write(devices[fd - 1024], buf, count);
-	else
+	else if (fd >= 1024) {
+		pthread_mutex_lock(&global_devices_mutex);
+		dev = fd_to_dev(fd);
+		if (!dev)
+			res = -1;
+		else
+			res = umad2sim_write(dev, buf, count);
+		pthread_mutex_unlock(&global_devices_mutex);
+		return res;
+	} else
 		return real_write(fd, buf, count);
 }
 
@@ -1187,33 +1320,48 @@ int ioctl(int fd, unsigned long request, ...)
 	if (fd >= 2048)
 		return -1;
 	else if (fd >= 1024)
-		return umad2sim_ioctl(devices[fd - 1024], request, arg);
+		return umad2sim_ioctl(fd, request, arg);
 	else
 		return real_ioctl(fd, request, arg);
 }
 
 int poll(struct pollfd *pfds, nfds_t nfds, int timeout)
 {
-	int saved_fds[nfds];
-	unsigned i;
+	struct umad2sim_dev *dev = NULL;
+
+	struct fd_data_t *fd_data = NULL;
+	unsigned i, index;
 	int ret;
 
 	CHECK_INIT();
-
+	pthread_mutex_lock(&global_devices_mutex);
 	for (i = 0; i < nfds; i++) {
 		if (pfds[i].fd >= 1024 && pfds[i].fd < 2048) {
-			struct umad2sim_dev *dev = devices[pfds[i].fd - 1024];
-			saved_fds[i] = pfds[i].fd;
-			pfds[i].fd = dev->sim_client.fd_pktin;
-		} else
-			saved_fds[i] = 0;
+			dev = fd_to_dev(pfds[i].fd);
+			fd_data = get_fd_data(dev, pfds[i].fd);
+			index = i;
+			break;
+		}
 	}
+	pthread_mutex_unlock(&global_devices_mutex);
+	if (fd_data != NULL) {
+		/* timeout in microsec*/
+		ret = fd_event_wait_on(fd_data,
+				       (timeout < 0) ? EVENT_NO_TIMEOUT :
+				       timeout * 1000);
+		pfds[index].revents = 0;
+		if (ret == 0) {
+			pfds[index].revents = POLLIN;
+			ret = 1;
+		}
+		else if (ret == FD_TIMEOUT)
+			ret = 0;
+		else
+			ret = -1;
 
-	ret = real_poll(pfds, nfds, timeout);
-
-	for (i = 0; i < nfds; i++)
-		if (saved_fds[i])
-			pfds[i].fd = saved_fds[i];
+	} else {
+		ret = real_poll(pfds, nfds, timeout);
+	}
 
 	return ret;
 }
