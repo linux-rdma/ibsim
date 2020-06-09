@@ -23,7 +23,7 @@ ifdef IB_DEV_DIR
   $(foreach l, mad umad, $(IB_DEV_DIR)/libib$(l)/.libs/libib$(l).so)
 else
  INCS:= -I$(dir $(libpath))include
- LIBS:= -L$(libpath) -libmad -libumad
+ LIBS:= -L$(libpath) -libmad -libumad -lpthread
 endif
 
 CFLAGS += -Wall -g -fpic -I. -I../include $(INCS)
