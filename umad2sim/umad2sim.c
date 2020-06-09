@@ -67,6 +67,22 @@
 
 #define IB_PORT_EXT_SPEED_SUPPORTED_MASK (1<<14)
 
+typedef struct _umad_buf {
+	ssize_t size;
+	char *umad;
+} umad_buf_t;
+
+typedef struct _list_elem_t {
+	umad_buf_t *data;
+	struct _list_elem_t *next;
+} list_elem_t;
+
+typedef struct _msg_queue {
+	list_elem_t *tail;
+	list_elem_t *head;
+	ssize_t queue_size;
+} msg_queue_t;
+
 struct ib_user_mad_reg_req {
 	uint32_t id;
 	uint32_t method_mask[4];
@@ -115,6 +131,95 @@ static char umad2sim_sysfs_prefix[32];
 
 static unsigned umad2sim_initialized;
 static struct umad2sim_dev *devices[32];
+
+static umad_buf_t *alloc_umad_buf(ssize_t size)
+{
+	umad_buf_t *buf;
+	buf = (umad_buf_t *) malloc(sizeof(umad_buf_t));
+	if (!buf)
+		return NULL;
+
+	buf->umad = malloc(size);
+	if (!buf->umad) {
+		free(buf);
+		return NULL;
+	}
+
+	buf->size = size;
+
+	return buf;
+}
+
+static void free_umad_buf(umad_buf_t *buf)
+{
+	free(buf->umad);
+	buf->size = 0;
+	free(buf);
+}
+
+static msg_queue_t *mqueue_create()
+{
+	msg_queue_t *ptr;
+
+	ptr = (msg_queue_t *) malloc(sizeof(msg_queue_t));
+	if (!ptr)
+		return NULL;
+
+	ptr->head = NULL;
+	ptr->tail = NULL;
+	ptr->queue_size = 0;
+
+	return ptr;
+}
+
+static list_elem_t *mqueue_add_tail(msg_queue_t *mqueue, void *data)
+{
+	list_elem_t *ptr;
+	ptr = (list_elem_t *) malloc(sizeof(list_elem_t));
+	if (!ptr)
+		return NULL;
+
+	ptr->data = data;
+	ptr->next = NULL;
+
+	if (mqueue->head == NULL) {
+		mqueue->tail = ptr;
+		mqueue->head = mqueue->tail;
+	} else {
+		mqueue->tail->next = ptr;
+		mqueue->tail = ptr;
+	}
+	mqueue->queue_size++;
+	return ptr;
+}
+
+static ssize_t mqueue_get_size(msg_queue_t *mqueue)
+{
+	return mqueue->queue_size;
+}
+
+static list_elem_t * mqueue_remove_head(msg_queue_t *mqueue)
+{
+	list_elem_t *ptr;
+	if (mqueue->head == NULL)
+		return NULL;
+
+	ptr = mqueue->head;
+	if (mqueue->head == mqueue->tail) {
+		mqueue->head = NULL;
+		mqueue->tail = NULL;
+	} else {
+		mqueue->head = ptr->next;
+	}
+
+	mqueue->queue_size--;
+	return ptr;
+}
+
+static void mqueue_destroy(msg_queue_t *mqueue)
+{
+	free(mqueue);
+}
 
 /*
  *  sysfs stuff
