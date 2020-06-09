@@ -67,6 +67,22 @@
 
 #define IB_PORT_EXT_SPEED_SUPPORTED_MASK (1<<14)
 
+struct umad_buf_t {
+	ssize_t size;
+	char *umad;
+};
+
+struct list_elem_t {
+	struct umad_buf_t *data;
+	struct list_elem_t *next;
+};
+
+struct msg_queue_t {
+	struct list_elem_t *tail;
+	struct  list_elem_t *head;
+	ssize_t queue_size;
+};
+
 struct ib_user_mad_reg_req {
 	uint32_t id;
 	uint32_t method_mask[4];
@@ -115,6 +131,100 @@ static char umad2sim_sysfs_prefix[32];
 
 static unsigned umad2sim_initialized;
 static struct umad2sim_dev *devices[32];
+
+static struct umad_buf_t *alloc_umad_buf(ssize_t size)
+{
+	struct umad_buf_t *buf;
+
+	buf = (struct umad_buf_t *) malloc(sizeof(struct umad_buf_t));
+	if (!buf)
+		return NULL;
+
+	buf->umad = malloc(size);
+	if (!buf->umad) {
+		free(buf);
+		return NULL;
+	}
+
+	buf->size = size;
+
+	return buf;
+}
+
+static void free_umad_buf(struct umad_buf_t *buf)
+{
+	free(buf->umad);
+	buf->size = 0;
+	free(buf);
+}
+
+static struct msg_queue_t *mqueue_create(void)
+{
+	struct msg_queue_t *ptr;
+
+	ptr = (struct msg_queue_t *) malloc(sizeof(struct msg_queue_t));
+	if (!ptr)
+		return NULL;
+
+	ptr->head = NULL;
+	ptr->tail = NULL;
+	ptr->queue_size = 0;
+
+	return ptr;
+}
+
+static struct list_elem_t *mqueue_add_tail(struct msg_queue_t *mqueue,
+					   void *data)
+{
+	struct list_elem_t *ptr;
+
+	ptr = (struct list_elem_t *) malloc(sizeof(struct list_elem_t));
+	if (!ptr)
+		return NULL;
+
+	ptr->data = data;
+	ptr->next = NULL;
+
+	if (mqueue->head == NULL) {
+		mqueue->tail = ptr;
+		mqueue->head = mqueue->tail;
+	} else {
+		mqueue->tail->next = ptr;
+		mqueue->tail = ptr;
+	}
+	mqueue->queue_size++;
+	return ptr;
+}
+
+static ssize_t mqueue_get_size(struct msg_queue_t *mqueue)
+{
+	return mqueue->queue_size;
+}
+
+static struct list_elem_t *mqueue_remove_head(struct msg_queue_t *mqueue)
+{
+	struct list_elem_t *ptr;
+
+	if (mqueue->head == NULL)
+		return NULL;
+
+	ptr = mqueue->head;
+	if (mqueue->head == mqueue->tail) {
+		mqueue->head = NULL;
+		mqueue->tail = NULL;
+	} else {
+		mqueue->head = ptr->next;
+	}
+
+	mqueue->queue_size--;
+	ptr->next = NULL;
+	return ptr;
+}
+
+static void mqueue_destroy(struct msg_queue_t *mqueue)
+{
+	free(mqueue);
+}
 
 /*
  *  sysfs stuff
