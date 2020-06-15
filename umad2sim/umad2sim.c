@@ -40,8 +40,6 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/time.h>
-#include <sys/errno.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -50,7 +48,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <dlfcn.h>
-#include <pthread.h>
+
 #include <infiniband/umad.h>
 #include <infiniband/mad.h>
 
@@ -66,8 +64,6 @@
 
 #define arrsize(a) (sizeof(a)/sizeof(a[0]))
 
-#define EVENT_NO_TIMEOUT	0xFFFFFFFF
-#define FD_TIMEOUT	12
 
 #define IB_PORT_EXT_SPEED_SUPPORTED_MASK (1<<14)
 
@@ -87,17 +83,6 @@ struct msg_queue_t {
 	ssize_t queue_size;
 };
 
-struct fd_event_t {
-	pthread_cond_t condvar;
-	pthread_mutex_t mutex;
-};
-
-struct fd_data_t {
-	struct fd_event_t fd_event;
-	struct msg_queue_t *mqueue;
-} fd_data_t;
-
-
 struct ib_user_mad_reg_req {
 	uint32_t id;
 	uint32_t method_mask[4];
@@ -108,20 +93,16 @@ struct ib_user_mad_reg_req {
 	uint8_t rmpp_version;
 };
 
-#define FD_PER_DEVICE 8
-
 struct umad2sim_dev {
-	pthread_t thread_id;
+	int fd;
 	unsigned num;
 	char name[32];
 	uint8_t port;
 	struct sim_client sim_client;
 	unsigned agent_idx[256];
-	unsigned agent_fds[256];
 	struct ib_user_mad_reg_req agents[32];
 	char umad_path[256];
 	char issm_path[256];
-	struct fd_data_t *fds[FD_PER_DEVICE];
 };
 
 static int (*real_open) (const char *path, int flags, ...);
@@ -150,84 +131,6 @@ static char umad2sim_sysfs_prefix[32];
 
 static unsigned umad2sim_initialized;
 static struct umad2sim_dev *devices[32];
-
-static pthread_mutex_t global_devices_mutex;
-
-static ssize_t fd_data_mqueue_size(struct fd_data_t *fd_data);
-
-static int fd_event_init(struct fd_event_t * const p_event)
-{
-	pthread_cond_init(&p_event->condvar, NULL);
-	pthread_mutex_init(&p_event->mutex, NULL);
-
-	return 0;
-}
-
-static void fd_event_destroy(struct fd_event_t * const p_event)
-{
-	pthread_cond_broadcast(&p_event->condvar);
-	pthread_cond_destroy(&p_event->condvar);
-	pthread_mutex_destroy(&p_event->mutex);
-}
-
-static void fd_event_signal(struct fd_event_t * const p_event)
-{
-
-	pthread_mutex_lock(&p_event->mutex);
-	pthread_cond_signal(&p_event->condvar);
-	pthread_mutex_unlock(&p_event->mutex);
-}
-
-static int fd_event_wait_on(struct fd_data_t * const fd_data,
-			    const uint32_t wait_us)
-{
-	int status = -1;
-	int wait_ret;
-	struct timespec timeout;
-	struct timeval curtime;
-	struct fd_event_t *p_event = &fd_data->fd_event;
-	ssize_t size;
-
-	pthread_mutex_lock(&global_devices_mutex);
-	size = fd_data_mqueue_size(fd_data);
-	pthread_mutex_unlock(&global_devices_mutex);
-
-	if (size)
-		return 0;
-
-	if (wait_us == 0)
-		return FD_TIMEOUT;
-
-	pthread_mutex_lock(&p_event->mutex);
-	if (wait_us == EVENT_NO_TIMEOUT) {
-		/* Wait for condition variable to be signaled */
-		if (!pthread_cond_wait(&p_event->condvar, &p_event->mutex))
-			status = 0;
-		pthread_mutex_unlock(&p_event->mutex);
-		return status;
-	}
-
-	if (gettimeofday(&curtime, NULL) == 0) {
-		unsigned long long n_sec =
-			curtime.tv_usec*1000 + ((wait_us % 1000000)) * 1000;
-			timeout.tv_sec = curtime.tv_sec + (wait_us / 1000000)
-			    + (n_sec / 1000000000);
-			timeout.tv_nsec = n_sec % 1000000000;
-
-			wait_ret = pthread_cond_timedwait(&p_event->condvar,
-							  &p_event->mutex,
-							  &timeout);
-			pthread_mutex_unlock(&p_event->mutex);
-			if (wait_ret == 0) {
-				pthread_mutex_lock(&global_devices_mutex);
-				size = fd_data_mqueue_size(fd_data);
-				pthread_mutex_unlock(&global_devices_mutex);
-				status = size ? 0 : -1;
-			} else if (wait_ret == ETIMEDOUT)
-				status = FD_TIMEOUT;
-	}
-	return status;
-}
 
 static struct umad_buf_t *alloc_umad_buf(ssize_t size)
 {
@@ -320,143 +223,6 @@ static struct list_elem_t *mqueue_remove_head(struct msg_queue_t *mqueue)
 static void mqueue_destroy(struct msg_queue_t *mqueue)
 {
 	free(mqueue);
-}
-
-static struct fd_data_t *fd_data_create(void)
-{
-	struct fd_data_t *ptr;
-
-	ptr = (struct fd_data_t *) malloc(sizeof(struct fd_data_t));
-	if (!ptr)
-		return NULL;
-
-	ptr->mqueue = mqueue_create();
-	if (!ptr->mqueue) {
-		free(ptr);
-		return NULL;
-	}
-
-	fd_event_init(&ptr->fd_event);
-
-	return ptr;
-}
-
-/* should be called under global lock */
-static struct umad_buf_t *fd_data_dequeue(struct fd_data_t *fd_data)
-{
-	struct list_elem_t *ptr;
-	struct umad_buf_t *data_ptr = NULL;
-
-	ptr = mqueue_remove_head(fd_data->mqueue);
-	if (ptr) {
-		data_ptr = ptr->data;
-		free(ptr);
-	}
-	return data_ptr;
-}
-/* should be called under global lock */
-static void fd_data_release(struct fd_data_t *fd_data)
-{
-	struct umad_buf_t *ptr;
-
-	while ((ptr = fd_data_dequeue(fd_data)) != NULL)
-		free_umad_buf(ptr);
-
-	mqueue_destroy(fd_data->mqueue);
-	fd_event_destroy(&fd_data->fd_event);
-	free(fd_data);
-}
-
-/* should be called under global lock */
-static int fd_data_enqueue(struct fd_data_t *fd_data, void *data)
-{
-	struct list_elem_t *ptr;
-	int result = 0;
-
-	ptr = mqueue_add_tail(fd_data->mqueue, data);
-	if (!ptr)
-		result = -1;
-	return result;
-}
-
-/* should be called under global lock */
-static struct fd_data_t *get_fd_data(struct umad2sim_dev *dev, unsigned fd)
-{
-	if (fd < 1024 && fd >= 2048)
-		return NULL;
-
-	if (!dev)
-		return NULL;
-
-	return dev->fds[(fd - 1024) % FD_PER_DEVICE];
-}
-
-/* should be called under global lock */
-static ssize_t fd_data_mqueue_size(struct fd_data_t *fd_data)
-{
-	return mqueue_get_size(fd_data->mqueue);
-}
-
-/* Returns index into dev->fds where new fd_data_t pointer was stored */
-static int get_new_fd(struct umad2sim_dev *dev)
-{
-	int i;
-	for (i = 0; i < FD_PER_DEVICE; i++) {
-		if (dev->fds[i] != NULL)
-			continue;
-		dev->fds[i] = fd_data_create();
-		return (dev->fds[i] == NULL) ? -1 : i;
-	}
-	/* all FDs allocated */
-	return -1;
-}
-
-static struct umad2sim_dev *fd_to_dev(unsigned fd)
-{
-	if (fd >= 2048)
-		return devices[fd - 2048];
-	if (fd >= 1024)
-		return devices[(fd - 1024) / FD_PER_DEVICE];
-
-	return NULL;
-}
-
-static int close_fd(unsigned fd)
-{
-	struct umad2sim_dev *dev;
-	int i, idx;
-	struct fd_data_t *fd_data;
-
-	if (fd < 1024)
-		return 0;
-	pthread_mutex_lock(&global_devices_mutex);
-	dev = fd_to_dev(fd);
-	if (!dev) {
-		pthread_mutex_unlock(&global_devices_mutex);
-		return 0;
-	}
-	if (fd >= 2048) {
-		sim_client_set_sm(&dev->sim_client, 0);
-		pthread_mutex_unlock(&global_devices_mutex);
-		return 0;
-	}
-
-	fd_data = get_fd_data(dev, fd);
-	if (fd_data)
-		fd_data_release(fd_data);
-
-	for (i = 0; i < 256; i++) {
-		if (dev->agent_fds[i] == fd) {
-			dev->agent_fds[i]= -1;
-			idx = dev->agent_idx[i];
-			dev->agents[idx].id = (uint32_t)(-1);
-			dev->agent_idx[i]= -1;
-			break;
-		}
-	}
-	dev->fds[(fd - 1024) % FD_PER_DEVICE] = NULL;
-	pthread_mutex_unlock(&global_devices_mutex);
-	return 0;
 }
 
 /*
