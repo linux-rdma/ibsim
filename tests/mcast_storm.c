@@ -512,8 +512,6 @@ static int run_test(const struct test *t, struct test_data *td,
 	ret = t->func(&addr, td);
 
 	umad_unregister(addr.port, addr.agent);
-	umad_close_port(addr.port);
-	umad_done();
 
 	info("\'%s\' %s.\n", t->name, ret ? "failed" : "is done");
 
