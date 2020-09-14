@@ -1156,6 +1156,12 @@ DIR *opendir(const char *path)
 	char new_path[1024];
 
 	CHECK_INIT();
+
+	if (!umad2sim_initialized && (is_sysfs_file(path) ||
+				      !strncmp(path, umad_dev_dir,
+					       strlen(umad_dev_dir))))
+		umad2sim_init();
+
 	DEBUG("libs_wrap: opendir: %s...\n", path);
 
 	if (is_sysfs_file(path)) {
