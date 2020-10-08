@@ -1,6 +1,6 @@
 bins:=ibsim
 scripts:=ibsim-run
-progs:=$(bins) $(scrips)
+progs:=$(bins) $(scripts)
 
 -include ../defs.mk
 
