@@ -50,7 +50,7 @@ dep:
 -include .depend
 
 clean:
-	$(RM) $(objs) $(libs) $(progs)
+	$(RM) $(objs) $(libs) $(bins) $(extra_clean)
 	$(RM) .build_profile
 	$(RM) *.o *.a *.so *~
 
