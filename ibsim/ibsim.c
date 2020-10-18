@@ -338,7 +338,9 @@ static void set_issm(Port *port, unsigned issm)
 
 static int sim_ctl_set_issm(Client * cl, struct sim_ctl * ctl)
 {
-	int issm = *(int *)ctl->data;
+	int issm;
+
+	memcpy(&issm, &ctl->data[0], sizeof(int));
 
 	VERB("set issm %d port %" PRIx64, issm, cl->port->portguid);
 	cl->issm = issm;
