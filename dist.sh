@@ -7,6 +7,17 @@ tarball=${distdir}.tar.gz
 
 test -z "$RELEASE" || rel=$RELEASE
 
+dch_entry() {
+	cat <<EOF
+ibsim ($ver) unstable; urgency=low
+
+  * New upstream release.
+
+ --  Tzafrir Cohen <nvidia@cohens.org.il>  `date -R`
+
+EOF
+}
+
 rm -f $tarball
 rm -rf $distdir
 mkdir $distdir
@@ -18,6 +29,8 @@ cp -a --parents $files debian \
 cat ibsim.spec.in \
 		| sed -e 's/@VERSION@/'$ver'/' -e 's/@RELEASE@/'$rel'/' -e 's/@TARBALL@/'$tarball'/' \
 		> $distdir/ibsim.spec
+
+(dch_entry; cat debian/changelog) >$distdir/debian/changelog
 
 tar czf $tarball $distdir
 rm -rf $distdir
