@@ -11,7 +11,7 @@ rm -f $tarball
 rm -rf $distdir
 mkdir $distdir
 
-files=`find . -name '*.[ch]' -o -name Makefile`
+files=`find . -name '*.[ch]' -o -name Makefile -o -name '*.in'`
 cp -a --parents $files debian \
 	defs.mk README COPYING TODO net-examples scripts tests $distdir
 
