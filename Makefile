@@ -20,7 +20,7 @@ distcheck: dist
 	cd *; \
 	make; \
 	make install DESTDIR=`pwd`/root; \
-	cd .. ;\
+	#
 	rm -rf checkdir
 
 .PHONEY: all clean dep dist distcheck install
