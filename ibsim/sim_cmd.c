@@ -72,7 +72,7 @@ static const char *portlinkspeed[] = {
 };
 
 static const char *portlinkspeedext[] = {
-	"0", " 14G", " 25G", "-", "50G",
+	"0", " 14G", " 25G", "-", "50G", "-", "-", "-", "100G",
 };
 
 static const char *portlinkmlnxspeed[] = {
@@ -82,8 +82,8 @@ static const char *portlinkmlnxspeed[] = {
 #define PORTSTATE(i) (((i) < 1 || (i) > 4) ? "?" : portstates[(i)])
 #define PHYSSTATE(i) (((i) < 1 || (i) > 6) ? "?" : physstates[(i)])
 #define PORTLINKWIDTH(i) (((i) < 1 || (i) > 16) ? "?" : portlinkwidth[(i)])
-#define PORTLINKSPEED(i) (((i) < 1 || (i) > 4) ? "?" : portlinkspeed[(i)])
-#define PORTLINKSPEEDEXT(i) (((i) < 0 || (i) > 4) ? "?" : portlinkspeedext[(i)])
+#define PORTLINKSPEED(i) (((i) < 1 || (i) > 8) ? "?" : portlinkspeed[(i)])
+#define PORTLINKSPEEDEXT(i) (((i) < 0 || (i) > 8) ? "?" : portlinkspeedext[(i)])
 #define PORTMLNXLINKSPEED(i) (((i) < 0 || (i) > 1) ? "?" : portlinkmlnxspeed[(i)])
 
 static int do_link(FILE * f, char *line)

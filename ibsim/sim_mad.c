@@ -603,6 +603,19 @@ do_portinfo(Port * port, unsigned op, uint32_t portnum, uint8_t * data)
 			p->linkspeedext = LINKSPEEDEXT_HDR;
 			rp->linkspeedext = LINKSPEEDEXT_HDR;
 			break;
+
+		case LINKSPEEDEXT_NDR:
+		case LINKSPEEDEXT_NDR_FDR:
+		case LINKSPEEDEXT_NDR_EDR:
+		case LINKSPEEDEXT_NDR_FDR_EDR:
+		case LINKSPEEDEXT_NDR_HDR:
+		case LINKSPEEDEXT_NDR_HDR_FDR:
+		case LINKSPEEDEXT_NDR_HDR_EDR:
+		case LINKSPEEDEXT_NDR_HDR_EDR_FDR:
+			p->linkspeedext = LINKSPEEDEXT_NDR;
+			rp->linkspeedext = LINKSPEEDEXT_NDR;
+			break;
+
 		default:
 			espeed = 0;
 		}
