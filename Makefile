@@ -12,7 +12,7 @@ dist:
 
 distcheck: dist
 	@set -e; set -x; \
-	tarball=`ls *.tar.gz | head -n 1`; \
+	tarball=`ls -t *.tar.gz | head -n 1`; \
 	rm -rf checkdir; \
 	mkdir checkdir; \
 	cd checkdir; \
@@ -20,7 +20,7 @@ distcheck: dist
 	cd *; \
 	make; \
 	make install DESTDIR=`pwd`/root; \
-	cd .. ;\
+	#
 	rm -rf checkdir
 
 .PHONEY: all clean dep dist distcheck install
