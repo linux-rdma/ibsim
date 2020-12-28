@@ -87,14 +87,22 @@
 #define LINKSPEED_SDR_QDR     5
 #define LINKSPEED_SDR_DDR_QDR 7
 
-#define LINKSPEEDEXT_NONE        0
-#define LINKSPEEDEXT_FDR         1
-#define LINKSPEEDEXT_EDR         2
-#define LINKSPEEDEXT_FDR_EDR     3
-#define LINKSPEEDEXT_HDR         4
-#define LINKSPEEDEXT_HDR_FDR     5
-#define LINKSPEEDEXT_HDR_EDR     6
-#define LINKSPEEDEXT_HDR_EDR_FDR 7
+#define LINKSPEEDEXT_NONE             0
+#define LINKSPEEDEXT_FDR              1
+#define LINKSPEEDEXT_EDR              2
+#define LINKSPEEDEXT_FDR_EDR          3
+#define LINKSPEEDEXT_HDR              4
+#define LINKSPEEDEXT_HDR_FDR          5
+#define LINKSPEEDEXT_HDR_EDR          6
+#define LINKSPEEDEXT_HDR_EDR_FDR      7
+#define LINKSPEEDEXT_NDR              8
+#define LINKSPEEDEXT_NDR_FDR          9
+#define LINKSPEEDEXT_NDR_EDR         10
+#define LINKSPEEDEXT_NDR_FDR_EDR     11
+#define LINKSPEEDEXT_NDR_HDR         12
+#define LINKSPEEDEXT_NDR_HDR_FDR     13
+#define LINKSPEEDEXT_NDR_HDR_EDR     14
+#define LINKSPEEDEXT_NDR_HDR_EDR_FDR 15
 
 #define MLNXLINKSPEED_NONE	0
 #define MLNXLINKSPEED_FDR10	1

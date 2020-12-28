@@ -65,6 +65,7 @@
 #define LINKSPEED_STR_FDR "FDR"
 #define LINKSPEED_STR_EDR "EDR"
 #define LINKSPEED_STR_HDR "HDR"
+#define LINKSPEED_STR_NDR "NDR"
 #define LINKSPEED_STR_FDR10 "FDR10"
 
 static int inclines[MAX_INCLUDE];
@@ -500,8 +501,11 @@ static int parse_port_link_width_and_speed(Port * port, char *line)
 		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
 		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
 	} else if (!strncmp(speed, LINKSPEED_STR_HDR, strlen(speed))) {
-
 		port->linkspeedextena = LINKSPEEDEXT_HDR_EDR_FDR;
+		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
+		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
+	} else if (!strncmp(speed, LINKSPEED_STR_NDR, strlen(speed))) {
+		port->linkspeedextena = LINKSPEEDEXT_NDR_HDR_EDR_FDR;
 		port->linkspeedena = LINKSPEED_QDR | LINKSPEED_SDR | LINKSPEED_DDR;
 		port->mlnx_linkspeedena = MLNXLINKSPEED_FDR10;
 	} else if (!strncmp(speed, LINKSPEED_STR_FDR10, strlen(speed))){
@@ -1225,6 +1229,8 @@ static int get_active_linkspeedext(Port * lport, Port * rport)
 {
 	int speed = lport->linkspeedextena & rport->linkspeedextena;
 
+	if (speed & LINKSPEEDEXT_NDR)
+		return LINKSPEEDEXT_NDR;
 	if (speed & LINKSPEEDEXT_HDR)
 		return LINKSPEEDEXT_HDR;
 	if (speed & LINKSPEEDEXT_EDR)
@@ -1281,7 +1287,7 @@ void update_portinfo(Port * p)
 
 	if (p->linkspeedext) {
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ENABLED_F, p->linkspeedextena);
-		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_SUPPORTED_F, LINKSPEEDEXT_HDR_EDR_FDR);
+		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_SUPPORTED_F, LINKSPEEDEXT_NDR_HDR_EDR_FDR);
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ACTIVE_F, p->linkspeedext);
 	} else {
 		mad_set_field(pi, 0, IB_PORT_LINK_SPEED_EXT_ENABLED_F, 0);
