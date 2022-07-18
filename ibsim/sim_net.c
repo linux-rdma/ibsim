@@ -424,9 +424,9 @@ static int is_linkspeed_valid(int speed)
 
 static int is_linkspeedext_valid(int speed)
 {
-	/* extended speed is none, FDR, EDR, HDR, or some combination */
-	if (speed < 0 || speed > 7) {
-		IBWARN("bad extended speed %d = should be between 0 to 7", speed);
+	/* extended speed is none, FDR, EDR, HDR, NDR, or some combination */
+	if (speed < 0 || speed > 15) {
+		IBWARN("bad extended speed %d = should be between 0 to 15", speed);
 		return 0;
 	}
 	return 1;
