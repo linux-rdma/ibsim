@@ -577,8 +577,11 @@ static int parse_port_opt(Port * port, char *opt, char *val)
 		break;
 	case 's':
 		v = strtoul(val, NULL, 0);
-		if (!is_linkspeed_valid(v))
+		if (v && !is_linkspeed_valid(v))
 			return -1;
+
+		/* If 0, assume QDR */
+		v = v ? v : LINKSPEED_QDR;
 
 		port->linkspeedena = v;
 		DEBUG("port %p linkspeed enabled set to %d", port,
